@@ -147,60 +147,47 @@
         }
 
         function renderCard(docId, data) {
-            const date = data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString() : '未知日期';
-            const card = document.createElement('div');
-            card.id = `card-${docId}`; 
-            card.className = "group bg-white p-5 rounded-2xl border border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between hover:shadow-md transition-all gap-4";
-            
-            // 這裡新增判斷：根據資料庫裡面的 toolType 來決定顯示的文字與連結
-            let toolTitle = data.toolType === 'HTI' ? 'HTI 何倫特質解析' : 'TWA 工作價值觀評測';
-            let summaryText = data.summary?.text || '已完成評測';
-            let retestLink = data.toolType === 'HTI' ? `tools/hti.html?loadId=${docId}` : `tools/twa.html?loadId=${docId}`;
-            let reportLink = data.toolType === 'HTI' ? `tools/hti.html?reportId=${docId}` : `report.html?id=${docId}`;
+    const date = data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString('zh-TW') : '未知日期';
+    const card = document.createElement('div');
+    card.id = `card-${docId}`;
+    card.className = "group bg-white p-5 rounded-2xl border border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between hover:shadow-md transition-all gap-4";
 
-            card.innerHTML = `
-                <div class="flex items-center gap-2 justify-end w-full lg:w-auto flex-wrap">
-                    <button onclick="deleteReport('${docId}')" class="...">
-                        <i class="fa-regular fa-trash-can"></i>
-                    </button>
-                    <a href="${retestLink}" class="...">
-                        <i class="fa-solid fa-clock-rotate-left mr-1"></i> 以此重測
-                    </a>
-                    
-                    <a href="${reportLink}" class="px-4 py-2 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-primary transition-colors shadow-sm">
-                        查看報告
-                    </a>
-                </div>
-            `;
+    const isHTI = data.toolType === 'HTI';
+    const toolTitle = isHTI ? 'HTI 何倫特質解析' : 'TWA 工作價值觀評測';
+    const summaryText = data.summary?.text || '已完成評測';
 
-            card.innerHTML = `
-                <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center group-hover:bg-teal-50 group-hover:text-primary transition-colors">
-                        <i class="fa-solid fa-file-lines"></i>
-                    </div>
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs font-bold px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] tracking-widest uppercase">${data.toolType || '評測'}</span>
-                            <span class="text-xs text-slate-400">${date}</span>
-                        </div>
-                        <h4 class="font-bold text-secondary text-base">${toolTitle}</h4>
-                        <p class="text-sm text-slate-400 truncate max-w-xs">${summaryText}</p>
-                    </div>
+    // Bug 修正：兩個工具都統一走 report.html
+    const reportLink = `report.html?id=${docId}`;
+    const retestLink = isHTI ? `tools/hti.html?loadId=${docId}` : `tools/twa.html?loadId=${docId}`;
+
+    card.innerHTML = `
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center group-hover:bg-teal-50 group-hover:text-primary transition-colors">
+                <i class="fa-solid fa-file-lines"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] tracking-widest uppercase">${data.toolType || '評測'}</span>
+                    <span class="text-xs text-slate-400">${date}</span>
                 </div>
-                <div class="flex items-center gap-2 justify-end w-full lg:w-auto flex-wrap">
-                    <button onclick="deleteReport('${docId}')" class="px-3 py-2 bg-white text-red-400 border border-red-100 text-sm font-bold rounded-xl hover:bg-red-50 hover:text-red-600 transition-colors" title="刪除紀錄">
-                        <i class="fa-regular fa-trash-can"></i>
-                    </button>
-                    <a href="${retestLink}" class="px-3 py-2 bg-teal-50 text-primary border border-teal-100 text-sm font-bold rounded-xl hover:bg-teal-100 transition-colors shadow-sm">
-                        <i class="fa-solid fa-clock-rotate-left mr-1"></i> 以此重測
-                    </a>
-                    <a href="report.html?id=${docId}" class="px-4 py-2 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-primary transition-colors shadow-sm">
-                        查看報告
-                    </a>
-                </div>
-            `;
-            container.appendChild(card);
-        }
+                <h4 class="font-bold text-secondary text-base">${toolTitle}</h4>
+                <p class="text-sm text-slate-400 truncate max-w-xs">${summaryText}</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 justify-end w-full lg:w-auto flex-wrap">
+            <button onclick="deleteReport('${docId}')" class="px-3 py-2 bg-white text-red-400 border border-red-100 text-sm font-bold rounded-xl hover:bg-red-50 hover:text-red-600 transition-colors" title="刪除紀錄">
+                <i class="fa-regular fa-trash-can"></i>
+            </button>
+            <a href="${retestLink}" class="px-3 py-2 bg-teal-50 text-primary border border-teal-100 text-sm font-bold rounded-xl hover:bg-teal-100 transition-colors shadow-sm">
+                <i class="fa-solid fa-clock-rotate-left mr-1"></i> 以此重測
+            </a>
+            <a href="${reportLink}" class="px-4 py-2 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-primary transition-colors shadow-sm">
+                查看報告
+            </a>
+        </div>
+    `;
+    container.appendChild(card);
+}
 
         window.deleteReport = async (docId) => {
             if (!confirm("確定要刪除這筆測驗紀錄嗎？刪除後將無法恢復。")) return;

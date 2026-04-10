@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="這是一套基於工作調節理論 (TWA) 的探索評測工具。引導你釐清內在工作價值的需求，並透過 115 分的能量取捨，澄清渴望的具體環境指標。">
+    
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://careervalue-ormap.netlify.app/"> 
+    <meta property="og:title" content="職涯需求覺察系統 2026 Edition | 原味藍圖">
+    <meta property="og:description" content="打破迷惘的策略，是有意識的選擇。點擊進入這場關於內在探索的練習，用 115 分的預算，打造你的理想職涯輪廓。">
+    <meta property="og:image" content="./preview-image.png">
+    
+    <title> 職涯需求覺察系統 2026 Edition | 原味藍圖 </title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+        
+        body { background-color: #f8fafc; color: #1e293b; font-family: 'Noto Sans TC', sans-serif; scroll-behavior: smooth; }
+        .glass-nav { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid rgba(226, 232, 240, 0.8); }
+
+        /* 理想滑桿 (青色, 適中) */
+        input.slider-ideal[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input.slider-ideal[type=range]::-webkit-slider-thumb { 
+            -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; 
+            background: #0d9488; cursor: pointer; margin-top: -7px; 
+            box-shadow: 0 2px 5px rgba(13, 148, 136, 0.3); border: 2px solid white;
+        }
+        input.slider-ideal[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: #e2e8f0; border-radius: 3px; }
+
+        /* 現況滑桿 (灰色, 小) */
+        input.slider-current[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input.slider-current[type=range]::-webkit-slider-thumb { 
+            -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; 
+            background: #64748b; cursor: pointer; margin-top: -6px; 
+            box-shadow: 0 1px 3px rgba(100, 116, 139, 0.2); border: 2px solid white;
+        }
+        input.slider-current[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #e2e8f0; border-radius: 2px; }
+
+        .chart-container { position: relative; width: 100%; height: 350px; }
+        @media (min-width: 1024px) { 
+            .sticky-aside { position: sticky; top: 6rem; max-height: calc(100vh - 7rem); overflow-y: auto; padding-right: 0.5rem; padding-bottom: 2rem; } 
+        }
+
+        .indicator-checkbox:checked + label { background-color: #0d9488; color: white; border-color: #0d9488; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(13, 148, 136, 0.2); }
+        
+        .locked-label { opacity: 0.4; filter: grayscale(100%); cursor: not-allowed !important; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+        .shake-anim { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; color: #e11d48 !important; }
+
+        @keyframes pulse-red { 0%, 100% { border-color: #e2e8f0; } 50% { border-color: #e11d48; box-shadow: 0 0 15px rgba(225, 29, 72, 0.2); } }
+        .limit-reached { animation: pulse-red 0.4s ease-in-out; border-width: 2px !important; }
+
+        .mesh-gradient { background: radial-gradient(at 100% 0%, rgba(13, 148, 136, 0.1) 0, transparent 50%), radial-gradient(at 0% 100%, rgba(13, 148, 136, 0.05) 0, transparent 50%); }
+
+        .drawer-open { transform: translateY(0%); }
+        .drawer-closed { transform: translateY(100%); }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background-color: white; padding: 0; margin: 0; }
+            main { padding: 0 !important; max-width: 100% !important; }
+            .report-section { display: block !important; border: none !important; padding: 0 !important; margin-top: 0 !important;}
+            .report-card { break-inside: avoid; margin-bottom: 2rem !important; }
+            .print-pure-text { border: none !important; padding: 0 !important; background: transparent !important; resize: none !important; overflow: visible !important; min-height: auto !important; height: auto !important; white-space: pre-wrap !important;}
+            .print-header-info { display: grid !important; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem; }
+        }
+    </style>
+</head>
+<body class="antialiased relative">
+
+    <div id="reality-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-6 opacity-0 transition-opacity duration-300 no-print">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeRealityModal()"></div>
+        <div class="relative bg-white p-8 lg:p-12 rounded-2xl lg:rounded-2xl shadow-2xl max-w-lg w-full text-center border border-slate-200 transform scale-95 transition-transform duration-300">
+            <div class="w-16 h-16 lg:w-20 lg:h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="alert-triangle" class="w-8 h-8 lg:w-10 lg:h-10 text-rose-500"></i>
+            </div>
+            <h3 class="text-2xl lg:text-3xl font-black text-slate-800 mb-4 tracking-tight">叮！能量預算已達上限</h3>
+            <p class="text-slate-500 text-base lg:text-lg leading-relaxed mb-8">現實往往無法讓我們全拿。你剛剛憑直覺抓取了許多渴望，但現在，<strong class="text-slate-700">真正的練習才要開始。</strong><br><br>接下來，請檢視你剛才的選擇。為了保住你最在乎的「核心紅線」，你準備好對哪些項目妥協，練習「放下」了嗎？</p>
+            <button onclick="closeRealityModal()" class="w-full py-4 bg-teal-600 text-white rounded-full font-black text-lg lg:text-xl hover:bg-teal-700 transition-colors shadow-lg active:scale-95">我準備好開始取捨了</button>
+        </div>
+    </div>
+
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm h-16 flex items-center no-print">
+        <div class="max-w-7xl mx-auto px-6 w-full flex justify-between items-center">
+            
+            <div class="flex items-center gap-3">
+                <a href="../dashboard.html" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                    <img src="../ormap-logo.png" alt="Ormap Logo" class="w-8 h-8 object-contain">
+                    <span class="text-lg font-bold tracking-tight text-slate-900 hidden sm:block">Ormap <span class="text-teal-600">原味藍圖</span></span>
+                </a>
+                <div class="h-4 w-px bg-slate-300 mx-2 hidden md:block"></div>
+                <span class="font-black text-sm tracking-widest text-teal-600 uppercase">職涯需求覺察系統</span>
+            </div>
+
+            <div class="flex items-center gap-4">
+                
+                <div id="budget-box" class="bg-white border border-slate-200 rounded-xl px-3 py-1 flex items-center gap-2 transition-all">
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter hidden sm:block">能量剩餘</span>
+                    <div class="flex items-baseline leading-none">
+                        <span id="points-rem" class="text-lg font-black text-teal-600 transition-all">115</span>
+                        <span class="text-slate-400 font-bold text-[10px] ml-1">/ 115</span>
+                    </div>
+                </div>
+                
+                <a href="../dashboard.html" class="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors flex items-center gap-1 border-l border-r border-slate-200 px-4 mx-1">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                    <span class="hidden xl:inline">回儀表板</span>
+                </a>
+
+                <div class="flex items-center gap-3">
+                    <img id="nav-user-avatar" src="https://via.placeholder.com/150" class="w-8 h-8 rounded-full border border-slate-200 hidden shadow-sm" alt="Avatar">
+                    <div class="hidden md:flex flex-col text-right">
+                        <span id="nav-user-name" class="text-xs font-bold text-slate-700">載入中...</span>
+                        <span id="nav-test-date" class="text-[10px] text-slate-400 font-medium">--</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
+        
+        <section class="mb-12 lg:mb-16 no-print">
+            <div class="bg-white p-6 lg:p-12 rounded-2xl lg:rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden mesh-gradient">
+                <div class="relative z-10 mx-auto">
+                    <div class="mb-10 lg:mb-16">
+                        <h2 class="text-3xl lg:text-5xl font-black text-slate-800 mb-6 lg:mb-8 leading-tight tracking-tight">探索自己的工作價值觀，<br class="lg:hidden">打造理想職涯輪廓</h2>
+                        <p class="text-lg lg:text-2xl font-bold text-slate-400 border-l-4 lg:border-l-8 border-teal-500 pl-6 lg:pl-8 leading-relaxed mb-6 lg:mb-8">
+                            「打破迷惘的策略，是有意識的選擇；<br>而最好的決策，來自於你對自己需求的誠實。」
+                        </p>
+                        <p class="text-base lg:text-xl text-slate-500 max-w-4xl leading-relaxed">
+                            歡迎來到由 <strong>原味藍圖</strong> 為你建立的探索評測工具。此理論源自工作調節理論 (TWA)，引導你釐清內在工作價值的需求，並澄清渴望的具體環境指標。
+                        </p>
+                    </div>
+
+                    <div class="mb-6 lg:mb-8 flex items-center">
+                        <div class="w-2 h-6 lg:h-8 bg-teal-500 rounded-full mr-3"></div>
+                        <h3 class="text-xl lg:text-2xl font-black text-slate-800 tracking-tight">使用前說明</h3>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+                        <div class="bg-white/60 backdrop-blur-md p-6 lg:p-8 rounded-[2rem] lg:rounded-2xl border border-white shadow-sm flex flex-col items-center text-center group hover:bg-white transition-all">
+                            <div class="w-12 h-12 lg:w-14 lg:h-14 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-600 mb-4 lg:mb-6 group-hover:scale-110 transition-transform"><i data-lucide="wind"></i></div>
+                            <h5 class="font-black text-slate-800 mb-2 lg:mb-3">1. 回到中心</h5>
+                            <p class="text-xs lg:text-sm text-slate-400 leading-relaxed">為自己空下半小時平靜時光，回到內在中心。</p>
+                        </div>
+                        <div class="bg-white/60 backdrop-blur-md p-6 lg:p-8 rounded-[2rem] lg:rounded-2xl border border-white shadow-sm flex flex-col items-center text-center group hover:bg-white transition-all">
+                            <div class="w-12 h-12 lg:w-14 lg:h-14 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-600 mb-4 lg:mb-6 group-hover:scale-110 transition-transform"><i data-lucide="user-plus"></i></div>
+                            <h5 class="font-black text-slate-800 mb-2 lg:mb-3">2. 設定方向</h5>
+                            <p class="text-xs lg:text-sm text-slate-400 leading-relaxed">填寫姓名、目標，並務必填寫 Email 以接收摘要。</p>
+                        </div>
+                        <div class="bg-white/60 backdrop-blur-md p-6 lg:p-8 rounded-[2rem] lg:rounded-2xl border border-white shadow-sm flex flex-col items-center text-center group hover:bg-white transition-all">
+                            <div class="w-12 h-12 lg:w-14 lg:h-14 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-600 mb-4 lg:mb-6 group-hover:scale-110 transition-transform"><i data-lucide="sliders-horizontal"></i></div>
+                            <h5 class="font-black text-slate-800 mb-2 lg:mb-3">3. 雙軌評分</h5>
+                            <p class="text-xs lg:text-sm text-slate-400 leading-relaxed">同時評估「現況滿意度」與未來的「理想期待值」。</p>
+                        </div>
+                        <div class="bg-white/60 backdrop-blur-md p-6 lg:p-8 rounded-[2rem] lg:rounded-2xl border border-white shadow-sm flex flex-col items-center text-center group hover:bg-white transition-all">
+                            <div class="w-12 h-12 lg:w-14 lg:h-14 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-600 mb-4 lg:mb-6 group-hover:scale-110 transition-transform"><i data-lucide="check-square"></i></div>
+                            <h5 class="font-black text-slate-800 mb-2 lg:mb-3">4. 選擇指標</h5>
+                            <p class="text-xs lg:text-sm text-slate-400 leading-relaxed">根據理想期待獲取點數，勾選渴望的具體指標。</p>
+                        </div>
+                        <div class="bg-white/60 backdrop-blur-md p-6 lg:p-8 rounded-[2rem] lg:rounded-2xl border border-white shadow-sm flex flex-col items-center text-center group hover:bg-white transition-all">
+                            <div class="w-12 h-12 lg:w-14 lg:h-14 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-600 mb-4 lg:mb-6 group-hover:scale-110 transition-transform"><i data-lucide="battery-charging"></i></div>
+                            <h5 class="font-black text-slate-800 mb-2 lg:mb-3">5. 預算取捨</h5>
+                            <p class="text-xs lg:text-sm text-slate-400 leading-relaxed">根據有限的 115 分預算，進行理想程度的資源分配。</p>
+                        </div>
+                        <div class="bg-white/60 backdrop-blur-md p-6 lg:p-8 rounded-[2rem] lg:rounded-2xl border border-white shadow-sm flex flex-col items-center text-center group hover:bg-white transition-all">
+                            <div class="w-12 h-12 lg:w-14 lg:h-14 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-600 mb-4 lg:mb-6 group-hover:scale-110 transition-transform"><i data-lucide="pen-tool"></i></div>
+                            <h5 class="font-black text-slate-800 mb-2 lg:mb-3">6. 寫下落差體悟</h5>
+                            <p class="text-xs lg:text-sm text-slate-400 leading-relaxed">記錄面對理想與現實落差時的取捨與感受。</p>
+                        </div>
+                        <div class="bg-white/60 backdrop-blur-md p-6 lg:p-8 rounded-[2rem] lg:rounded-2xl border border-white shadow-sm flex flex-col items-center text-center group hover:bg-white transition-all sm:col-span-2 lg:col-span-2">
+                            <div class="w-12 h-12 lg:w-14 lg:h-14 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-600 mb-4 lg:mb-6 group-hover:scale-110 transition-transform"><i data-lucide="file-text"></i></div>
+                            <h5 class="font-black text-slate-800 mb-2 lg:mb-3">7. 產出報告與信件</h5>
+                            <p class="text-xs lg:text-sm text-slate-400 leading-relaxed">系統將為您發送一份精華摘要至信箱，並提供專屬線上報告連結。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-12 space-y-4" id="identity-section">
+            <div class="grid grid-cols-1 gap-4 no-print mb-4">
+                <div class="bg-white p-6 rounded-[2rem] lg:rounded-2xl border border-slate-200 shadow-sm">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-widest">目前職業 / 背景</label>
+                    <input type="text" id="user-job" placeholder="例如：行銷企劃、軟體工程師..." class="w-full font-black text-slate-700 focus:outline-none bg-transparent text-lg lg:text-xl" onchange="saveAll()">
+                </div>
+            </div>
+            
+            <div class="bg-white p-8 lg:p-10 rounded-2xl lg:rounded-2xl border border-slate-200 shadow-sm transition-all hover:border-teal-500/30">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-4 tracking-widest">您的長期職涯目標</label>
+                <textarea id="user-goal" placeholder="請在此自由書寫你心中理想的職涯願景..." class="w-full bg-slate-50 p-6 rounded-3xl text-slate-700 font-medium focus:outline-none focus:ring-4 focus:ring-teal-500/10 leading-relaxed text-lg lg:text-xl print-pure-text shadow-inner" rows="3" onchange="saveAll()"></textarea>
+            </div>
+        </section>
+
+        <section class="mb-16 lg:mb-20 no-print">
+            <h3 class="text-2xl lg:text-3xl font-black text-slate-800 mb-8 lg:mb-10 text-center tracking-tight underline decoration-teal-500 decoration-8 underline-offset-8">這個評測對你的幫助是什麼？</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+                <div class="bg-slate-900 p-8 lg:p-12 rounded-2xl lg:rounded-[4.5rem] border border-slate-700 text-white shadow-2xl transition-all hover:-translate-y-2 relative group overflow-hidden">
+                    <div class="absolute top-0 left-0 w-2 h-full bg-teal-500"></div>
+                    <div class="relative z-10 flex flex-col h-full">
+                        <div class="flex items-center mb-6 lg:mb-8">
+                            <div class="w-12 h-12 lg:w-16 lg:h-16 bg-teal-500/20 rounded-2xl lg:rounded-[2rem] flex items-center justify-center text-teal-400 mr-4 lg:mr-6 shadow-inner">
+                                <i data-lucide="target" class="w-6 h-6 lg:w-8 lg:h-8"></i>
+                            </div>
+                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Motivation 01</span>
+                        </div>
+                        <h4 class="text-2xl lg:text-3xl font-black text-teal-400 mb-4 lg:mb-6 tracking-tight">為什麼要釐清工作價值觀？</h4>
+                        <p class="text-slate-300 leading-relaxed text-base lg:text-xl font-medium">當你越了解自己要什麼的時候，越能夠在挑選工作時明確掌握「工作內容」是否符合期待。看見背後支撐你長久發展的動力。</p>
+                    </div>
+                </div>
+                <div class="bg-slate-900 p-8 lg:p-12 rounded-2xl lg:rounded-[4.5rem] border border-slate-700 text-white shadow-2xl transition-all hover:-translate-y-2 relative group overflow-hidden">
+                    <div class="absolute top-0 left-0 w-2 h-full bg-teal-500"></div>
+                    <div class="relative z-10 flex flex-col h-full">
+                        <div class="flex items-center mb-6 lg:mb-8">
+                            <div class="w-12 h-12 lg:w-16 lg:h-16 bg-teal-500/20 rounded-2xl lg:rounded-[2rem] flex items-center justify-center text-teal-400 mr-4 lg:mr-6 shadow-inner">
+                                <i data-lucide="search-check" class="w-6 h-6 lg:w-8 lg:h-8"></i>
+                            </div>
+                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Motivation 02</span>
+                        </div>
+                        <h4 class="text-2xl lg:text-3xl font-black text-teal-400 mb-4 lg:mb-6 tracking-tight">具體化如何判別你想要的？</h4>
+                        <p class="text-slate-300 leading-relaxed text-base lg:text-xl font-medium">價值觀能讓你學會「反向設計面試問題」，從而釐清這份工作是否適合自己。透過你在意的指標轉化為提問，主動確認職場細節。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 no-print">
+            <div class="lg:col-span-7 space-y-6 lg:space-y-8" id="assessment-container"></div>
+            
+            <div class="lg:col-span-5">
+                <div class="sticky-aside space-y-6 custom-scrollbar">
+                    
+                    <div class="hidden lg:block bg-white p-8 lg:p-10 rounded-2xl lg:rounded-3xl shadow-sm border border-slate-200">
+                        <div class="relative group flex items-center justify-center mb-6 z-10">
+                            <h3 class="font-black text-slate-800 text-xl tracking-tight uppercase flex items-center cursor-help">
+                                <i data-lucide="map" class="w-5 h-5 mr-2 text-teal-600"></i> 能量分配導航
+                                <i data-lucide="help-circle" class="w-4 h-4 ml-2 text-slate-300 group-hover:text-teal-500 transition-colors"></i>
+                            </h3>
+                            <div class="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-64 p-3 bg-slate-800 text-white text-xs rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl text-center leading-relaxed">
+                                點擊文字快速跳轉。<br>若預算超支，可點擊 <b>[-]</b> 快速扣除理想分數。
+                            </div>
+                        </div>
+                        <div id="desktop-nav-list" class="space-y-1 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar relative z-0">
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-8 lg:p-10 rounded-2xl lg:rounded-3xl shadow-sm border border-slate-200">
+                        <h3 class="font-black text-slate-800 text-xl mb-8 text-center tracking-widest uppercase">現況與理想 雙層雷達圖</h3>
+                        <div class="chart-container"><canvas id="radarChart"></canvas></div>
+                        <div class="mt-8 lg:mt-12 text-center w-full border-t border-slate-50 pt-8 lg:pt-12">
+                            <div class="text-[10px] text-slate-400 font-black mb-2 uppercase tracking-widest">決策狀態 ⓘ</div>
+                            <div id="stat-focus" class="text-3xl lg:text-4xl font-black text-teal-600 tracking-tighter uppercase">--</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-8 lg:p-10 rounded-2xl lg:rounded-3xl shadow-sm border border-slate-200">
+                        <h3 class="font-black text-slate-800 text-xl mb-6 text-center tracking-tight uppercase">重視重心 Top 5</h3>
+                        <div id="top-list" class="space-y-3 min-h-[200px]"></div>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+
+        <section class="mt-24 lg:mt-40 mb-12 no-print">
+            <h3 class="text-2xl lg:text-3xl font-black text-slate-800 mb-8 lg:mb-10 text-center tracking-tight underline decoration-teal-500 decoration-8 underline-offset-8">完成評測後，你會感受到過程中的成長...</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 mb-12">
+                <div class="bg-white p-8 lg:p-12 rounded-3xl lg:rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all">
+                    <div class="w-14 h-14 lg:w-16 lg:h-16 bg-amber-50 rounded-[2rem] flex items-center justify-center text-3xl lg:text-4xl mb-6 lg:mb-8 shadow-inner">🍂</div>
+                    <h4 class="text-xl lg:text-2xl font-black text-slate-800 mb-4 lg:mb-5 tracking-tight">犧牲與放下的勇氣</h4>
+                    <p class="text-slate-500 leading-relaxed text-base lg:text-xl">那些你目前給予低分的項目，是你為了守護核心價值，而在現實中展現的寬容度。學會放下，才能拿穩真正珍視的部分。</p>
+                </div>
+                <div class="bg-white p-8 lg:p-12 rounded-3xl lg:rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all">
+                    <div class="w-14 h-14 lg:w-16 lg:h-16 bg-teal-50 rounded-[2rem] flex items-center justify-center text-3xl lg:text-4xl mb-6 lg:mb-8 shadow-inner">💎</div>
+                    <h4 class="text-xl lg:text-2xl font-black text-slate-800 mb-4 lg:mb-5 tracking-tight">選擇的人生哲學</h4>
+                    <p class="text-slate-500 leading-relaxed text-base lg:text-xl">分數就是能量預算。投注分值越高，代表你對該指標投注的注意力會更有意識的具體，獲得的回饋也會更豐富。</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-8 lg:p-12 rounded-2xl lg:rounded-[4.5rem] border border-slate-200 shadow-sm">
+                <h4 class="text-2xl lg:text-3xl font-black text-slate-800 mb-6 lg:mb-10 flex items-center tracking-tight uppercase">
+                    <span class="mr-4 text-3xl lg:text-4xl">📝</span> 練習帶給你的整體體悟
+                </h4>
+                <p class="text-slate-500 text-base lg:text-lg mb-8 italic">「完成了價值排序與評估，請自由的寫下你此刻最真實的覺察...」</p>
+                <textarea id="final-insight" class="w-full p-8 lg:p-12 bg-slate-50 border-2 border-slate-100 rounded-2xl lg:rounded-3xl text-slate-700 text-xl lg:text-2xl italic font-medium focus:outline-none focus:ring-4 focus:ring-teal-500/20 transition-all shadow-inner" rows="6" oninput="syncInsight(this.value)" placeholder="看著理想與現況的落差，帶給你什麼感受？如果現在擁有的環境資源被拿掉，你能接受嗎？或是為了縮小這個差距，你想要如何行動呢？"></textarea>
+            </div>
+        </section>
+
+        <section id="final-report" class="mt-20 pt-20 border-t-4 border-slate-100 report-section">
+            <div class="max-w-5xl mx-auto">
+                <div class="bg-white p-8 lg:p-12 rounded-2xl lg:rounded-[5rem] shadow-2xl border border-slate-200 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-4 lg:h-6 bg-teal-600 no-print"></div>
+                    <div class="text-center mb-16 lg:mb-24">
+                        <div class="text-teal-600 font-black tracking-[0.4em] lg:tracking-[0.6em] uppercase text-[10px] lg:text-xs mb-4">Discovery Insight Report 2026</div>
+                        <h3 class="text-4xl lg:text-6xl font-black text-slate-800 mb-4 lg:mb-6 tracking-tight uppercase">職涯需求覺察報告</h3>
+                        <div class="text-slate-400 mt-4 lg:mt-6 font-medium italic underline decoration-teal-100 underline-offset-8 decoration-4">—— 原味藍圖 | 生涯導航專屬建構 ——</div>
+                    </div>
+
+                    <div class="mb-16 lg:mb-20 bg-slate-50/50 rounded-2xl lg:rounded-3xl p-8 lg:p-12 border border-slate-100 flex flex-col md:flex-row items-center gap-10">
+                        <div class="flex-1 w-full max-w-sm"><canvas id="radarChartFinal"></canvas></div>
+                        <div class="flex-1 text-center md:text-left border-t md:border-t-0 md:border-l border-slate-200 pt-8 md:pt-0 md:pl-10">
+                            <div class="text-xs lg:text-sm text-slate-400 font-black mb-4 uppercase tracking-[0.4em]">決策狀態解析</div>
+                            <div id="final-stat-focus" class="text-4xl lg:text-5xl font-black text-teal-600 mb-4 tracking-tight">--</div>
+                            <p id="focus-explanation" class="text-slate-500 text-sm lg:text-base italic font-medium leading-relaxed"></p>
+                        </div>
+                    </div>
+
+                    <div id="report-summary-content" class="space-y-12 lg:space-y-20"></div>
+
+                    <div class="mt-20 lg:mt-24 pt-16 lg:pt-20 border-t border-slate-100">
+                        <h4 class="text-2xl lg:text-3xl font-black text-slate-800 mb-8 lg:mb-12 flex items-center tracking-tight uppercase">
+                            <span class="mr-4 text-4xl">📝</span> 整體體悟與覺察發現
+                        </h4>
+                        <div id="display-final-insight" class="p-8 lg:p-12 bg-slate-50 border-2 border-slate-100 rounded-2xl lg:rounded-2xl text-slate-700 text-lg lg:text-xl font-medium italic leading-relaxed min-h-[150px] lg:min-h-[250px] print-pure-text shadow-inner"></div>
+                    </div>
+
+                    <div class="mt-20 lg:mt-32 pt-12 lg:pt-16 border-t border-slate-100 text-center no-print">
+                        <div class="flex flex-col items-center gap-4 mb-10">
+                                                    <div class="flex flex-col sm:flex-row justify-between items-center gap-4 w-full max-w-3xl mx-auto mt-8 mb-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+    <div class="flex items-center gap-4">
+        <div class="w-12 h-12 bg-teal-50 rounded-full flex items-center justify-center text-primary shadow-inner">
+            <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+        </div>
+        <div>
+            <h4 class="text-sm font-bold text-slate-700 mb-0.5">雲端進度同步</h4>
+            <p id="auto-save-status" class="text-xs text-slate-400 font-medium tracking-wide">系統將自動儲存您的變更</p>
+        </div>
+    </div>
+    <button onclick="clearDraft()" class="px-5 py-2.5 bg-white text-red-500 border border-red-200 rounded-xl text-sm font-bold tracking-widest hover:bg-red-50 transition-colors flex items-center shadow-sm">
+        <i class="fa-solid fa-trash-arrow-up mr-2"></i> 清除進度，重新開始
+    </button>
+</div>
+                            <button id="print-btn" onclick="submitAndPrint()" class="w-full md:w-auto px-8 py-4 lg:px-10 lg:py-4 bg-[#0d9488] text-white rounded-full font-bold shadow-md hover:bg-teal-700 transition-all text-base lg:text-lg flex items-center justify-center">
+                                <i data-lucide="send" class="mr-3 w-5 h-5"></i> <span id="print-btn-text">完成評測並發送報告</span>
+                            </button>
+                            <a href="https://line.me/R/ti/p/@900gjsny" target="_blank" class="w-full md:w-auto px-8 py-4 lg:px-10 lg:py-4 bg-white border-2 border-[#0d9488] text-[#0d9488] rounded-full font-bold hover:bg-teal-50 transition-all flex items-center justify-center text-base lg:text-lg tracking-widest shadow-sm">
+                                與諮詢師深度對談
+                            </a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="max-w-7xl mx-auto px-3 py-16 lg:py-24 text-center no-print border-t border-slate-100 mt-16 lg:mt-24">
+        <p class="text-[12px] font-medium text-[#94a3b8] mb-4 italic tracking-tight underline decoration-teal-500/10 underline-offset-4 decoration-2">
+            「最好的選擇，始於對自己真實需求的溫柔看見。」
+        </p>
+        <p class="text-[10px] uppercase tracking-[0.3em] font-black text-[#94a3b8]/80">
+            © 2026 Ormap | CAREER AWARENESS SYSTEM
+        </p>
+    </footer>
+
+    <button id="fab-nav" onclick="toggleMobileNav()" class="lg:hidden fixed bottom-6 right-6 w-14 h-14 bg-teal-600 text-white rounded-full shadow-2xl z-40 flex items-center justify-center border-4 border-white transition-transform active:scale-90 no-print">
+        <i data-lucide="compass"></i>
+        <span id="fab-badge" class="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white hidden">0</span>
+    </button>
+
+    <div id="mobile-drawer" class="lg:hidden fixed inset-x-0 bottom-0 z-50 drawer-closed transition-transform duration-300 flex flex-col h-[75vh] bg-white rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] no-print">
+        <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-[2.5rem]">
+            <h3 class="font-black text-slate-800 text-base flex items-center">
+                <i data-lucide="map" class="w-4 h-4 mr-2 text-teal-600"></i> 能量導航 <span class="ml-2 text-[10px] font-normal text-slate-400">點擊跳轉 / [-] 扣分</span>
+            </h3>
+            <button onclick="toggleMobileNav()" class="p-2 bg-slate-200 rounded-full text-slate-600"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-5" id="mobile-nav-list">
+        </div>
+    </div>
+    <div id="mobile-drawer-overlay" onclick="toggleMobileNav()" class="lg:hidden fixed inset-0 bg-slate-900/20 z-40 hidden backdrop-blur-sm no-print"></div>
+
+    <script>
+        lucide.createIcons();
+
+        const matrix = [
+            { v: '成就', n: '發揮專長', d: '核心技術、專業工具應用及意見在職場中可以被實踐、發揮價值並見證成長。', i: ['核心硬實力應用','實戰技能進化感','數位智慧系統輔助','高品質設備配置','專業工具完整供應','跨領域資源整合','策略規劃參與感','顧問式問題解決','創新實作空間廣','專業意見受尊重','技術師徒制傳承','內部分享風氣盛','軟體授權合規性','專利研發參與權','架構主導選擇權','專業認證經費補助','研究發展保留時間','資深同儕交流感','流程優化實踐權','技術工具選擇權'] },
+            { v: '成就', n: '看見成果', d: '任務達成後產出的具體成果獲得的滿足感與組織反饋。', i: ['行政效率變好','計畫如期達成','作品實體化程度','數據表現提升量','用戶端即時反饋','品牌市場能見度','里程碑達成爽感','業務目標數字達標','客戶滿意度指標','內部致謝機制頻繁','作品集累積廣度','解決方案落地率','營運成本顯著降低','市場佔有率擴大','獲頒年度獎項感','长期專案收穫感','業界影響力提升','績效具象化呈現','成果對外發表機','流程自動化成效'] },
+            { v: '舒適', n: '工作節奏', d: '任務負荷飽滿度、待辦排序清晰度與休息質量的保障。', i: ['任務量合理','待辦清單排序明確','會議效益極大化','上下班界限明確','任務交辦預期高','專注時段不被打擾','行政雜務比例低','淡旺季節奏分明','進度自主掌控權','高品質休息時間','專案切換緩衝足','拒絕臨時插單權','截止日期合理性','午休時間穩定','假日無訊息擾動','工作負擔均勻分配','心理空間預留感','回報頻率合理化','自動化報表輔助','節奏彈性自訂'] },
+            { v: '舒適', n: '獨立作業', d: '執行任務時的自主決定權限、私密空間感以及職責界限。', i: ['單獨決策權限高','非必要溝通率低','自主啟動任務權','工作回報週期合理','空間私密安靜感','非同步協作文化','遠距作業自由','干預頻率極低','獨立辦公位置','無須時刻同步','個人品牌發揮','權責明確','作業流程自主','決策軌跡可追蹤','安靜工作氛圍','研究時間主權','非同步決策授權','任務優先級自主','個人開發環境權','排除噪音環境'] },
+            { v: '舒適', n: '內容變化', d: '任務多樣化程度、新技術導入頻率及跨職能切換感。', i: ['專案性質多元化','接觸產業領域廣','技術導入更新頻繁','職能專業切換','學習地圖延展廣','海外出差派駐機會','處理複雜問題感','客群對象變動性','跨部門協作豐富','新領域開拓權','定期輪調制度','任務難度有梯度','新舊知識交替快','客戶需求創新度','技術堆疊更新感','產品開發週期短','異業合作機會多','跨國團隊交流頻','市場變革應對力'] },
+            { v: '舒適', n: '薪資福利', d: '薪酬結構、調薪機制、假期津貼及生活支援保障。', i: ['基本薪具競爭力','年度調薪機制明','績效獎金倍數高','家庭照顧彈性假','請假流程數位便利','各類福利補助多','退休金認股期權','加班費核實支付','高階團體保險全','生活津貼育兒補助','年終保證月數穩','節慶獎金與禮金','旅遊進修經費足','健康檢查補貼高','彈性福利點數制','餐費交通補貼全','勞健保足額投保','特休假優於法律','離職金優於法規','分紅獎勵透明度'] },
+            { v: '舒適', n: '公司穩健', d: '企業經營穩定度、言行一致性及組織資產厚實度。', i: ['財務獲利能力強','組織價值言行一致','公司資產底蘊深','管理債少','技術債少','產業進步潛力大','市場佔有率領先','管理層變動率低','離職率低','品牌長期信譽高','法律合規程度高','營運決策有邏輯','長期合約量充足','投資人穩定度','核心技術自持','內部職能完整','市場避險能力','風險控制機制','願景落實度高','員工平均年資長'] },
+            { v: '舒適', n: '環境舒適', d: '辦公設備機能、交通便利性、空間美感及數位流暢度。', i: ['設備人體工學化','通勤距離短','上下班時間彈性','企業管理系統好用','茶水休息間品質','洗手間整潔衛生','採光與隔音佳','週邊午餐機能佳','辦公位置寬敞感','環境整體美感佳','數位看板資訊明','空氣品質監測化','具備安全飲水','儲物空間配置','清潔外包頻率','綠色植物裝飾','安檢門禁流暢','周邊托育設施','交通停車方便','個人私隱保護'] },
+            { v: '地位', n: '升遷與發展', d: '晉升路徑明確性、考核公平性及個人規劃對標。', i: ['職級路徑極清晰','考核標準公正化','管理職缺釋出多','專家管理雙軌制','培訓預算極充足','部門輪調機制活','高階主管導師制','晉升速度具競爭','海外市場派駐機','職涯規劃對標感','人才梯隊建設全','晉升反饋面談頻','跨國轉調機會多','管理職前培訓全','內推文化興盛','學習資源豐沛','外部顧問交流頻繁','專業成長補助高','個人發展計畫詳盡','明確升遷時間表'] },
+            { v: '地位', n: '獲得認可', d: '貢獻被看見頻率、正面回饋質量與專業署名權。', i: ['正式表揚制度全','主管讚賞文化濃厚','績效反饋具即時性','同儕互推肯定風氣','業界口碑影響力','獲頒榮譽獎項多','專案成果署名權','受邀出席決策會議','團隊貢獻能見度','個人IP支持','會議公開致謝頻率','成果對內展現機會','內部通訊報導權','客戶指名感謝信','獎牌證書頒發制','參與官網成功案例','重要活動代表','專業社群推薦感','LinkedIn技能推薦','受邀演講機會'] },
+            { v: '地位', n: '決策權力', d: '在預算、專業、人員任用上擁有的裁量主導權。', i: ['專業影響權','人才任用意見權','資遣處理處理意見','專案預算主導權','合作廠商選擇權','流程最終影響權','策略方向建議權','技術架構決策','跨單位衝突調度','行政指令發布','會議議程定奪','績效點數分配','工具使用選擇權責','團隊規範定標','工作流程重組','關鍵時刻止損','外部資源對接','授權廣度與深度','資源分配主動權','代表公司對外發言'] },
+            { v: '地位', n: '社會地位', d: '品牌知名度、職稱專業威望及產業標竿的自豪感。', i: ['企業社會知名度','產業標竿領導位','職稱專業威望感','外界高度評價','身分認同自豪感','專業領域光強','外界職位嚮往度','參與高層次社交','品牌價值排名高','社會正面影響力','上市公司背景','媒體採訪機率','專業學會席位','社會公益代表','家屬福利自豪','產業高峰會邀','意見領袖身分','業界獎項背書','名片份量感強','與頂尖人才共事'] },
+            { v: '利他', n: '同事氣氛', d: '成員間的互信度、溝通直接性及拒絕內耗的文化。', i: ['團隊共擔專業責','分工明確群體戰','成員互信支援度','衝突處理成熟度','知識分享教學風','溝通風格透明直接','團隊情緒穩定度','人際競爭壓力小','人格尊嚴受尊重','部門小團體比例','非正式聚餐多','慶生互助文化','新進同仁關懷','專業互補程度','拒絕職場八卦','心理安全感高','工作外興趣社團','溝通工具流暢','坦誠錯誤文化','團隊幽默感與氛圍'] },
+            { v: '利他', n: '社會貢獻', d: '產品或服務對社會、環境與未來世代產生的價值。', i: ['弱勢族群扶持度','環境保護低碳實踐','推動產業進步價','參與社會公義率','對未來世代教育','醫療安全支援感','社區回饋志工參','道德影響社會責任','解決社會痛點度','企業永續經營價值','供應鏈合規性強','人道援助參與','科學知識推廣','減少貧富差距','提升身心健康','支持文化傳承','公共設施優化','動物福利關注','在地產業深耕','資源公平分配'] },
+            { v: '利他', n: '價值契合', d: '經營誠信、勞權、性別平等與個人底線一致性。', i: ['勞權意識與尊嚴','性別平等多樣性','經營合法合規度','職場公平競爭感','誠信與正直品質','個人隱私受尊重','組織正義感強度','宗教文化包容度','利益衝突迴避制','反對職場霸凌風','吹哨者保護制度','種族多樣性包容','廣告形象實質','政治中立原則','拒絕虛假行銷','財務誠實公開','採購透明化機制','經營決策透明度','多國文化兼容度','內部舉報保護'] },
+            { v: '安全', n: '制度合理', d: '規則透明度、分配公平性及執行一致性。', i: ['權責區分清晰明','工作責任分配合理','管理規章透明度','規則執行一致性','考核標準客觀','政策變動緩衝期','意見申訴管道通暢','勞基法規範遵循','報帳流程簡便度','薪酬體系具邏輯','工作手冊完備','會議決議確實行','請假審核迅速','出差津貼制度全','獎懲標準公開化','軟體授權合規','合約保護機制強','加班補休落實度','資歷審核嚴謹','檔案管理嚴謹'] },
+            { v: '安全', n: '主管領導', d: '主管對衝突的擔當、情緒覺察及資源爭議意願。', i: ['衝突時擔當保護','錯誤發生共同擔當','情緒覺察同理心','不濫用權力','定期面談職涯關懷','協助排除工作障礙','領導風格適切','決策考量下屬利益','積極爭取團隊資源','心理韌性引導','拒絕越級管理風','主動分擔高壓感','資遣預警透明化','公平分配工作量','支持實驗性失敗','承認下屬貢獻度','擋下無理要求力','協助職務重新設計','情緒穩定性高','言行一致性'] },
+            { v: '安全', n: '主管專業', d: '管理者指導深度、決策邏輯與潛力開發能力。', i: ['技術指導深度足','邏輯清晰決策力','領導風格溝通效率','流程優化管理專業','風險預警危機處理','辨識開發員工潛力','市場趨勢洞察力','反饋精確具建設','處事果斷不反覆','豐富資源對接力','架構思維引領感','專業方法論教學','會議主持效率高','專案管理工具化','精確目標設定力','多線任務協調力','核心問題辨識力','判斷優先順序力','解決問題邏輯強','任務分配合理感'] },
+            { v: '自主', n: '發揮創意', d: '實驗新流程權限、對提案開放度及容錯空間。', i: ['流程實驗權限高','細節微調自主權','提案被接納開放','容錯空間與試錯','鼓勵創新實質獎勵','思維碰撞會議文化','個人特色展現度','前瞻技術研發權','視覺設計表現自由','打破常規受支持','研發經費預算足','新商模探索機','品牌形象重塑','技術選型權限','內容創作主權','社群經營彈性','異業聯名發想','客戶服務創新','內部創業制度','自主視覺設計'] },
+            { v: '自主', n: '責任擔當', d: '專案成敗完全負責制及對最終結果的主宰感。', i: ['專案成敗完全負責','最終核決權限大','年度目標設定參與','執行路徑自主決定','風險與利潤對接','外部談判代表權','成果歸因度明確','授權深度與廣度','關鍵路徑掌控感','使命必達心理契約','代表公司對外','專案獎金分配','團隊編組自主權','進度報告主動權','失敗檢討主責感','危機處理主導','成果發表代表','部門預算核銷','資源優先分配','對外聲明發布'] }
+        ];
+
+        let scores = {}; let currentScores = {}; let selected = {}; let notes = {};
+        let radarMain = null; let radarFinal = null;
+        let hasSeenRealityCheck = false;
+
+        const LIMIT_MAP = { 10: 8, 9: 7, 8: 6, 7: 5, 6: 4, 5: 4, 4: 3, 3: 2, 2: 2, 1: 1, 0: 0 };
+        const LS_KEY = 'LPK_TWA_V2026_ULTIMATE_FINAL';
+        
+        
+        function init() {
+            hasSeenRealityCheck = localStorage.getItem('LPK_TWA_REALITY_CHECK') === 'true';
+            const saved = localStorage.getItem(LS_KEY);
+            if (saved) {
+                try {
+                    const p = JSON.parse(saved);
+                    scores = p.scores || {}; currentScores = p.currentScores || {}; selected = p.selected || {}; notes = p.notes || {};
+                    const un = document.getElementById('user-name'); if(un) un.value = p.name || "";
+                    const ue = document.getElementById('user-email'); if(ue) ue.value = p.email || "";
+                    const uj = document.getElementById('user-job'); if(uj) uj.value = p.job || "";
+                    const ug = document.getElementById('user-goal'); if(ug) ug.value = p.goal || "";
+                    const td = document.getElementById('test-date'); if(td) td.value = p.date || "";
+                    const fi = document.getElementById('final-insight'); if(fi) fi.value = p.insight || "";
+                    const dfi = document.getElementById('display-final-insight'); if(dfi) dfi.innerText = p.insight || "";
+                } catch(e) {}
+            }
+            matrix.forEach((m, idx) => {
+                const id = 'n' + idx;
+                if (scores[id] === undefined) scores[id] = 0; 
+                if (currentScores[id] === undefined) currentScores[id] = 0; 
+                if (!selected[id]) selected[id] = []; 
+                if (!notes[id]) notes[id] = "";
+            });
+            const d = document.getElementById('test-date');
+            if(d && !d.value) d.valueAsDate = new Date();
+            
+            syncIdentity(); renderAssessment(); syncEverything();
+        }
+
+        function renderAssessment() {
+            const container = document.getElementById('assessment-container'); 
+            if(!container) return;
+            container.innerHTML = "";
+            const cats = ['成就','舒適','地位','利他','安全','自主'];
+            cats.forEach((cat, catIdx) => {
+                const items = matrix.filter(m => m.v.includes(cat));
+                const sec = document.createElement('div');
+                sec.className = 'bg-white rounded-2xl lg:rounded-3xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-500';
+                
+                const isFirst = catIdx === 0;
+                sec.innerHTML = `
+                    <button onclick="toggleCategory(${catIdx})" class="w-full px-6 lg:px-10 py-5 lg:py-7 bg-slate-50 flex justify-between items-center hover:bg-slate-100 transition-colors focus:outline-none">
+                        <div class="flex items-center">
+                            <div class="w-2 lg:w-3 h-8 lg:h-10 rounded-full mr-4 lg:mr-5 bg-teal-600"></div>
+                            <h3 class="font-black text-slate-800 text-2xl lg:text-3xl tracking-tight uppercase">${cat}</h3>
+                        </div>
+                        <i data-lucide="chevron-down" id="cat-icon-${catIdx}" class="w-6 h-6 lg:w-8 lg:h-8 text-slate-400 transition-transform duration-300" style="transform: rotate(${isFirst ? '180deg' : '0deg'});"></i>
+                    </button>
+                    <div id="cat-content-${catIdx}" class="${isFirst ? 'block' : 'hidden'} p-6 lg:p-10 space-y-12 lg:space-y-24 border-t border-slate-100">
+                        ${items.map(m => renderItem(m)).join('')}
+                    </div>`;
+                container.appendChild(sec);
+            });
+            lucide.createIcons();
+            
+            matrix.forEach((m, idx) => {
+                const id = 'n' + idx;
+                updateProgressiveDisclosure(id, scores[id]);
+                updateLockState(id);
+            });
+        }
+
+        function toggleCategory(catIdx) {
+            const content = document.getElementById('cat-content-' + catIdx);
+            const icon = document.getElementById('cat-icon-' + catIdx);
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                content.classList.add('hidden');
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function renderItem(m) {
+            const id = 'n' + matrix.indexOf(m);
+            const limit = LIMIT_MAP[scores[id]];
+            return `
+                <div id="block-${id}" class="scroll-mt-24">
+                    <div class="mb-4">
+                        <div class="text-xl lg:text-2xl font-black text-slate-800 mb-1">${m.n}</div>
+                        <p class="text-sm text-slate-500 font-medium leading-relaxed">${m.d}</p>
+                    </div>
+                    
+                    <div class="space-y-6 mb-8 bg-slate-50/50 p-6 lg:p-8 rounded-2xl border border-slate-100 shadow-sm">
+                        <div>
+                            <div class="flex justify-between text-[10px] font-black text-slate-400 mb-2 px-1 uppercase tracking-widest">
+                                <span>極度匱乏 (0)</span><span class="text-slate-500">現況滿意度</span><span>極度滿足 (10)</span>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <input type="range" min="0" max="10" value="${currentScores[id]}" class="slider-current flex-1" data-id="${id}" oninput="handleCurrentSlide(this)">
+                                <div class="w-8 text-center text-xl font-black text-slate-500 tabular-nums transition-all" id="cv-${id}">${currentScores[id]}</div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-[10px] font-black text-teal-600/70 mb-2 px-1 uppercase tracking-widest">
+                                <span>準備放下 (0)</span><span class="text-teal-600">理想期待值</span><span>非要不可 (10)</span>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <input type="range" min="0" max="10" value="${scores[id]}" class="slider-ideal flex-1" data-id="${id}" oninput="handleSlide(this)">
+                                <div class="w-10 text-center text-3xl font-black text-teal-600 tabular-nums transition-all" id="v-${id}">${scores[id]}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="details-${id}" class="overflow-hidden transition-all duration-500 origin-top" style="max-height: 0px; opacity: 0;">
+                        <div class="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                            <div class="flex justify-between items-center mb-5">
+                                <h4 class="font-bold text-slate-700 text-sm md:text-base flex items-center">
+                                    <i data-lucide="puzzle" class="w-4 h-4 mr-2 text-teal-500"></i> 渴望的具體環境指標
+                                    <span class="text-[10px] text-slate-400 ml-2 font-normal">(可選 ${limit} 項)</span>
+                                </h4>
+                                <span class="text-[10px] font-black px-3 py-1 bg-slate-50 border border-slate-200 rounded-full text-slate-500" id="limit-${id}">已選 ${selected[id].length} / ${limit}</span>
+                            </div>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 lg:gap-3">
+                                ${m.i.map((el, iIdx) => `<div><input type="checkbox" id="el-${id}-${iIdx}" class="indicator-checkbox hidden" data-id="${id}" value="${el}" ${selected[id].includes(el) ? 'checked' : ''} onclick="handleIndicatorClick(event, this)"><label for="el-${id}-${iIdx}" class="block border border-slate-200 rounded-xl p-3 text-[11px] font-bold text-slate-600 bg-slate-50 cursor-pointer transition-all hover:bg-white hover:border-teal-300 leading-tight h-full flex items-center justify-center text-center select-none">${el}</label></div>`).join('')}
+                            </div>
+                        </div>
+                        <textarea class="mt-4 w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm italic text-slate-600 focus:outline-none focus:border-teal-500 transition-all" rows="2" onchange="handleNote('${id}', this.value)" placeholder="如果現況資源被拿掉，你能接受嗎？或是你想如何縮小落差？">${notes[id]}</textarea>
+                    </div>
+                </div>`;
+        }
+
+        function updateProgressiveDisclosure(id, score) {
+            const details = document.getElementById('details-' + id);
+            if(details) {
+                if(score > 0) {
+                    details.style.maxHeight = '1500px'; 
+                    details.style.opacity = '1';
+                } else {
+                    details.style.maxHeight = '0px'; 
+                    details.style.opacity = '0';
+                }
+            }
+        }
+
+        function handleCurrentSlide(el) {
+            const id = el.dataset.id;
+            const val = parseInt(el.value);
+            currentScores[id] = val;
+            const vElem = document.getElementById('cv-' + id);
+            if(vElem) vElem.innerText = currentScores[id];
+            syncEverything(); saveAll();
+        }
+
+        function handleSlide(el) {
+            const id = el.dataset.id; const val = parseInt(el.value);
+            const total = Object.values(scores).reduce((a,b)=>a+b, 0);
+            const diff = val - scores[id];
+            const newTotal = total + diff;
+            
+            if (newTotal > 115) { 
+                const ok = scores[id] + (115 - total); el.value = ok; scores[id] = ok; 
+                const box = document.getElementById('budget-box');
+                if(box){
+                    box.classList.add('limit-reached');
+                    setTimeout(() => box.classList.remove('limit-reached'), 400);
+                }
+            } else { scores[id] = val; }
+            
+            const currentTotal = Object.values(scores).reduce((a,b)=>a+b, 0);
+            if (currentTotal === 115 && !hasSeenRealityCheck) {
+                showRealityModal();
+                hasSeenRealityCheck = true;
+                localStorage.setItem('LPK_TWA_REALITY_CHECK', 'true');
+            }
+
+            const vElem = document.getElementById('v-' + id);
+            if(vElem) vElem.innerText = scores[id];
+            
+            updateProgressiveDisclosure(id, scores[id]);
+
+            const limit = LIMIT_MAP[scores[id]];
+            if (selected[id].length > limit) { 
+                selected[id] = selected[id].slice(0, limit);
+                const mIdx = parseInt(id.replace('n',''));
+                matrix[mIdx].i.forEach((_, idx) => { 
+                    const cb = document.getElementById(`el-${id}-${idx}`); 
+                    if (cb) cb.checked = selected[id].includes(cb.value); 
+                });
+            }
+            const limitElem = document.getElementById('limit-' + id);
+            if(limitElem) limitElem.innerText = `已選 ${selected[id].length} / ${limit}`;
+            
+            updateLockState(id);
+            syncEverything(); saveAll();
+        }
+
+        function updateLockState(id) {
+            const limit = LIMIT_MAP[scores[id]];
+            const isLocked = selected[id].length >= limit;
+            const checkboxes = document.querySelectorAll(`input.indicator-checkbox[data-id="${id}"]`);
+            checkboxes.forEach(cb => {
+                const label = document.querySelector(`label[for="${cb.id}"]`);
+                if (!cb.checked) {
+                    if (isLocked) {
+                        cb.classList.add('is-locked-max'); label.classList.add('locked-label');
+                    } else {
+                        cb.classList.remove('is-locked-max'); label.classList.remove('locked-label');
+                    }
+                }
+            });
+        }
+
+        function handleIndicatorClick(event, cb) {
+            const id = cb.dataset.id;
+            if (cb.classList.contains('is-locked-max') && cb.checked) {
+                event.preventDefault(); 
+                cb.checked = false;
+                const label = document.querySelector(`label[for="${cb.id}"]`);
+                label.classList.add('shake-anim');
+                const limitBadge = document.getElementById('limit-' + id);
+                limitBadge.classList.add('text-rose-500', 'bg-rose-50', 'shake-anim');
+                setTimeout(() => {
+                    label.classList.remove('shake-anim');
+                    limitBadge.classList.remove('text-rose-500', 'bg-rose-50', 'shake-anim');
+                }, 400);
+                return false;
+            }
+            
+            const limit = LIMIT_MAP[scores[id]];
+            if (cb.checked) { 
+                if (selected[id].length >= limit) { cb.checked = false; return false; } 
+                selected[id].push(cb.value); 
+            } else { 
+                selected[id] = selected[id].filter(v => v !== cb.value); 
+            }
+            
+            const limitElem = document.getElementById('limit-' + id);
+            if(limitElem) limitElem.innerText = `已選 ${selected[id].length} / ${limit}`;
+            
+            updateLockState(id); saveAll(); updateReport();
+        }
+
+        function handleNote(id, val) { notes[id] = val; syncEverything(); saveAll(); }
+        function syncInsight(val) { 
+            const dfi = document.getElementById('display-final-insight');
+            if(dfi) dfi.innerText = val; 
+            saveAll(); 
+        }
+        
+        function syncIdentity() { 
+            const n = document.getElementById('user-name')?.value || ""; 
+            const d = document.getElementById('test-date')?.value || "";
+            
+            const navUserName = document.getElementById('nav-user-name');
+            if (navUserName) navUserName.innerText = n || "未填寫姓名";
+            
+            const printName = document.getElementById('print-name');
+            if (printName) printName.innerText = n || "未填寫姓名"; 
+            
+            const printDate = document.getElementById('print-date');
+            if (printDate) printDate.innerText = d;
+            
+            saveAll(); 
+        }
+        window.syncIdentity = syncIdentity;
+        window.saveAll = saveAll;
+
+        function syncEverything() {
+            const total = Object.values(scores).reduce((a,b)=>a+b, 0);
+            const remElem = document.getElementById('points-rem');
+            if(remElem) remElem.innerText = 115 - total;
+            
+            const hc = Object.values(scores).filter(s => s >= 8).length;
+            let fTxt = ""; let fExp = "";
+            if (hc > 6) { fTxt = "和諧均衡型"; fExp = "追求全方位的平衡滿足。代表你具備高度適應力，但也需思考：若資源受限時，哪一個才是絕不退讓的紅線？"; }
+            else if (hc > 2) { fTxt = "層次分明型"; fExp = "價值優先順序清晰。這種心理彈性能讓你在職場現實中守住底線，也能在非核心區展現包容調整空間。"; }
+            else { fTxt = "精準核心型"; fExp = "你的目標極其精確且聚焦。你知道只要保住這幾項核心，其他的都不重要。這讓你決策極快，但也需注意對核心項目的依賴度。"; }
+            
+            const sf = document.getElementById('stat-focus'); if(sf) sf.innerText = fTxt;
+            const fsf = document.getElementById('final-stat-focus'); if(fsf) fsf.innerText = fTxt;
+            const fe = document.getElementById('focus-explanation'); if(fe) fe.innerText = `「 ${fExp} 」`;
+            
+            updateRadar(); updateTopList(); updateReport(); updateNavList();
+        }
+
+        function updateRadar() {
+            const rc = document.getElementById('radarChart');
+            const rcf = document.getElementById('radarChartFinal');
+            if(!rc || !rcf) return;
+
+            const labels = ['成就','舒適','地位','利他','安全','自主'];
+            const valsIdeal = labels.map(c => {
+                const items = matrix.filter(m => m.v.includes(c));
+                return (items.reduce((acc, m) => acc + scores['n' + matrix.indexOf(m)], 0) / (items.length * 10)) * 100;
+            });
+            const valsCurrent = labels.map(c => {
+                const items = matrix.filter(m => m.v.includes(c));
+                return (items.reduce((acc, m) => acc + currentScores['n' + matrix.indexOf(m)], 0) / (items.length * 10)) * 100;
+            });
+
+            const config = {
+                type: 'radar',
+                data: { 
+                    labels, 
+                    datasets: [
+                        { label: '理想期待', data: valsIdeal, backgroundColor: 'rgba(13, 148, 136, 0.2)', borderColor: '#0d9488', borderWidth: 2, pointRadius: 4 },
+                        { label: '現況滿意', data: valsCurrent, backgroundColor: 'rgba(100, 116, 139, 0.1)', borderColor: '#94a3b8', borderWidth: 2, borderDash: [5, 5], pointRadius: 3 }
+                    ] 
+                },
+                options: { 
+                    maintainAspectRatio: false, 
+                    scales: { r: { min: 0, max: 100, ticks: { display: false } } }, 
+                    plugins: { legend: { display: true, position: 'bottom', labels: { font: { family: 'Noto Sans TC', weight: 'bold' } } } } 
+                }
+            };
+            
+            if (!radarMain) {
+                radarMain = new Chart(rc, config);
+                radarFinal = new Chart(rcf, config);
+            } else {
+                radarMain.data.datasets[0].data = valsIdeal; radarMain.data.datasets[1].data = valsCurrent; radarMain.update();
+                radarFinal.data.datasets[0].data = valsIdeal; radarFinal.data.datasets[1].data = valsCurrent; radarFinal.update();
+            }
+        }
+
+        function updateTopList() {
+            const tl = document.getElementById('top-list');
+            if(!tl) return;
+            let all = matrix.map((m, i) => ({ ...m, score: scores['n' + i] }));
+            const tops = all.filter(a => a.score > 0).sort((a,b) => b.score - a.score).slice(0, 5);
+            tl.innerHTML = tops.map((n, i) => `<div class="flex items-center p-4 lg:p-5 bg-slate-50 rounded-2xl lg:rounded-[2rem] border border-slate-100 mb-2 shadow-sm transition-all hover:bg-white"><div class="w-8 h-8 lg:w-10 lg:h-10 rounded-xl flex items-center justify-center text-white font-black bg-teal-600 mr-4 lg:mr-5">${i+1}</div><div class="flex-1 overflow-hidden"><div class="flex justify-between items-center"><span class="font-black text-slate-800 text-sm lg:text-lg truncate mr-2">${n.n}</span><span class="text-teal-600 font-black text-base lg:text-lg shrink-0">${n.score}分</span></div></div></div>`).join('');
+        }
+
+        function updateNavList() {
+            try {
+                let allItems = matrix.map((m, i) => ({ ...m, score: scores['n' + i], id: 'n' + i }));
+                let activeItems = allItems.filter(a => a.score > 0);
+                
+                const badge = document.getElementById('fab-badge');
+                if (badge) {
+                    if(activeItems.length > 0) { badge.innerText = activeItems.length; badge.classList.remove('hidden'); } 
+                    else { badge.classList.add('hidden'); }
+                }
+
+                let listHtml = '';
+                const cats = ['成就','舒適','地位','利他','安全','自主'];
+                cats.forEach(cat => {
+                    let itemsInCat = allItems.filter(item => item.v === cat);
+                    if(itemsInCat.length > 0) {
+                        listHtml += `<div class="text-[11px] font-black text-slate-400 uppercase tracking-widest mt-6 mb-3 px-2 border-b border-slate-100 pb-2">${cat}</div>`;
+                        itemsInCat.forEach(n => {
+                            const isActive = n.score > 0;
+                            listHtml += `
+                                <div class="flex items-center justify-between p-2 lg:p-3 bg-white border ${isActive ? 'border-teal-200 shadow-sm' : 'border-slate-100 opacity-70'} rounded-xl mb-2 hover:border-teal-400 hover:opacity-100 transition-all">
+                                    <button onclick="scrollToItem('${n.id}')" class="flex-1 text-left font-bold ${isActive ? 'text-teal-700' : 'text-slate-600'} text-sm hover:text-teal-600 transition-colors flex items-center">
+                                        <span class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-teal-500' : 'bg-slate-300'} mr-2"></span>
+                                        ${n.n}
+                                    </button>
+                                    <div class="flex items-center gap-2">
+                                        ${isActive ? `<span class="bg-teal-50 text-teal-600 font-black px-2 py-1 rounded-full text-xs">${n.score} 分</span>
+                                        <button onclick="quickDeduct('${n.id}', event)" class="w-6 h-6 flex items-center justify-center bg-slate-100 text-slate-500 rounded-full hover:bg-rose-100 hover:text-rose-600 font-black transition-colors" title="快速扣 1 分">-</button>` : ''}
+                                    </div>
+                                </div>`;
+                        });
+                    }
+                });
+
+                const mobileNav = document.getElementById('mobile-nav-list');
+                const desktopNav = document.getElementById('desktop-nav-list');
+                if(mobileNav) mobileNav.innerHTML = listHtml;
+                if(desktopNav) desktopNav.innerHTML = listHtml;
+            } catch (e) { console.error("Navigation update error:", e); }
+        }
+
+        function quickDeduct(id, event) {
+            event.stopPropagation();
+            let current = scores[id];
+            if(current > 0) {
+                let slider = document.querySelector(`input.slider-ideal[data-id="${id}"]`);
+                if(slider) {
+                    slider.value = current - 1;
+                    handleSlide(slider);
+                }
+            }
+        }
+
+        function scrollToItem(id) {
+            const mIdx = parseInt(id.replace('n',''));
+            const catName = matrix[mIdx].v;
+            const cats = ['成就','舒適','地位','利他','安全','自主'];
+            const catIdx = cats.indexOf(catName);
+            
+            const content = document.getElementById('cat-content-' + catIdx);
+            const icon = document.getElementById('cat-icon-' + catIdx);
+            if (content && content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.style.transform = 'rotate(180deg)';
+            }
+
+            const drawer = document.getElementById('mobile-drawer');
+            if(drawer && drawer.classList.contains('drawer-open')) {
+                toggleMobileNav(); 
+            }
+            setTimeout(() => { 
+                const el = document.getElementById('block-' + id);
+                if(el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); 
+            }, 300);
+        }
+
+        function toggleMobileNav() {
+            const drawer = document.getElementById('mobile-drawer');
+            const overlay = document.getElementById('mobile-drawer-overlay');
+            if(drawer && overlay) {
+                if(drawer.classList.contains('drawer-closed')) {
+                    drawer.classList.remove('drawer-closed'); drawer.classList.add('drawer-open');
+                    overlay.classList.remove('hidden');
+                } else {
+                    drawer.classList.remove('drawer-open'); drawer.classList.add('drawer-closed');
+                    overlay.classList.add('hidden');
+                }
+            }
+        }
+
+        function updateReport() {
+            const container = document.getElementById('report-summary-content');
+            if(!container) return;
+            let all = matrix.map((m, i) => ({ ...m, score: scores['n' + i], current: currentScores['n' + i], id: 'n' + i }));
+            
+            const urgentGaps = all.filter(a => (a.score - a.current) >= 3).sort((a,b) => (b.score - b.current) - (a.score - a.current));
+            const comfortGaps = all.filter(a => (a.current - a.score) >= 3).sort((a,b) => (b.current - b.score) - (a.current - a.score));
+
+            const crit = all.filter(a => a.score >= 7).sort((a,b) => b.score - a.score);
+            const flex = all.filter(a => a.score >= 4 && a.score <= 6).sort((a,b) => b.score - a.score);
+            const irre = all.filter(a => a.score < 4 && a.score > 0).sort((a,b) => b.score - a.score);
+            
+            if (Object.values(scores).reduce((a,b)=>a+b, 0) < 5) return;
+            const ug = document.getElementById('user-goal')?.value || "（未填寫）";
+
+            let gapHtml = '';
+            if(urgentGaps.length > 0 || comfortGaps.length > 0) {
+                gapHtml = `
+                <div class="mb-16 lg:mb-24 pt-8">
+                    <h4 class="text-2xl lg:text-3xl font-black text-slate-800 mb-8 flex items-center px-2 lg:px-4"><span class="text-3xl mr-4">🚨</span> 落差洞察與轉職評估</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+                        ${urgentGaps.length > 0 ? `
+                        <div class="bg-rose-50/50 p-6 lg:p-8 rounded-[2rem] border border-rose-100 shadow-sm">
+                            <h5 class="font-black text-rose-600 text-lg mb-4 flex items-center"><i data-lucide="trending-down" class="w-5 h-5 mr-2"></i> 顯著匱乏區</h5>
+                            <p class="text-xs lg:text-sm text-rose-500/80 mb-6 font-bold leading-relaxed">強烈渴望但目前環境無法滿足，可能是主要的焦慮來源。</p>
+                            <div class="space-y-3">
+                                ${urgentGaps.map(g => `<div class="bg-white p-4 rounded-xl shadow-sm border border-rose-50 flex justify-between items-center"><span class="font-bold text-slate-700">${g.n}</span><span class="text-rose-500 font-black text-xs lg:text-sm bg-rose-50 px-3 py-1 rounded-full">落差 -${g.score - g.current}</span></div>`).join('')}
+                            </div>
+                        </div>` : ''}
+                        
+                        ${comfortGaps.length > 0 ? `
+                        <div class="bg-amber-50/50 p-6 lg:p-8 rounded-[2rem] border border-amber-100 shadow-sm">
+                            <h5 class="font-black text-amber-600 text-lg mb-4 flex items-center"><i data-lucide="anchor" class="w-5 h-5 mr-2"></i> 隱形依賴區</h5>
+                            <p class="text-xs lg:text-sm text-amber-600/80 mb-6 font-bold leading-relaxed">理智上覺得不重要，但現實中享受高待遇的「隱形金手銬」。</p>
+                            <div class="space-y-3">
+                                ${comfortGaps.map(g => `<div class="bg-white p-4 rounded-xl shadow-sm border border-amber-50 flex justify-between items-center"><span class="font-bold text-slate-700">${g.n}</span><span class="text-amber-500 font-black text-xs lg:text-sm bg-amber-50 px-3 py-1 rounded-full">溢出 +${g.current - g.score}</span></div>`).join('')}
+                            </div>
+                        </div>` : ''}
+                    </div>
+                </div>`;
+            }
+
+            container.innerHTML = `
+                <div class="p-6 lg:p-10 bg-teal-50/20 rounded-[2rem] lg:rounded-2xl border border-teal-100 mb-10 lg:mb-16 shadow-inner">
+                    <div class="text-[10px] lg:text-[11px] font-black text-teal-600 uppercase mb-2 lg:mb-3 tracking-[0.4em]">鎖定的職涯願景目標</div>
+                    <div class="text-xl lg:text-3xl font-bold text-slate-700 leading-relaxed">${ug}</div>
+                </div>
+                
+                ${gapHtml}
+
+                <div class="space-y-12 lg:space-y-20 border-t border-slate-100 pt-12 lg:pt-20">
+                    <div><h4 class="text-2xl lg:text-3xl font-black text-slate-800 mb-8 flex items-center px-2 lg:px-4"><span class="w-3 h-8 bg-teal-600 rounded-full mr-4 shadow-sm"></span>核心標尺：不可妥協的價值紅線 (理想 >=7分)</h4>
+                        <div class="space-y-6 lg:space-y-8">${crit.map((n, idx) => renderCard(n, idx + 1, true)).join('')}</div></div>
+                    
+                    ${flex.length > 0 ? `<div><h4 class="text-xl lg:text-2xl font-black text-slate-800 mb-6 flex items-center px-2 lg:px-4"><span class="w-2 h-6 bg-amber-400 rounded-full mr-4 shadow-sm"></span>彈性包容：具備心理調整的空間 (理想 4-6分)</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">${flex.map(n => renderFlexCard(n)).join('')}</div></div>` : ''}
+                    
+                    ${irre.length > 0 ? `<div><h4 class="text-lg lg:text-xl font-black text-slate-800 mb-6 flex items-center px-2 lg:px-4"><span class="w-2 h-6 bg-slate-300 rounded-full mr-4 shadow-sm"></span>輕量標註：目前靈活放下的需求 (理想 <4分)</h4>
+                        <div class="flex flex-wrap gap-3">${irre.map(n => `<span class="px-4 py-2 bg-slate-100 text-slate-600 rounded-full text-sm font-bold border border-slate-200">${n.n} <span class="text-slate-400 ml-1 text-xs">理想 ${n.score}分</span></span>`).join('')}</div></div>` : ''}
+                </div>`;
+            
+            lucide.createIcons();
+        }
+
+        function renderCard(n, idx, isCrit) {
+            return `
+                <div class="p-6 lg:p-8 bg-white border border-slate-200 rounded-3xl shadow-sm relative overflow-hidden transition-all hover:border-teal-300">
+                    ${idx ? `<div class="absolute top-4 right-6 opacity-10 pointer-events-none no-print"><span class="text-6xl font-black text-slate-300">${idx}</span></div>` : ''}
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-5 relative z-10 gap-3">
+                        <div class="text-xl lg:text-2xl font-black text-slate-800">${n.n}</div>
+                        <div class="flex gap-2">
+                            <div class="px-3 py-1 bg-slate-50 text-slate-500 text-xs font-bold rounded-full border border-slate-200">現況 ${n.current}</div>
+                            <div class="px-3 py-1 bg-teal-50 text-teal-600 text-xs font-bold rounded-full border border-teal-200">理想 ${n.score}</div>
+                        </div>
+                    </div>
+                    <div class="mb-4 relative z-10">
+                        <div class="flex flex-wrap gap-2">${selected[n.id].map(e => `<span class="px-3 py-1.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-medium border border-slate-100"># ${e}</span>`).join('')}</div>
+                    </div>
+                    ${notes[n.id] ? `<div class="p-4 bg-slate-50 rounded-xl border-l-4 border-teal-500 italic text-slate-600 text-sm leading-relaxed relative z-10">「 ${notes[n.id]} 」</div>` : ''}
+                </div>`;
+        }
+
+        function renderFlexCard(n) {
+            return `
+                <div class="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm transition-all hover:border-amber-300">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-2">
+                        <div class="text-lg font-black text-slate-800">${n.n}</div>
+                        <div class="flex gap-1.5">
+                            <div class="px-2 py-0.5 bg-slate-50 text-slate-500 text-[10px] font-bold rounded-full border border-slate-200">現 ${n.current}</div>
+                            <div class="px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-bold rounded-full border border-amber-200">理 ${n.score}</div>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5 mb-3">
+                        ${selected[n.id].map(e => `<span class="px-2 py-1 bg-slate-50 text-slate-600 rounded-md text-[10px] font-medium border border-slate-100"># ${e}</span>`).join('')}
+                    </div>
+                    ${notes[n.id] ? `<div class="text-xs italic text-slate-500 border-l-2 border-amber-300 pl-2 py-1 leading-relaxed">「 ${notes[n.id]} 」</div>` : ''}
+                </div>`;
+        }
+
+        function exportProgress() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(localStorage.getItem(LS_KEY));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", `Ormap_Progress_${new Date().toISOString().slice(0,10)}.orm`);
+            dlAnchorElem.click();
+        }
+
+        function importProgress(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if(data && typeof data.scores === 'object') {
+                        localStorage.setItem(LS_KEY, e.target.result);
+                        alert("✅ 進度已成功載入！網頁即將重整。");
+                        location.reload();
+                    } else { alert("檔案格式錯誤，請選擇正確的 .orm 檔案。"); }
+                } catch (err) { alert("檔案讀取失敗。"); }
+            };
+            reader.readAsText(file);
+        }
+
+        function showRealityModal() {
+            const modal = document.getElementById('reality-modal');
+            if(modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                setTimeout(() => { modal.classList.remove('opacity-0'); modal.classList.add('opacity-100'); }, 10);
+            }
+        }
+        function closeRealityModal() {
+            const modal = document.getElementById('reality-modal');
+            if(modal) {
+                modal.classList.remove('opacity-100'); modal.classList.add('opacity-0');
+                setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 300);
+            }
+        }
+
+        function saveAll() { 
+            const un = document.getElementById('user-name')?.value || "";
+            const ue = document.getElementById('user-email')?.value || "";
+            const uj = document.getElementById('user-job')?.value || "";
+            const ug = document.getElementById('user-goal')?.value || "";
+            const td = document.getElementById('test-date')?.value || "";
+            const fi = document.getElementById('final-insight')?.value || "";
+            localStorage.setItem(LS_KEY, JSON.stringify({ scores, currentScores, selected, notes, name: un, email: ue, job: uj, goal: ug, date: td, insight: fi })); 
+        }
+        
+        function handleReset() { 
+            if(!confirm("這將會清除你所有的分數與筆記，確定要重新開始嗎？")) return; 
+            localStorage.removeItem(LS_KEY); 
+            localStorage.removeItem('LPK_TWA_REALITY_CHECK'); 
+            location.reload(); 
+        }
+
+async function submitAndPrint() {
+      const btn = document.getElementById('print-btn');
+      const btnText = document.getElementById('print-btn-text');
+      const originalText = btnText.innerText;
+
+      // 直接從系統全域變數抓取信箱與姓名 (存進資料庫做紀錄用)
+      const userEmail = window.currentUserEmail || "未提供信箱";
+      const userName = window.currentUserName || "Ormap 探索者";
+
+      btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> 資料分析與儲存中...';
+      btn.disabled = true;
+
+      // 計算 Top 5 與雷達圖摘要
+      let all = matrix.map((m, i) => ({ ...m, score: scores['n' + i] }));
+      const tops = all.filter(a => a.score > 0).sort((a,b) => b.score - a.score).slice(0, 5).map(t => t.n).join('、');
+
+      const cats = ['成就','舒適','地位','利他','安全','自主'];
+      let radarSummary = cats.map(c => {
+        const items = matrix.filter(m => m.v.includes(c));
+        const iScore = Math.round((items.reduce((acc, m) => acc + scores['n' + matrix.indexOf(m)], 0) / (items.length * 10)) * 100);
+        const cScore = Math.round((items.reduce((acc, m) => acc + currentScores['n' + matrix.indexOf(m)], 0) / (items.length * 10)) * 100);
+        return `${c}(理${iScore}/現${cScore})`;
+      }).join(' | ');
+
+      // 打包要存入資料庫的資料
+      const basePayload = {
+        name: userName, 
+        email: userEmail,
+        job: document.getElementById('user-job')?.value || "未填寫",
+        goal: document.getElementById('user-goal')?.value || "未填寫",
+        focusType: document.getElementById('stat-focus')?.innerText || "",
+        top5: tops,
+        radarScores: radarSummary,
+        insight: document.getElementById('final-insight')?.value || "",
+        rawScores: scores,
+        rawCurrentScores: currentScores,
+        rawSelected: selected,
+        rawNotes: notes
+      };
+
+      try {
+        // 🚀 呼叫底層的 Firebase 存檔功能 (不再需要抓回 URL 寄信了)
+        if (typeof window.saveToFirestore === 'function') {
+          await window.saveToFirestore(basePayload);
+        }
+
+        // 等待一下下讓畫面有轉圈圈的感覺
+        await new Promise(resolve => setTimeout(resolve, 600));
+        
+        // 🌟 更改完成提示訊息
+        alert("✨ 恭喜！測驗已完成，您的專屬報告已成功儲存至個人儀表板！");
+        
+        // 🚀 測驗完成，強制跳回大廳
+        window.location.href = '../dashboard.html';
+
+      } catch (error) {
+        console.error('資料同步失敗', error);
+        alert("儲存過程中發生錯誤，請確認網路連線或稍後再試。");
+      } finally {
+        btnText.innerText = originalText;
+        btn.disabled = false;
+      }
+    }
+        window.onload = init;
+    </script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, serverTimestamp, setDoc, getDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
+    authDomain: "careervalue-ormap.firebaseapp.com",
+    projectId: "careervalue-ormap",
+    storageBucket: "careervalue-ormap.firebasestorage.app",
+    messagingSenderId: "883599167982",
+    appId: "1:883599167982:web:6dee33f8abf03de9b53eff"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// 🛡️ 頁面守衛與全域引擎啟動
+// 監聽登入狀態並顯示大頭照與資訊
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                window.currentUserEmail = user.email;
+                window.currentUserName = user.displayName;
+                // 1. 載入大頭貼
+                const avatar = document.getElementById('nav-user-avatar');
+                if (avatar) {
+                    avatar.src = user.photoURL || 'https://via.placeholder.com/150';
+                    avatar.classList.remove('hidden');
+                }
+                
+                // 2. 載入使用者姓名
+                const nameEl = document.getElementById('nav-user-name');
+                if (nameEl) {
+                    nameEl.innerText = user.displayName || "Ormap 探索者";
+                }
+
+                // 3. 自動載入今日日期
+                const dateEl = document.getElementById('nav-test-date');
+                if (dateEl) {
+                    dateEl.innerText = new Date().toLocaleDateString('zh-TW');
+                }
+
+            } else {
+                window.location.href = '../index.html';
+            }
+        });
+
+async function loadHistoryAsDraft(docId, uid) {
+    try {
+        const docSnap = await getDoc(doc(db, "assessments", docId));
+        if (docSnap.exists() && docSnap.data().uid === uid) {
+            const data = docSnap.data().rawData;
+            // 轉譯回 TWA 本機的草稿格式
+            const payload = {
+                scores: data.scores || {},
+                currentScores: data.currentScores || {},
+                selected: data.selectedItems || [],
+                notes: data.notes || {},
+                insight: data.insight || ""
+            };
+            localStorage.setItem('LPK_TWA_V2026_ULTIMATE_FINAL', JSON.stringify(payload));
+            
+            // 抹除網址列的 loadId 標籤，讓它變成一般草稿模式
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            alert("✨ 已成功載入舊紀錄！\\n\\n您可以以此為基礎進行現況微調。\\n完成後送出將會「另存為一份全新紀錄」，不用擔心會覆蓋舊檔案喔！");
+            location.reload(); 
+        }
+    } catch(e) { console.error("歷史載入失敗:", e); }
+}
+
+async function loadCloudDraft(uid) {
+    if (!localStorage.getItem('LPK_TWA_V2026_ULTIMATE_FINAL')) {
+        try {
+            const draftSnap = await getDoc(doc(db, "user_progress", `${uid}_TWA`));
+            if (draftSnap.exists()) {
+                localStorage.setItem('LPK_TWA_V2026_ULTIMATE_FINAL', draftSnap.data().data);
+                console.log("已自動恢復雲端進度");
+                location.reload();
+            }
+        } catch(e) { console.error(e); }
+    }
+}
+
+async function syncDraftToCloud(uid) {
+    const payload = localStorage.getItem('LPK_TWA_V2026_ULTIMATE_FINAL');
+    const statusText = document.getElementById('auto-save-status');
+    
+    if (payload) {
+        try {
+            await setDoc(doc(db, "user_progress", `${uid}_TWA`), { 
+                data: payload, updatedAt: serverTimestamp() 
+            }, { merge: true });
+            
+            if(statusText) {
+                const now = new Date();
+                statusText.innerHTML = `<span class="text-teal-600 font-medium"><i class="fa-solid fa-check mr-1"></i> 已同步至雲端 (${now.getHours()}:${now.getMinutes().toString().padStart(2,'0')})</span>`;
+            }
+        } catch(e) { console.error("背景存檔失敗", e); }
+    }
+}
+
+// 🚀 核心 4：清除進度功能
+window.clearDraft = async () => {
+    if(!confirm("確定要清除所有進度嗎？\\n畫面將會恢復成一張空白的評測表！")) return;
+    
+    localStorage.removeItem('LPK_TWA_V2026_ULTIMATE_FINAL');
+    const uid = auth.currentUser?.uid;
+    if (uid) {
+        try { await deleteDoc(doc(db, "user_progress", `${uid}_TWA`)); } catch(e){}
+    }
+    location.reload();
+};
+
+// 🚀 核心 5：正式送出入庫，並銷毀草稿
+window.saveToFirestore = async (payloadData) => {
+    try {
+        const userUid = auth.currentUser ? auth.currentUser.uid : null;
+        if (!userUid) throw new Error("無效的登入狀態");
+
+        const prdFormattedData = {
+            uid: userUid,
+            toolType: "TWA",
+            createdAt: serverTimestamp(),
+            clientInfo: {
+                name: payloadData.name, email: payloadData.email,
+                job: payloadData.job, goal: payloadData.goal
+            },
+            summary: { text: `決策狀態：${payloadData.focusType}`, status: "已完成" },
+            rawData: {
+                scores: payloadData.rawScores, currentScores: payloadData.rawCurrentScores,
+                selectedItems: payloadData.rawSelected, notes: payloadData.rawNotes,
+                radarScores: payloadData.radarScores, insight: payloadData.insight,
+                top5: payloadData.top5, focusType: payloadData.focusType
+            }
+        };
+
+        const docRef = await addDoc(collection(db, "assessments"), prdFormattedData);
+        
+        // 【關鍵】完課後：徹底銷毀草稿，確保下次進來是全空的！
+        localStorage.removeItem('LPK_TWA_V2026_ULTIMATE_FINAL');
+        await deleteDoc(doc(db, "user_progress", `${userUid}_TWA`));
+
+        return docRef.id;
+    } catch (e) { throw e; }
+};
+</script>
+</body>
+</html>

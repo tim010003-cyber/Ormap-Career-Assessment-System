@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>個人後臺 | Ormap SaaS 平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { primary: '#0d9488', secondary: '#0f172a' } } }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 min-h-screen font-sans antialiased text-slate-900">
+
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-2">
+                    <img src="./ormap-logo.png" alt="Ormap Logo" class="w-8 h-8 object-contain">
+                    <span class="text-xl font-bold tracking-tight text-secondary">Ormap <span class="text-primary">SaaS</span></span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div id="userInfo" class="hidden flex items-center gap-3">
+                        <img id="userPhoto" src="" alt="Avatar" class="w-8 h-8 rounded-full border border-slate-200">
+                        <span id="userName" class="text-sm font-medium text-slate-700 hidden md:block">載入中...</span>
+                        <button id="logoutBtn" class="text-sm text-slate-500 hover:text-red-600 transition-colors">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <header class="mb-10">
+            <h1 class="text-3xl font-extrabold text-secondary mb-2">歡迎回來，探索者！</h1>
+            <p class="text-slate-500">在這裡查看你的職涯評測紀錄，追蹤每一次的成長軌跡。</p>
+        </header>
+
+        <section class="mb-12">
+            <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400 mb-4">開始新的評測</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <a href="tools/twa.html" class="group p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:border-primary hover:shadow-md transition-all">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-teal-50 text-primary rounded-xl flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
+                                <i class="fa-regular fa-compass text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg text-secondary">TWA 工作價值觀評測</h3>
+                                <p class="text-sm text-slate-500">開啟一份全新的職涯覺察地圖</p>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-primary transition-colors"></i>
+                    </div>
+                </a>
+
+                <a href="tools/hti.html" class="group p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:border-orange-500 hover:shadow-md transition-all">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center group-hover:bg-orange-500 group-hover:text-white transition-colors">
+                                <i class="fa-solid fa-microchip text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg text-secondary">HTI 何倫特質解析</h3>
+                                <p class="text-sm text-slate-500">探索你的天賦特質與原動力</p>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-orange-500 transition-colors"></i>
+                    </div>
+                </a>
+
+            </div>
+        <section>
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400">歷史測驗紀錄</h2>
+                <span id="recordCount" class="px-2 py-1 bg-slate-200 text-slate-600 text-xs font-bold rounded-full">0</span>
+            </div>
+
+            <div id="loadingState" class="space-y-4">
+                <div class="h-24 bg-slate-200 animate-pulse rounded-2xl"></div>
+            </div>
+
+            <div id="emptyState" class="hidden py-20 text-center">
+                <div class="mb-4 text-slate-300"><i class="fa-solid fa-folder-open text-6xl"></i></div>
+                <h3 class="text-lg font-medium text-slate-600">目前還沒有任何紀錄</h3>
+                <p class="text-slate-400 mb-6">點擊上方工具卡片，開始你的第一次測驗吧！</p>
+            </div>
+
+            <div id="recordsContainer" class="grid grid-cols-1 gap-4"></div>
+        </section>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, collection, query, where, orderBy, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
+            authDomain: "careervalue-ormap.firebaseapp.com",
+            projectId: "careervalue-ormap",
+            storageBucket: "careervalue-ormap.firebasestorage.app",
+            messagingSenderId: "883599167982",
+            appId: "1:883599167982:web:6dee33f8abf03de9b53eff"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const container = document.getElementById('recordsContainer');
+        const loadingState = document.getElementById('loadingState');
+        const emptyState = document.getElementById('emptyState');
+        const recordCount = document.getElementById('recordCount');
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('userInfo').classList.remove('hidden');
+                document.getElementById('userPhoto').src = user.photoURL || 'https://via.placeholder.com/150';
+                document.getElementById('userName').innerText = user.displayName;
+                fetchAssessments(user.uid);
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+
+        async function fetchAssessments(uid) {
+            try {
+                const q = query(collection(db, "assessments"), where("uid", "==", uid), orderBy("createdAt", "desc"));
+                const querySnapshot = await getDocs(q);
+                loadingState.classList.add('hidden');
+
+                if (querySnapshot.empty) {
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+
+                recordCount.innerText = querySnapshot.size;
+                querySnapshot.forEach((doc) => renderCard(doc.id, doc.data()));
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        function renderCard(docId, data) {
+            const date = data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString() : '未知日期';
+            const card = document.createElement('div');
+            card.id = `card-${docId}`; 
+            card.className = "group bg-white p-5 rounded-2xl border border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between hover:shadow-md transition-all gap-4";
+            
+            // 這裡新增判斷：根據資料庫裡面的 toolType 來決定顯示的文字與連結
+            let toolTitle = data.toolType === 'HTI' ? 'HTI 何倫特質解析' : 'TWA 工作價值觀評測';
+            let summaryText = data.summary?.text || '已完成評測';
+            let retestLink = data.toolType === 'HTI' ? `tools/hti.html?loadId=${docId}` : `tools/twa.html?loadId=${docId}`;
+            let reportLink = data.toolType === 'HTI' ? `tools/hti.html?reportId=${docId}` : `report.html?id=${docId}`;
+
+            card.innerHTML = `
+                <div class="flex items-center gap-2 justify-end w-full lg:w-auto flex-wrap">
+                    <button onclick="deleteReport('${docId}')" class="...">
+                        <i class="fa-regular fa-trash-can"></i>
+                    </button>
+                    <a href="${retestLink}" class="...">
+                        <i class="fa-solid fa-clock-rotate-left mr-1"></i> 以此重測
+                    </a>
+                    
+                    <a href="${reportLink}" class="px-4 py-2 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-primary transition-colors shadow-sm">
+                        查看報告
+                    </a>
+                </div>
+            `;
+
+            card.innerHTML = `
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center group-hover:bg-teal-50 group-hover:text-primary transition-colors">
+                        <i class="fa-solid fa-file-lines"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] tracking-widest uppercase">${data.toolType || '評測'}</span>
+                            <span class="text-xs text-slate-400">${date}</span>
+                        </div>
+                        <h4 class="font-bold text-secondary text-base">${toolTitle}</h4>
+                        <p class="text-sm text-slate-400 truncate max-w-xs">${summaryText}</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 justify-end w-full lg:w-auto flex-wrap">
+                    <button onclick="deleteReport('${docId}')" class="px-3 py-2 bg-white text-red-400 border border-red-100 text-sm font-bold rounded-xl hover:bg-red-50 hover:text-red-600 transition-colors" title="刪除紀錄">
+                        <i class="fa-regular fa-trash-can"></i>
+                    </button>
+                    <a href="${retestLink}" class="px-3 py-2 bg-teal-50 text-primary border border-teal-100 text-sm font-bold rounded-xl hover:bg-teal-100 transition-colors shadow-sm">
+                        <i class="fa-solid fa-clock-rotate-left mr-1"></i> 以此重測
+                    </a>
+                    <a href="report.html?id=${docId}" class="px-4 py-2 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-primary transition-colors shadow-sm">
+                        查看報告
+                    </a>
+                </div>
+            `;
+            container.appendChild(card);
+        }
+
+        window.deleteReport = async (docId) => {
+            if (!confirm("確定要刪除這筆測驗紀錄嗎？刪除後將無法恢復。")) return;
+            try {
+                await deleteDoc(doc(db, "assessments", docId));
+                document.getElementById(`card-${docId}`)?.remove();
+                recordCount.innerText = parseInt(recordCount.innerText) - 1;
+                if (recordCount.innerText === "0") emptyState.classList.remove('hidden');
+            } catch (error) { console.error(error); }
+        };
+
+        document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+    </script>
+</body>
+</html>

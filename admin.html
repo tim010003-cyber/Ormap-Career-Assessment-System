@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>諮詢師後台 | Ormap CRM</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        primary: '#0d9488',
+        secondary: '#0f172a',
+      }
+    }
+  }
+}
+</script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+  body { font-family: 'Noto Sans TC', sans-serif; }
+  .status-未測驗  { background:#f1f5f9; color:#64748b; border-color:#e2e8f0; }
+  .status-已完成  { background:#f0fdf4; color:#16a34a; border-color:#bbf7d0; }
+  .status-已諮詢  { background:#eff6ff; color:#2563eb; border-color:#bfdbfe; }
+  .status-待追蹤  { background:#fff7ed; color:#ea580c; border-color:#fed7aa; }
+</style>
+</head>
+<body class="bg-slate-50 min-h-screen antialiased text-slate-900">
+
+<!-- Navbar -->
+<nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between h-16 items-center">
+      <div class="flex items-center gap-3">
+        <img src="./ormap-logo.png" alt="Ormap" class="w-8 h-8 object-contain">
+        <span class="text-xl font-bold tracking-tight text-secondary">Ormap</span>
+        <span class="px-2 py-0.5 bg-primary text-white text-[10px] font-black rounded tracking-widest uppercase">CRM</span>
+      </div>
+      <div id="navUserInfo" class="hidden flex items-center gap-3">
+        <img id="navUserPhoto" src="" alt="Avatar" class="w-8 h-8 rounded-full border border-slate-200">
+        <span id="navUserName" class="text-sm font-medium text-slate-700 hidden md:block"></span>
+        <button id="logoutBtn" class="text-slate-500 hover:text-red-600 transition-colors" title="登出">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- 未授權畫面 -->
+<div id="accessDenied" class="hidden min-h-screen flex items-center justify-center">
+  <div class="text-center px-4">
+    <div class="flex justify-center mb-4 text-red-400">
+      <i data-lucide="shield-x" class="w-16 h-16"></i>
+    </div>
+    <h2 class="text-2xl font-black text-slate-800 mb-2">無存取權限</h2>
+    <p class="text-slate-500 mb-6">此頁面僅限授權諮詢師使用。<br>請確認你使用的帳號已在白名單中。</p>
+    <a href="index.html" class="px-6 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-primary transition-colors">回到首頁</a>
+  </div>
+</div>
+
+<!-- 主體（驗證通過後顯示）-->
+<div id="mainContent" class="hidden">
+  <div class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+
+    <!-- 標題列 -->
+    <header class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-black text-secondary">學員紀錄總覽</h1>
+        <p class="text-slate-500 text-sm mt-1">僅顯示已授權諮詢師查看的評測紀錄</p>
+      </div>
+      <div id="statsBar" class="flex items-center gap-3 flex-wrap">
+        <div class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 flex items-center gap-2">
+          <i data-lucide="users" class="w-4 h-4 text-primary"></i>
+          共 <span id="totalCount" class="text-primary">0</span> 筆紀錄
+        </div>
+      </div>
+    </header>
+
+    <!-- 搜尋 & 篩選列 -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-4 mb-6 flex flex-col sm:flex-row gap-3">
+      <div class="relative flex-1">
+        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+        <input id="searchInput" type="text" placeholder="搜尋學員姓名或 Email…"
+          class="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all">
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        <!-- 工具篩選 -->
+        <select id="filterTool"
+          class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all">
+          <option value="">全部工具</option>
+          <option value="TWA">TWA</option>
+          <option value="HTI">HTI</option>
+        </select>
+        <!-- 狀態篩選 -->
+        <select id="filterStatus"
+          class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all">
+          <option value="">全部狀態</option>
+          <option value="未測驗">未測驗</option>
+          <option value="已完成">已完成</option>
+          <option value="已諮詢">已諮詢</option>
+          <option value="待追蹤">待追蹤</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loadingState" class="space-y-3">
+      <div class="h-20 bg-slate-200 animate-pulse rounded-2xl"></div>
+      <div class="h-20 bg-slate-200 animate-pulse rounded-2xl"></div>
+      <div class="h-20 bg-slate-200 animate-pulse rounded-2xl"></div>
+    </div>
+
+    <!-- 空狀態 -->
+    <div id="emptyState" class="hidden py-24 text-center">
+      <div class="flex justify-center mb-4 text-slate-300">
+        <i data-lucide="inbox" class="w-16 h-16"></i>
+      </div>
+      <h3 class="text-lg font-bold text-slate-600">目前沒有已授權的紀錄</h3>
+      <p class="text-slate-400 text-sm mt-1">學員從個人後台開啟授權後，紀錄將顯示於此。</p>
+    </div>
+
+    <!-- 搜尋無結果 -->
+    <div id="noResultState" class="hidden py-24 text-center">
+      <div class="flex justify-center mb-4 text-slate-300">
+        <i data-lucide="search-x" class="w-16 h-16"></i>
+      </div>
+      <h3 class="text-lg font-bold text-slate-600">找不到符合的紀錄</h3>
+      <p class="text-slate-400 text-sm mt-1">請嘗試其他關鍵字或篩選條件。</p>
+    </div>
+
+    <!-- 紀錄列表 -->
+    <div id="recordsContainer" class="space-y-3"></div>
+
+  </div>
+</div>
+
+<!-- ── 備註 & 狀態 側邊抽屜 ── -->
+<div id="drawer" class="fixed inset-0 z-50 hidden">
+  <!-- 半透明背景 -->
+  <div id="drawerBackdrop" class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeDrawer()"></div>
+  <!-- 抽屜本體 -->
+  <div id="drawerPanel" class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col transform translate-x-full transition-transform duration-300 ease-out">
+
+    <!-- 抽屜 Header -->
+    <div class="flex items-center justify-between p-6 border-b border-slate-100">
+      <div>
+        <p class="text-[10px] font-black tracking-widest text-slate-400 uppercase mb-1">學員備註</p>
+        <h3 id="drawerTitle" class="text-lg font-black text-slate-800"></h3>
+      </div>
+      <button onclick="closeDrawer()" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
+        <i data-lucide="x" class="w-4 h-4 text-slate-600"></i>
+      </button>
+    </div>
+
+    <!-- 狀態標籤 -->
+    <div class="p-6 border-b border-slate-100">
+      <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">學員狀態</p>
+      <div id="statusButtons" class="flex flex-wrap gap-2">
+        <!-- 動態產生 -->
+      </div>
+    </div>
+
+    <!-- 備註輸入區 -->
+    <div class="flex-1 p-6 flex flex-col">
+      <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">諮詢備註
+        <span class="text-slate-300 font-normal normal-case ml-1">（所有諮詢師共用）</span>
+      </p>
+      <textarea id="noteInput" placeholder="在此輸入備註，例如：諮詢重點、追蹤事項、學員狀況…"
+        class="flex-1 resize-none bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm text-slate-700 leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all min-h-[200px]">
+      </textarea>
+      <div class="flex items-center justify-between mt-4">
+        <p id="noteSavedMsg" class="text-xs text-slate-400 hidden flex items-center gap-1">
+          <i data-lucide="check-circle" class="w-3 h-3 text-green-500"></i> 已儲存
+        </p>
+        <button id="saveNoteBtn"
+          class="ml-auto px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-teal-700 transition-all flex items-center gap-2">
+          <i data-lucide="save" class="w-4 h-4"></i> 儲存備註
+        </button>
+      </div>
+    </div>
+
+    <!-- 查看報告連結 -->
+    <div class="p-6 border-t border-slate-100">
+      <a id="drawerReportLink" href="#" target="_blank"
+        class="w-full flex items-center justify-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-2xl font-bold text-sm hover:bg-primary transition-all">
+        <i data-lucide="external-link" class="w-4 h-4"></i> 查看完整報告
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import {
+  getFirestore,
+  collection, query, where, orderBy, getDocs,
+  doc, getDoc, setDoc, updateDoc, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+// ── 諮詢師 Email 白名單 ──────────────────────────────────
+// 如需新增諮詢師，在此陣列加入對應的 Google 帳號 Email
+const COUNSELOR_WHITELIST = [
+  "your-counselor@gmail.com",   // ← 替換成實際諮詢師 Email
+];
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
+  authDomain: "careervalue-ormap.firebaseapp.com",
+  projectId: "careervalue-ormap",
+  storageBucket: "careervalue-ormap.firebasestorage.app",
+  messagingSenderId: "883599167982",
+  appId: "1:883599167982:web:6dee33f8abf03de9b53eff"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const STATUS_LIST = ['未測驗', '已完成', '已諮詢', '待追蹤'];
+
+let allRecords = [];       // 全部原始資料
+let currentDocId = null;   // 目前抽屜對應的 docId
+
+// ── 身分驗證 ──────────────────────────────────────────
+onAuthStateChanged(auth, (user) => {
+  if (!user) {
+    window.location.href = 'index.html';
+    return;
+  }
+
+  // 檢查是否在白名單
+  if (!COUNSELOR_WHITELIST.includes(user.email)) {
+    document.getElementById('accessDenied').classList.remove('hidden');
+    lucide.createIcons();
+    return;
+  }
+
+  // 通過驗證
+  document.getElementById('navUserInfo').classList.remove('hidden');
+  document.getElementById('navUserPhoto').src = user.photoURL || '';
+  document.getElementById('navUserName').innerText = user.displayName || user.email;
+  document.getElementById('mainContent').classList.remove('hidden');
+  lucide.createIcons();
+
+  loadRecords();
+});
+
+document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+
+// ── 載入資料 ──────────────────────────────────────────
+async function loadRecords() {
+  try {
+    const q = query(
+      collection(db, "assessments"),
+      where("counselorAccess", "==", true),
+      orderBy("createdAt", "desc")
+    );
+    const snapshot = await getDocs(q);
+    document.getElementById('loadingState').classList.add('hidden');
+
+    if (snapshot.empty) {
+      document.getElementById('emptyState').classList.remove('hidden');
+      return;
+    }
+
+    // 同時載入所有 counselor_notes
+    const docIds = snapshot.docs.map(d => d.id);
+    const notesMap = await fetchNotes(docIds);
+
+    allRecords = snapshot.docs.map(d => ({
+      id: d.id,
+      ...d.data(),
+      _note: notesMap[d.id] || { note: '', status: '' }
+    }));
+
+    document.getElementById('totalCount').innerText = allRecords.length;
+    renderList(allRecords);
+  } catch (error) {
+    console.error(error);
+    document.getElementById('loadingState').classList.add('hidden');
+  }
+}
+
+async function fetchNotes(docIds) {
+  const map = {};
+  // Firestore 不支援大量 in query，批次每次最多 30 筆
+  const chunks = [];
+  for (let i = 0; i < docIds.length; i += 30) chunks.push(docIds.slice(i, i + 30));
+
+  for (const chunk of chunks) {
+    const promises = chunk.map(id => getDoc(doc(db, "counselor_notes", id)));
+    const results = await Promise.all(promises);
+    results.forEach((snap, i) => {
+      if (snap.exists()) map[chunk[i]] = snap.data();
+    });
+  }
+  return map;
+}
+
+// ── 渲染列表 ──────────────────────────────────────────
+function renderList(records) {
+  const container = document.getElementById('recordsContainer');
+  const emptyState = document.getElementById('emptyState');
+  const noResultState = document.getElementById('noResultState');
+  container.innerHTML = '';
+  emptyState.classList.add('hidden');
+  noResultState.classList.add('hidden');
+
+  if (records.length === 0) {
+    noResultState.classList.remove('hidden');
+    return;
+  }
+
+  records.forEach(record => {
+    const card = buildCard(record);
+    container.appendChild(card);
+  });
+  lucide.createIcons();
+}
+
+function buildCard(record) {
+  const date = record.createdAt?.toDate
+    ? record.createdAt.toDate().toLocaleDateString('zh-TW')
+    : '未知日期';
+  const isHTI = record.toolType === 'HTI';
+  const toolLabel = isHTI ? 'HTI' : 'TWA';
+  const toolTitle = isHTI ? 'HTI 何倫特質解析' : 'TWA 工作價值觀評測';
+  const name = record.clientInfo?.name || record.name || '（未留名）';
+  const email = record.clientInfo?.email || record.email || '';
+  const summary = record.summary?.text || '已完成評測';
+  const status = record._note?.status || '';
+  const hasNote = !!(record._note?.note);
+
+  const card = document.createElement('div');
+  card.dataset.docId = record.id;
+  card.className = "bg-white rounded-2xl border border-slate-200 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-md hover:border-slate-300 transition-all cursor-pointer";
+  card.onclick = () => openDrawer(record.id);
+
+  card.innerHTML = `
+    <div class="flex items-center gap-4 min-w-0">
+      <div class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center shrink-0 text-slate-400">
+        <i data-lucide="user" class="w-5 h-5"></i>
+      </div>
+      <div class="min-w-0">
+        <div class="flex items-center gap-2 flex-wrap mb-0.5">
+          <span class="text-xs font-black px-2 py-0.5 bg-slate-100 text-slate-500 rounded tracking-widest uppercase">${toolLabel}</span>
+          <span class="text-xs text-slate-400">${date}</span>
+          ${status ? `<span class="text-xs font-bold px-2 py-0.5 border rounded-full status-${status}">${status}</span>` : ''}
+          ${hasNote ? `<span class="text-xs text-slate-400 flex items-center gap-0.5"><i data-lucide="message-square" class="w-3 h-3"></i> 有備註</span>` : ''}
+        </div>
+        <p class="font-bold text-slate-800">${name} <span class="text-slate-400 font-normal text-sm">${email}</span></p>
+        <p class="text-xs text-slate-400 truncate">${summary}</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 justify-end shrink-0">
+      <a href="report.html?id=${record.id}" target="_blank"
+        onclick="event.stopPropagation()"
+        class="px-3 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-primary transition-colors flex items-center gap-1">
+        <i data-lucide="external-link" class="w-3 h-3"></i> 查看報告
+      </a>
+      <button onclick="event.stopPropagation(); openDrawer('${record.id}')"
+        class="px-3 py-2 bg-slate-100 text-slate-600 text-xs font-bold rounded-xl hover:bg-slate-200 transition-colors flex items-center gap-1">
+        <i data-lucide="pencil-line" class="w-3 h-3"></i> 備註
+      </button>
+    </div>
+  `;
+
+  return card;
+}
+
+// ── 搜尋 & 篩選 ──────────────────────────────────────────
+function applyFilter() {
+  const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+  const toolFilter = document.getElementById('filterTool').value;
+  const statusFilter = document.getElementById('filterStatus').value;
+
+  const filtered = allRecords.filter(r => {
+    const name = (r.clientInfo?.name || r.name || '').toLowerCase();
+    const email = (r.clientInfo?.email || r.email || '').toLowerCase();
+    const matchKeyword = !keyword || name.includes(keyword) || email.includes(keyword);
+    const matchTool = !toolFilter || r.toolType === toolFilter;
+    const matchStatus = !statusFilter || (r._note?.status || '') === statusFilter;
+    return matchKeyword && matchTool && matchStatus;
+  });
+
+  renderList(filtered);
+}
+
+document.getElementById('searchInput').addEventListener('input', applyFilter);
+document.getElementById('filterTool').addEventListener('change', applyFilter);
+document.getElementById('filterStatus').addEventListener('change', applyFilter);
+
+// ── 抽屜 ──────────────────────────────────────────────
+window.openDrawer = async (docId) => {
+  currentDocId = docId;
+  const record = allRecords.find(r => r.id === docId);
+  if (!record) return;
+
+  const name = record.clientInfo?.name || record.name || '（未留名）';
+  const toolLabel = record.toolType === 'HTI' ? 'HTI 何倫特質解析' : 'TWA 工作價值觀評測';
+
+  document.getElementById('drawerTitle').innerText = `${name}｜${toolLabel}`;
+  document.getElementById('drawerReportLink').href = `report.html?id=${docId}`;
+  document.getElementById('noteInput').value = record._note?.note || '';
+  document.getElementById('noteSavedMsg').classList.add('hidden');
+
+  // 狀態按鈕
+  renderStatusButtons(record._note?.status || '');
+
+  // 開啟抽屜動畫
+  const drawer = document.getElementById('drawer');
+  const panel = document.getElementById('drawerPanel');
+  drawer.classList.remove('hidden');
+  setTimeout(() => panel.classList.remove('translate-x-full'), 10);
+  lucide.createIcons();
+};
+
+window.closeDrawer = () => {
+  const panel = document.getElementById('drawerPanel');
+  panel.classList.add('translate-x-full');
+  setTimeout(() => document.getElementById('drawer').classList.add('hidden'), 300);
+  currentDocId = null;
+};
+
+function renderStatusButtons(currentStatus) {
+  const container = document.getElementById('statusButtons');
+  container.innerHTML = '';
+  STATUS_LIST.forEach(s => {
+    const isActive = s === currentStatus;
+    const btn = document.createElement('button');
+    btn.className = isActive
+      ? `px-3 py-1.5 text-xs font-bold rounded-full border transition-all status-${s} ring-2 ring-offset-1 ring-current`
+      : `px-3 py-1.5 text-xs font-bold rounded-full border transition-all status-${s} opacity-60 hover:opacity-100`;
+    btn.innerText = s;
+    btn.onclick = () => selectStatus(s, currentStatus);
+    container.appendChild(btn);
+  });
+}
+
+async function selectStatus(newStatus, oldStatus) {
+  if (!currentDocId) return;
+  const finalStatus = newStatus === oldStatus ? '' : newStatus; // 再點一次取消
+
+  try {
+    await setDoc(doc(db, "counselor_notes", currentDocId), {
+      status: finalStatus,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+
+    // 同步更新 allRecords
+    const record = allRecords.find(r => r.id === currentDocId);
+    if (record) {
+      record._note = record._note || {};
+      record._note.status = finalStatus;
+    }
+
+    renderStatusButtons(finalStatus);
+    applyFilter(); // 重新渲染列表反映狀態變更
+    lucide.createIcons();
+  } catch (error) {
+    console.error(error);
+    alert("狀態更新失敗，請稍後再試。");
+  }
+}
+
+// ── 儲存備註 ──────────────────────────────────────────
+document.getElementById('saveNoteBtn').addEventListener('click', async () => {
+  if (!currentDocId) return;
+  const noteText = document.getElementById('noteInput').value;
+  const btn = document.getElementById('saveNoteBtn');
+
+  btn.disabled = true;
+  btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> 儲存中…';
+  lucide.createIcons();
+
+  try {
+    await setDoc(doc(db, "counselor_notes", currentDocId), {
+      note: noteText,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+
+    // 同步更新 allRecords
+    const record = allRecords.find(r => r.id === currentDocId);
+    if (record) {
+      record._note = record._note || {};
+      record._note.note = noteText;
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> 儲存備註';
+    document.getElementById('noteSavedMsg').classList.remove('hidden');
+    lucide.createIcons();
+    applyFilter(); // 更新列表的「有備註」標記
+  } catch (error) {
+    console.error(error);
+    btn.disabled = false;
+    btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> 儲存備註';
+    alert("儲存失敗，請稍後再試。");
+    lucide.createIcons();
+  }
+});
+
+// 輸入時隱藏「已儲存」提示
+document.getElementById('noteInput').addEventListener('input', () => {
+  document.getElementById('noteSavedMsg').classList.add('hidden');
+});
+
+lucide.createIcons();
+</script>
+</body>
+</html>

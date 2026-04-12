@@ -10,7 +10,6 @@ tailwind.config = {
   theme: { extend: { colors: { primary: '#0d9488', secondary: '#0f172a' } } }
 }
 </script>
-<!-- ✅ Bug 2 修正：移除 FontAwesome，統一使用 Lucide Icons -->
 <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="bg-slate-50 min-h-screen font-sans antialiased text-slate-900">
@@ -27,7 +26,6 @@ tailwind.config = {
         <div id="userInfo" class="hidden flex items-center gap-3">
           <img id="userPhoto" src="" alt="Avatar" class="w-8 h-8 rounded-full border border-slate-200">
           <span id="userName" class="text-sm font-medium text-slate-700 hidden md:block">載入中...</span>
-          <!-- ✅ Bug 2 修正：fa-right-from-bracket → Lucide log-out -->
           <button id="logoutBtn" class="text-slate-500 hover:text-red-600 transition-colors">
             <i data-lucide="log-out" class="w-4 h-4"></i>
           </button>
@@ -43,16 +41,14 @@ tailwind.config = {
     <p class="text-slate-500">在這裡查看你的職涯評測紀錄，追蹤每一次的成長軌跡。</p>
   </header>
 
-  <!-- ✅ Bug 3 修正：補上原本缺少的 </section> 關閉標籤 -->
+  <!-- 開始新的評測 -->
   <section class="mb-12">
     <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400 mb-4">開始新的評測</h2>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-      <!-- TWA 工具卡片 -->
       <a href="tools/twa.html" class="group p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:border-primary hover:shadow-md transition-all">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-4">
-            <!-- ✅ Bug 2 修正：fa-compass → Lucide compass -->
             <div class="w-12 h-12 bg-teal-50 text-primary rounded-xl flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
               <i data-lucide="compass" class="w-6 h-6"></i>
             </div>
@@ -61,17 +57,13 @@ tailwind.config = {
               <p class="text-sm text-slate-500">開啟一份全新的職涯覺察地圖</p>
             </div>
           </div>
-          <!-- ✅ Bug 2 修正：fa-chevron-right → Lucide chevron-right -->
           <i data-lucide="chevron-right" class="w-5 h-5 text-slate-300 group-hover:text-primary transition-colors"></i>
         </div>
       </a>
 
-      <!-- HTI 工具卡片 -->
-      <!-- ✅ Bug 7 修正：HTI hover 顏色補齊 orange-500 -->
       <a href="tools/hti.html" class="group p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:border-orange-500 hover:shadow-md transition-all">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-4">
-            <!-- ✅ Bug 2 修正：fa-microchip → Lucide cpu -->
             <div class="w-12 h-12 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center group-hover:bg-orange-500 group-hover:text-white transition-colors">
               <i data-lucide="cpu" class="w-6 h-6"></i>
             </div>
@@ -80,14 +72,12 @@ tailwind.config = {
               <p class="text-sm text-slate-500">探索你的天賦特質與原動力</p>
             </div>
           </div>
-          <!-- ✅ Bug 7 修正：HTI chevron 也套用 orange hover -->
           <i data-lucide="chevron-right" class="w-5 h-5 text-slate-300 group-hover:text-orange-500 transition-colors"></i>
         </div>
       </a>
 
     </div>
   </section>
-  <!-- ✅ Bug 3 修正：上方 section 正確關閉 -->
 
   <!-- 歷史測驗紀錄 -->
   <section>
@@ -101,7 +91,6 @@ tailwind.config = {
     </div>
 
     <div id="emptyState" class="hidden py-20 text-center">
-      <!-- ✅ Bug 2 修正：fa-folder-open → Lucide folder-open -->
       <div class="mb-4 text-slate-300 flex justify-center">
         <i data-lucide="folder-open" class="w-16 h-16"></i>
       </div>
@@ -113,10 +102,29 @@ tailwind.config = {
   </section>
 </main>
 
+<!-- 授權確認 Modal -->
+<div id="authModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center px-4">
+  <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8">
+    <div id="authModal-icon" class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"></div>
+    <h3 id="authModal-title" class="text-xl font-black text-center text-slate-800 mb-3"></h3>
+    <p id="authModal-desc" class="text-slate-500 text-center text-sm leading-relaxed mb-8"></p>
+    <div class="flex gap-3">
+      <button onclick="closeAuthModal()"
+        class="flex-1 px-4 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-all">
+        取消
+      </button>
+      <button id="authModal-confirm"
+        class="flex-1 px-4 py-3 rounded-2xl font-bold text-white transition-all">
+        確認
+      </button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { getFirestore, collection, query, where, orderBy, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, query, where, orderBy, getDocs, deleteDoc, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
@@ -164,8 +172,6 @@ async function fetchAssessments(uid) {
 
     recordCount.innerText = querySnapshot.size;
     querySnapshot.forEach((docSnap) => renderCard(docSnap.id, docSnap.data()));
-
-    // 初始化 Lucide Icons（卡片動態插入後需重新掃描）
     lucide.createIcons();
   } catch (error) {
     console.error(error);
@@ -187,8 +193,8 @@ function renderCard(docId, data) {
   const summaryText = data.summary?.text || '已完成評測';
   const reportLink = `report.html?id=${docId}`;
   const retestLink = isHTI ? `tools/hti.html?loadId=${docId}` : `tools/twa.html?loadId=${docId}`;
+  const isAuthorized = data.counselorAccess === true;
 
-  // ✅ Bug 2 修正：所有 fa-* 圖示全換成 Lucide data-lucide 版本
   card.innerHTML = `
     <div class="flex items-center gap-4">
       <div class="w-10 h-10 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center group-hover:bg-teal-50 group-hover:text-primary transition-colors">
@@ -204,11 +210,12 @@ function renderCard(docId, data) {
       </div>
     </div>
     <div class="flex items-center gap-2 justify-end w-full lg:w-auto flex-wrap">
-      <button onclick="deleteReport('${docId}')"
+      <button onclick="confirmDeleteReport('${docId}')"
         class="px-3 py-2 bg-white text-red-400 border border-red-100 text-sm font-bold rounded-xl hover:bg-red-50 hover:text-red-600 transition-colors flex items-center gap-1"
         title="刪除紀錄">
         <i data-lucide="trash-2" class="w-4 h-4"></i>
       </button>
+      ${renderAuthBtn(docId, isAuthorized)}
       <a href="${retestLink}"
         class="px-3 py-2 bg-teal-50 text-primary border border-teal-100 text-sm font-bold rounded-xl hover:bg-teal-100 transition-colors shadow-sm flex items-center gap-1">
         <i data-lucide="rotate-ccw" class="w-4 h-4"></i> 以此重測
@@ -223,28 +230,102 @@ function renderCard(docId, data) {
   container.appendChild(card);
 }
 
-window.deleteReport = async (docId) => {
+function renderAuthBtn(docId, isAuthorized) {
+  if (isAuthorized) {
+    return `<button id="auth-btn-${docId}" onclick="confirmToggleAccess('${docId}', true)"
+      class="px-3 py-2 bg-teal-50 text-primary border border-teal-200 text-sm font-bold rounded-xl hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors flex items-center gap-1"
+      title="點擊取消授權">
+      <i data-lucide="shield-check" class="w-4 h-4"></i><span>已授權</span>
+    </button>`;
+  } else {
+    return `<button id="auth-btn-${docId}" onclick="confirmToggleAccess('${docId}', false)"
+      class="px-3 py-2 bg-white text-slate-400 border border-slate-200 text-sm font-bold rounded-xl hover:bg-teal-50 hover:text-primary hover:border-teal-200 transition-colors flex items-center gap-1"
+      title="授權諮詢師查看">
+      <i data-lucide="shield-off" class="w-4 h-4"></i><span>授權</span>
+    </button>`;
+  }
+}
+
+// ── Modal 控制 ──────────────────────────────────────────
+let _pendingAction = null;
+
+window.confirmToggleAccess = (docId, isCurrentlyAuthorized) => {
+  const icon = document.getElementById('authModal-icon');
+  const title = document.getElementById('authModal-title');
+  const desc = document.getElementById('authModal-desc');
+  const confirmBtn = document.getElementById('authModal-confirm');
+
+  if (isCurrentlyAuthorized) {
+    icon.className = "w-14 h-14 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-5";
+    icon.innerHTML = '<i data-lucide="shield-off" class="w-7 h-7"></i>';
+    title.innerText = '取消授權諮詢師查看？';
+    desc.innerText = '取消後，諮詢師將無法查看此份報告。你可以隨時重新開啟授權。';
+    confirmBtn.className = "flex-1 px-4 py-3 rounded-2xl font-bold text-white bg-red-500 hover:bg-red-600 transition-all";
+    confirmBtn.innerText = '確認取消授權';
+  } else {
+    icon.className = "w-14 h-14 rounded-2xl bg-teal-50 text-primary flex items-center justify-center mx-auto mb-5";
+    icon.innerHTML = '<i data-lucide="shield-check" class="w-7 h-7"></i>';
+    title.innerText = '授權諮詢師查看此報告？';
+    desc.innerText = '開啟後，具備資格的諮詢師可查看這份報告。你的個人資料將受到保護，且可隨時取消授權。';
+    confirmBtn.className = "flex-1 px-4 py-3 rounded-2xl font-bold text-white bg-primary hover:bg-teal-700 transition-all";
+    confirmBtn.innerText = '確認授權';
+  }
+
+  _pendingAction = () => executeToggleAccess(docId, isCurrentlyAuthorized);
+  document.getElementById('authModal').classList.remove('hidden');
+  lucide.createIcons();
+};
+
+window.closeAuthModal = () => {
+  document.getElementById('authModal').classList.add('hidden');
+  _pendingAction = null;
+};
+
+document.getElementById('authModal-confirm').addEventListener('click', () => {
+  if (_pendingAction) { _pendingAction(); closeAuthModal(); }
+});
+
+document.getElementById('authModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('authModal')) closeAuthModal();
+});
+
+async function executeToggleAccess(docId, isCurrentlyAuthorized) {
+  const newState = !isCurrentlyAuthorized;
+  try {
+    await updateDoc(doc(db, "assessments", docId), { counselorAccess: newState });
+
+    // 直接替換按鈕 HTML，不需重整頁面
+    const btn = document.getElementById(`auth-btn-${docId}`);
+    if (btn) {
+      btn.outerHTML = renderAuthBtn(docId, newState);
+      lucide.createIcons();
+    }
+  } catch (error) {
+    console.error(error);
+    alert("操作失敗，請稍後再試。");
+  }
+}
+
+// ── 刪除 ──────────────────────────────────────────
+window.confirmDeleteReport = (docId) => {
   if (!confirm("確定要刪除這筆測驗紀錄嗎？刪除後將無法恢復。")) return;
+  deleteReport(docId);
+};
+
+async function deleteReport(docId) {
   try {
     await deleteDoc(doc(db, "assessments", docId));
     document.getElementById(`card-${docId}`)?.remove();
-
-    // ✅ Bug 8 修正：正確更新計數並重新初始化刪除後的圖示
     const currentCount = parseInt(recordCount.innerText) - 1;
-    recordCount.innerText = currentCount;
-    if (currentCount <= 0) {
-      recordCount.innerText = '0';
-      emptyState.classList.remove('hidden');
-    }
+    recordCount.innerText = Math.max(currentCount, 0);
+    if (currentCount <= 0) emptyState.classList.remove('hidden');
   } catch (error) {
     console.error(error);
     alert("刪除失敗，請稍後再試。");
   }
-};
+}
 
 document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
-
-// 初始化 Navbar 的 Lucide Icons
 lucide.createIcons();
 </script>
 </body>

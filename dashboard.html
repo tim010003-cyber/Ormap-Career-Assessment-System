@@ -164,8 +164,7 @@ onAuthStateChanged(auth, (user) => {
 
     // 白名單諮詢師才顯示「後台管理」連結
     if (COUNSELOR_WHITELIST.includes(user.email)) {
-      document.getElementById('adminLink').classList.remove('hidden');
-      document.getElementById('adminLink').classList.add('flex');
+document.getElementById('adminLink').style.display = 'flex';
     }
 
     fetchAssessments(user.uid);

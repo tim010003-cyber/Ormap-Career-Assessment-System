@@ -1,110 +1,107 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ormap 原味藍圖 | 職涯導航 SaaS 平台</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#0d9488', // teal-600
-                        secondary: '#0f172a', // slate-900
-                    }
-                }
-            }
-        }
-    </script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ormap 原味藍圖 | 職涯導航 SaaS 平台</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        primary: '#0d9488',
+        secondary: '#0f172a',
+      }
+    }
+  }
+}
+</script>
+<!-- ✅ Bug 1 修正：移除無效的 FontAwesome 引入，改用 Lucide Icons（全站統一） -->
+<script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="bg-white font-sans antialiased text-secondary">
+<div class="relative overflow-hidden bg-slate-50 min-h-screen flex flex-col items-center justify-center px-4">
+  <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full opacity-10 pointer-events-none">
+    <svg viewBox="0 0 100 100" class="w-full h-full">
+      <defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="currentColor" stroke-width="0.5"/></pattern></defs>
+      <rect width="100" height="100" fill="url(#grid)" />
+    </svg>
+  </div>
 
-    <div class="relative overflow-hidden bg-slate-50 min-h-screen flex flex-col items-center justify-center px-4">
-        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full opacity-10 pointer-events-none">
-            <svg viewBox="0 0 100 100" class="w-full h-full">
-                <defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="currentColor" stroke-width="0.5"/></pattern></defs>
-                <rect width="100" height="100" fill="url(#grid)" />
-            </svg>
-        </div>
-
-        <div class="relative z-10 max-w-3xl text-center">
-        <div class="mb-8 flex justify-center">
-    <img src="./ormap-logo.png" alt="Ormap Logo" class="w-24 h-auto drop-shadow-md">
-</div>
-            
-            <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight mb-6">
-                找到你的職涯 <span class="text-primary">原味藍圖</span>
-            </h1>
-            
-            <p class="text-lg md:text-xl text-slate-600 mb-10 leading-relaxed">
-                結合心理學評測與數據追蹤，助你釐清工作價值觀，<br class="hidden md:block"> 啟動有意識的職涯導航。
-            </p>
-
-            <div id="loginArea" class="flex flex-col items-center gap-4">
-                <button id="googleLoginBtn" class="flex items-center gap-3 px-8 py-4 bg-white border border-slate-200 rounded-full text-lg font-bold shadow-sm hover:shadow-md hover:border-slate-300 transition-all active:scale-95">
-                    <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="Google" class="w-6 h-6">
-                    使用 Google 帳號開始
-                </button>
-                <p class="text-sm text-slate-400">快速登入，無需註冊</p>
-            </div>
-
-            <div id="loadingStatus" class="hidden flex flex-col items-center">
-                <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4"></div>
-                <p class="text-slate-500 font-medium">身分驗證中...</p>
-            </div>
-        </div>
-
-        <footer class="absolute bottom-8 text-slate-400 text-sm">
-            &copy; 2026 Ormap 原味藍圖. All rights reserved.
-        </footer>
+  <div class="relative z-10 max-w-3xl text-center">
+    <div class="mb-8 flex justify-center">
+      <img src="./ormap-logo.png" alt="Ormap Logo" class="w-24 h-auto drop-shadow-md">
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+    <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight mb-6">
+      找到你的職涯 <span class="text-primary">原味藍圖</span>
+    </h1>
+    <p class="text-lg md:text-xl text-slate-600 mb-10 leading-relaxed">
+      結合心理學評測與數據追蹤，助你釐清工作價值觀，<br class="hidden md:block"> 啟動有意識的職涯導航。
+    </p>
 
-        // Firebase Configuration (請替換為你的設定)
-       const firebaseConfig = {
-            apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
-            authDomain: "careervalue-ormap.firebaseapp.com",
-            projectId: "careervalue-ormap",
-            storageBucket: "careervalue-ormap.firebasestorage.app",
-            messagingSenderId: "883599167982",
-            appId: "1:883599167982:web:6dee33f8abf03de9b53eff",
-            measurementId: "G-YR8YK2CBK6"
-        };
+    <div id="loginArea" class="flex flex-col items-center gap-4">
+      <button id="googleLoginBtn" class="flex items-center gap-3 px-8 py-4 bg-white border border-slate-200 rounded-full text-lg font-bold shadow-sm hover:shadow-md hover:border-slate-300 transition-all active:scale-95">
+        <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="Google" class="w-6 h-6">
+        使用 Google 帳號開始
+      </button>
+      <p class="text-sm text-slate-400">快速登入，無需註冊</p>
+    </div>
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const provider = new GoogleAuthProvider();
+    <div id="loadingStatus" class="hidden flex flex-col items-center">
+      <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4"></div>
+      <p class="text-slate-500 font-medium">身分驗證中...</p>
+    </div>
+  </div>
 
-        const loginArea = document.getElementById('loginArea');
-        const loadingStatus = document.getElementById('loadingStatus');
+  <footer class="absolute bottom-8 text-slate-400 text-sm">
+    &copy; 2026 Ormap 原味藍圖. All rights reserved.
+  </footer>
+</div>
 
-        // 監聽登入狀態：如果已經登入，直接送去 Dashboard
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                window.location.href = 'dashboard.html';
-            }
-        });
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
-        // 登入按鈕事件
-        document.getElementById('googleLoginBtn').addEventListener('click', async () => {
-            loginArea.classList.add('hidden');
-            loadingStatus.classList.remove('hidden');
-            
-            try {
-                await signInWithPopup(auth, provider);
-                // 登入成功後，onAuthStateChanged 會觸發自動跳轉
-            } catch (error) {
-                console.error("Login failed:", error);
-                alert("登入失敗，請稍後再試。");
-                loginArea.classList.remove('hidden');
-                loadingStatus.classList.add('hidden');
-            }
-        });
-    </script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
+  authDomain: "careervalue-ormap.firebaseapp.com",
+  projectId: "careervalue-ormap",
+  storageBucket: "careervalue-ormap.firebasestorage.app",
+  messagingSenderId: "883599167982",
+  appId: "1:883599167982:web:6dee33f8abf03de9b53eff",
+  measurementId: "G-YR8YK2CBK6"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+const loginArea = document.getElementById('loginArea');
+const loadingStatus = document.getElementById('loadingStatus');
+
+// 監聽登入狀態：如果已經登入，直接送去 Dashboard
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    window.location.href = 'dashboard.html';
+  }
+});
+
+// 登入按鈕事件
+document.getElementById('googleLoginBtn').addEventListener('click', async () => {
+  loginArea.classList.add('hidden');
+  loadingStatus.classList.remove('hidden');
+  try {
+    await signInWithPopup(auth, provider);
+    // 登入成功後，onAuthStateChanged 會觸發自動跳轉
+  } catch (error) {
+    console.error("Login failed:", error);
+    alert("登入失敗，請稍後再試。");
+    loginArea.classList.remove('hidden');
+    loadingStatus.classList.add('hidden');
+  }
+});
+</script>
 </body>
 </html>

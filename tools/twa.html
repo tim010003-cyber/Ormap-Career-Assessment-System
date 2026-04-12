@@ -88,7 +88,7 @@
             </div>
             <h3 class="text-2xl lg:text-3xl font-black text-slate-800 mb-4 tracking-tight">叮！能量預算已達上限</h3>
             <p class="text-slate-500 text-base lg:text-lg leading-relaxed mb-8">現實往往無法讓我們全拿。你剛剛憑直覺抓取了許多渴望，但現在，<strong class="text-slate-700">真正的練習才要開始。</strong><br><br>接下來，請檢視你剛才的選擇。為了保住你最在乎的「核心紅線」，你準備好對哪些項目妥協，練習「放下」了嗎？</p>
-            <button onclick="closeRealityModal()" class="w-full py-4 bg-teal-600 text-white rounded-full font-black text-lg lg:text-xl hover:bg-teal-700 transition-colors shadow-lg active:scale-95">我準備好開始取捨了</button>
+            <button onclick="closeRealityModal()" class="w-full py-4 bg-teal-600 text-white rounded-2xl font-black text-lg lg:text-xl hover:bg-teal-700 transition-colors shadow-lg active:scale-95">我準備好開始取捨了</button>
         </div>
     </div>
 
@@ -137,12 +137,12 @@
             <div class="bg-white p-6 lg:p-12 rounded-2xl lg:rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden mesh-gradient">
                 <div class="relative z-10 mx-auto">
                     <div class="mb-10 lg:mb-16">
-                        <h2 class="text-3xl lg:text-5xl font-black text-slate-800 mb-6 lg:mb-8 leading-tight tracking-tight">探索自己的工作價值觀，<br class="lg:hidden">打造理想職涯輪廓</h2>
+                        <h2 id="lp-hero-title" class="text-3xl lg:text-5xl font-black text-slate-800 mb-6 lg:mb-8 leading-tight tracking-tight">探索自己的工作價值觀，打造理想職涯輪廓</h2>
                         <p class="text-lg lg:text-2xl font-bold text-slate-400 border-l-4 lg:border-l-8 border-teal-500 pl-6 lg:pl-8 leading-relaxed mb-6 lg:mb-8">
-                            「打破迷惘的策略，是有意識的選擇；<br>而最好的決策，來自於你對自己需求的誠實。」
+                            <span id="lp-hero-quote">「打破迷惘的策略，是有意識的選擇；而最好的決策，來自於你對自己需求的誠實。」</span>
                         </p>
                         <p class="text-base lg:text-xl text-slate-500 max-w-4xl leading-relaxed">
-                            歡迎來到由 <strong>原味藍圖</strong> 為你建立的探索評測工具。此理論源自工作調節理論 (TWA)，引導你釐清內在工作價值的需求，並澄清渴望的具體環境指標。
+                            <span id="lp-hero-intro">歡迎來到由 <strong>原味藍圖</strong> 為你建立的探索評測工具。此理論源自工作調節理論 (TWA)，引導你釐清內在工作價值的需求，並澄清渴望的具體環境指標。</span>
                         </p>
                     </div>
 
@@ -154,38 +154,38 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
                         <div class="bg-white/60 backdrop-blur-md p-6 lg:p-8 rounded-[2rem] lg:rounded-2xl border border-white shadow-sm flex flex-col items-center text-center group hover:bg-white transition-all">
                             <div class="w-12 h-12 lg:w-14 lg:h-14 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-600 mb-4 lg:mb-6 group-hover:scale-110 transition-transform"><i data-lucide="wind"></i></div>
-                            <h5 class="font-black text-slate-800 mb-2 lg:mb-3">1. 回到中心</h5>
-                            <p class="text-xs lg:text-sm text-slate-400 leading-relaxed">為自己空下半小時平靜時光，回到內在中心。</p>
+                            <h5 id="lp-sop-title-1" class="font-black text-slate-800 mb-2 lg:mb-3">1. 回到中心</h5>
+                            <p id="lp-sop-desc-1" class="text-xs lg:text-sm text-slate-400 leading-relaxed">為自己空下半小時平靜時光，回到內在中心。</p>
                         </div>
                         <div class="bg-white/60 backdrop-blur-md p-6 lg:p-8 rounded-[2rem] lg:rounded-2xl border border-white shadow-sm flex flex-col items-center text-center group hover:bg-white transition-all">
                             <div class="w-12 h-12 lg:w-14 lg:h-14 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-600 mb-4 lg:mb-6 group-hover:scale-110 transition-transform"><i data-lucide="user-plus"></i></div>
-                            <h5 class="font-black text-slate-800 mb-2 lg:mb-3">2. 設定方向</h5>
-                            <p class="text-xs lg:text-sm text-slate-400 leading-relaxed">填寫姓名、目標，並務必填寫 Email 以接收摘要。</p>
+                            <h5 id="lp-sop-title-2" class="font-black text-slate-800 mb-2 lg:mb-3">2. 設定方向</h5>
+                            <p id="lp-sop-desc-2" class="text-xs lg:text-sm text-slate-400 leading-relaxed">填寫姓名、目標，並務必填寫 Email 以接收摘要。</p>
                         </div>
                         <div class="bg-white/60 backdrop-blur-md p-6 lg:p-8 rounded-[2rem] lg:rounded-2xl border border-white shadow-sm flex flex-col items-center text-center group hover:bg-white transition-all">
                             <div class="w-12 h-12 lg:w-14 lg:h-14 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-600 mb-4 lg:mb-6 group-hover:scale-110 transition-transform"><i data-lucide="sliders-horizontal"></i></div>
-                            <h5 class="font-black text-slate-800 mb-2 lg:mb-3">3. 雙軌評分</h5>
-                            <p class="text-xs lg:text-sm text-slate-400 leading-relaxed">同時評估「現況滿意度」與未來的「理想期待值」。</p>
+                            <h5 id="lp-sop-title-3" class="font-black text-slate-800 mb-2 lg:mb-3">3. 雙軌評分</h5>
+                            <p id="lp-sop-desc-3" class="text-xs lg:text-sm text-slate-400 leading-relaxed">同時評估「現況滿意度」與未來的「理想期待值」。</p>
                         </div>
                         <div class="bg-white/60 backdrop-blur-md p-6 lg:p-8 rounded-[2rem] lg:rounded-2xl border border-white shadow-sm flex flex-col items-center text-center group hover:bg-white transition-all">
                             <div class="w-12 h-12 lg:w-14 lg:h-14 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-600 mb-4 lg:mb-6 group-hover:scale-110 transition-transform"><i data-lucide="check-square"></i></div>
-                            <h5 class="font-black text-slate-800 mb-2 lg:mb-3">4. 選擇指標</h5>
-                            <p class="text-xs lg:text-sm text-slate-400 leading-relaxed">根據理想期待獲取點數，勾選渴望的具體指標。</p>
+                            <h5 id="lp-sop-title-4" class="font-black text-slate-800 mb-2 lg:mb-3">4. 選擇指標</h5>
+                            <p id="lp-sop-desc-4" class="text-xs lg:text-sm text-slate-400 leading-relaxed">根據理想期待獲取點數，勾選渴望的具體指標。</p>
                         </div>
                         <div class="bg-white/60 backdrop-blur-md p-6 lg:p-8 rounded-[2rem] lg:rounded-2xl border border-white shadow-sm flex flex-col items-center text-center group hover:bg-white transition-all">
                             <div class="w-12 h-12 lg:w-14 lg:h-14 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-600 mb-4 lg:mb-6 group-hover:scale-110 transition-transform"><i data-lucide="battery-charging"></i></div>
-                            <h5 class="font-black text-slate-800 mb-2 lg:mb-3">5. 預算取捨</h5>
-                            <p class="text-xs lg:text-sm text-slate-400 leading-relaxed">根據有限的 115 分預算，進行理想程度的資源分配。</p>
+                            <h5 id="lp-sop-title-5" class="font-black text-slate-800 mb-2 lg:mb-3">5. 預算取捨</h5>
+                            <p id="lp-sop-desc-5" class="text-xs lg:text-sm text-slate-400 leading-relaxed">根據有限的 115 分預算，進行理想程度的資源分配。</p>
                         </div>
                         <div class="bg-white/60 backdrop-blur-md p-6 lg:p-8 rounded-[2rem] lg:rounded-2xl border border-white shadow-sm flex flex-col items-center text-center group hover:bg-white transition-all">
                             <div class="w-12 h-12 lg:w-14 lg:h-14 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-600 mb-4 lg:mb-6 group-hover:scale-110 transition-transform"><i data-lucide="pen-tool"></i></div>
-                            <h5 class="font-black text-slate-800 mb-2 lg:mb-3">6. 寫下落差體悟</h5>
-                            <p class="text-xs lg:text-sm text-slate-400 leading-relaxed">記錄面對理想與現實落差時的取捨與感受。</p>
+                            <h5 id="lp-sop-title-6" class="font-black text-slate-800 mb-2 lg:mb-3">6. 寫下落差體悟</h5>
+                            <p id="lp-sop-desc-6" class="text-xs lg:text-sm text-slate-400 leading-relaxed">記錄面對理想與現實落差時的取捨與感受。</p>
                         </div>
                         <div class="bg-white/60 backdrop-blur-md p-6 lg:p-8 rounded-[2rem] lg:rounded-2xl border border-white shadow-sm flex flex-col items-center text-center group hover:bg-white transition-all sm:col-span-2 lg:col-span-2">
                             <div class="w-12 h-12 lg:w-14 lg:h-14 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-600 mb-4 lg:mb-6 group-hover:scale-110 transition-transform"><i data-lucide="file-text"></i></div>
-                            <h5 class="font-black text-slate-800 mb-2 lg:mb-3">7. 產出報告與信件</h5>
-                            <p class="text-xs lg:text-sm text-slate-400 leading-relaxed">系統將為您發送一份精華摘要至信箱，並提供專屬線上報告連結。</p>
+                            <h5 id="lp-sop-title-7" class="font-black text-slate-800 mb-2 lg:mb-3">7. 產出報告與信件</h5>
+                            <p id="lp-sop-desc-7" class="text-xs lg:text-sm text-slate-400 leading-relaxed">系統將為您發送一份精華摘要至信箱，並提供專屬線上報告連結。</p>
                         </div>
                     </div>
                 </div>
@@ -218,8 +218,8 @@
                             </div>
                             <span class="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Motivation 01</span>
                         </div>
-                        <h4 class="text-2xl lg:text-3xl font-black text-teal-400 mb-4 lg:mb-6 tracking-tight">為什麼要釐清工作價值觀？</h4>
-                        <p class="text-slate-300 leading-relaxed text-base lg:text-xl font-medium">當你越了解自己要什麼的時候，越能夠在挑選工作時明確掌握「工作內容」是否符合期待。看見背後支撐你長久發展的動力。</p>
+                        <h4 id="lp-mot-title-1" class="text-2xl lg:text-3xl font-black text-teal-400 mb-4 lg:mb-6 tracking-tight">為什麼要釐清工作價值觀？</h4>
+                        <p id="lp-mot-desc-1" class="text-slate-300 leading-relaxed text-base lg:text-xl font-medium">當你越了解自己要什麼的時候，越能夠在挑選工作時明確掌握「工作內容」是否符合期待。看見背後支撐你長久發展的動力。</p>
                     </div>
                 </div>
                 <div class="bg-slate-900 p-8 lg:p-12 rounded-2xl lg:rounded-[4.5rem] border border-slate-700 text-white shadow-2xl transition-all hover:-translate-y-2 relative group overflow-hidden">
@@ -231,8 +231,8 @@
                             </div>
                             <span class="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Motivation 02</span>
                         </div>
-                        <h4 class="text-2xl lg:text-3xl font-black text-teal-400 mb-4 lg:mb-6 tracking-tight">具體化如何判別你想要的？</h4>
-                        <p class="text-slate-300 leading-relaxed text-base lg:text-xl font-medium">價值觀能讓你學會「反向設計面試問題」，從而釐清這份工作是否適合自己。透過你在意的指標轉化為提問，主動確認職場細節。</p>
+                        <h4 id="lp-mot-title-2" class="text-2xl lg:text-3xl font-black text-teal-400 mb-4 lg:mb-6 tracking-tight">具體化如何判別你想要的？</h4>
+                        <p id="lp-mot-desc-2" class="text-slate-300 leading-relaxed text-base lg:text-xl font-medium">價值觀能讓你學會「反向設計面試問題」，從而釐清這份工作是否適合自己。透過你在意的指標轉化為提問，主動確認職場細節。</p>
                     </div>
                 </div>
             </div>
@@ -281,13 +281,13 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 mb-12">
                 <div class="bg-white p-8 lg:p-12 rounded-3xl lg:rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all">
                     <div class="w-14 h-14 lg:w-16 lg:h-16 bg-amber-50 rounded-[2rem] flex items-center justify-center text-3xl lg:text-4xl mb-6 lg:mb-8 shadow-inner">🍂</div>
-                    <h4 class="text-xl lg:text-2xl font-black text-slate-800 mb-4 lg:mb-5 tracking-tight">犧牲與放下的勇氣</h4>
-                    <p class="text-slate-500 leading-relaxed text-base lg:text-xl">那些你目前給予低分的項目，是你為了守護核心價值，而在現實中展現的寬容度。學會放下，才能拿穩真正珍視的部分。</p>
+                    <h4 id="lp-ref-title-1" class="text-xl lg:text-2xl font-black text-slate-800 mb-4 lg:mb-5 tracking-tight">犧牲與放下的勇氣</h4>
+                    <p id="lp-ref-desc-1" class="text-slate-500 leading-relaxed text-base lg:text-xl">那些你目前給予低分的項目，是你為了守護核心價值，而在現實中展現的寬容度。學會放下，才能拿穩真正珍視的部分。</p>
                 </div>
                 <div class="bg-white p-8 lg:p-12 rounded-3xl lg:rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all">
                     <div class="w-14 h-14 lg:w-16 lg:h-16 bg-teal-50 rounded-[2rem] flex items-center justify-center text-3xl lg:text-4xl mb-6 lg:mb-8 shadow-inner">💎</div>
-                    <h4 class="text-xl lg:text-2xl font-black text-slate-800 mb-4 lg:mb-5 tracking-tight">選擇的人生哲學</h4>
-                    <p class="text-slate-500 leading-relaxed text-base lg:text-xl">分數就是能量預算。投注分值越高，代表你對該指標投注的注意力會更有意識的具體，獲得的回饋也會更豐富。</p>
+                    <h4 id="lp-ref-title-2" class="text-xl lg:text-2xl font-black text-slate-800 mb-4 lg:mb-5 tracking-tight">選擇的人生哲學</h4>
+                    <p id="lp-ref-desc-2" class="text-slate-500 leading-relaxed text-base lg:text-xl">分數就是能量預算。投注分值越高，代表你對該指標投注的注意力會更有意識的具體，獲得的回饋也會更豐富。</p>
                 </div>
             </div>
 
@@ -295,7 +295,7 @@
                 <h4 class="text-2xl lg:text-3xl font-black text-slate-800 mb-6 lg:mb-10 flex items-center tracking-tight uppercase">
                     <span class="mr-4 text-3xl lg:text-4xl">📝</span> 練習帶給你的整體體悟
                 </h4>
-                <p class="text-slate-500 text-base lg:text-lg mb-8 italic">「完成了價值排序與評估，請自由的寫下你此刻最真實的覺察...」</p>
+                <p id="lp-insight-hint" class="text-slate-500 text-base lg:text-lg mb-8 italic">「完成了價值排序與評估，請自由的寫下你此刻最真實的覺察...」</p>
                 <textarea id="final-insight" class="w-full p-8 lg:p-12 bg-slate-50 border-2 border-slate-100 rounded-2xl lg:rounded-3xl text-slate-700 text-xl lg:text-2xl italic font-medium focus:outline-none focus:ring-4 focus:ring-teal-500/20 transition-all shadow-inner" rows="6" oninput="syncInsight(this.value)" placeholder="看著理想與現況的落差，帶給你什麼感受？如果現在擁有的環境資源被拿掉，你能接受嗎？或是為了縮小這個差距，你想要如何行動呢？"></textarea>
             </div>
         </section>
@@ -333,7 +333,7 @@
                                                     <div class="flex flex-col sm:flex-row justify-between items-center gap-4 w-full max-w-3xl mx-auto mt-8 mb-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
     <div class="flex items-center gap-4">
         <div class="w-12 h-12 bg-teal-50 rounded-full flex items-center justify-center text-primary shadow-inner">
-            <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+            <i data-lucide="cloud-upload" class="w-5 h-5 inline"></i>
         </div>
         <div>
             <h4 class="text-sm font-bold text-slate-700 mb-0.5">雲端進度同步</h4>
@@ -341,10 +341,10 @@
         </div>
     </div>
     <button onclick="clearDraft()" class="px-5 py-2.5 bg-white text-red-500 border border-red-200 rounded-xl text-sm font-bold tracking-widest hover:bg-red-50 transition-colors flex items-center shadow-sm">
-        <i class="fa-solid fa-trash-arrow-up mr-2"></i> 清除進度，重新開始
+        <i data-lucide="trash-2" class="w-4 h-4 mr-2 inline"></i> 清除進度，重新開始
     </button>
 </div>
-                            <button id="print-btn" onclick="submitAndPrint()" class="w-full md:w-auto px-8 py-4 lg:px-10 lg:py-4 bg-[#0d9488] text-white rounded-full font-bold shadow-md hover:bg-teal-700 transition-all text-base lg:text-lg flex items-center justify-center">
+                            <button id="print-btn" onclick="submitAndPrint()" class="w-full md:w-auto px-8 py-4 lg:px-10 lg:py-5 bg-primary text-white rounded-2xl font-black shadow-lg hover:-translate-y-1 transition-all flex items-center justify-center gap-2">
                                 <i data-lucide="send" class="mr-3 w-5 h-5"></i> <span id="print-btn-text">完成評測並發送報告</span>
                             </button>
                             <a href="https://line.me/R/ti/p/@900gjsny" target="_blank" class="w-full md:w-auto px-8 py-4 lg:px-10 lg:py-4 bg-white border-2 border-[#0d9488] text-[#0d9488] rounded-full font-bold hover:bg-teal-50 transition-all flex items-center justify-center text-base lg:text-lg tracking-widest shadow-sm">
@@ -388,28 +388,13 @@
     <script>
         lucide.createIcons();
 
-        const matrix = [
-            { v: '成就', n: '發揮專長', d: '核心技術、專業工具應用及意見在職場中可以被實踐、發揮價值並見證成長。', i: ['核心硬實力應用','實戰技能進化感','數位智慧系統輔助','高品質設備配置','專業工具完整供應','跨領域資源整合','策略規劃參與感','顧問式問題解決','創新實作空間廣','專業意見受尊重','技術師徒制傳承','內部分享風氣盛','軟體授權合規性','專利研發參與權','架構主導選擇權','專業認證經費補助','研究發展保留時間','資深同儕交流感','流程優化實踐權','技術工具選擇權'] },
-            { v: '成就', n: '看見成果', d: '任務達成後產出的具體成果獲得的滿足感與組織反饋。', i: ['行政效率變好','計畫如期達成','作品實體化程度','數據表現提升量','用戶端即時反饋','品牌市場能見度','里程碑達成爽感','業務目標數字達標','客戶滿意度指標','內部致謝機制頻繁','作品集累積廣度','解決方案落地率','營運成本顯著降低','市場佔有率擴大','獲頒年度獎項感','长期專案收穫感','業界影響力提升','績效具象化呈現','成果對外發表機','流程自動化成效'] },
-            { v: '舒適', n: '工作節奏', d: '任務負荷飽滿度、待辦排序清晰度與休息質量的保障。', i: ['任務量合理','待辦清單排序明確','會議效益極大化','上下班界限明確','任務交辦預期高','專注時段不被打擾','行政雜務比例低','淡旺季節奏分明','進度自主掌控權','高品質休息時間','專案切換緩衝足','拒絕臨時插單權','截止日期合理性','午休時間穩定','假日無訊息擾動','工作負擔均勻分配','心理空間預留感','回報頻率合理化','自動化報表輔助','節奏彈性自訂'] },
-            { v: '舒適', n: '獨立作業', d: '執行任務時的自主決定權限、私密空間感以及職責界限。', i: ['單獨決策權限高','非必要溝通率低','自主啟動任務權','工作回報週期合理','空間私密安靜感','非同步協作文化','遠距作業自由','干預頻率極低','獨立辦公位置','無須時刻同步','個人品牌發揮','權責明確','作業流程自主','決策軌跡可追蹤','安靜工作氛圍','研究時間主權','非同步決策授權','任務優先級自主','個人開發環境權','排除噪音環境'] },
-            { v: '舒適', n: '內容變化', d: '任務多樣化程度、新技術導入頻率及跨職能切換感。', i: ['專案性質多元化','接觸產業領域廣','技術導入更新頻繁','職能專業切換','學習地圖延展廣','海外出差派駐機會','處理複雜問題感','客群對象變動性','跨部門協作豐富','新領域開拓權','定期輪調制度','任務難度有梯度','新舊知識交替快','客戶需求創新度','技術堆疊更新感','產品開發週期短','異業合作機會多','跨國團隊交流頻','市場變革應對力'] },
-            { v: '舒適', n: '薪資福利', d: '薪酬結構、調薪機制、假期津貼及生活支援保障。', i: ['基本薪具競爭力','年度調薪機制明','績效獎金倍數高','家庭照顧彈性假','請假流程數位便利','各類福利補助多','退休金認股期權','加班費核實支付','高階團體保險全','生活津貼育兒補助','年終保證月數穩','節慶獎金與禮金','旅遊進修經費足','健康檢查補貼高','彈性福利點數制','餐費交通補貼全','勞健保足額投保','特休假優於法律','離職金優於法規','分紅獎勵透明度'] },
-            { v: '舒適', n: '公司穩健', d: '企業經營穩定度、言行一致性及組織資產厚實度。', i: ['財務獲利能力強','組織價值言行一致','公司資產底蘊深','管理債少','技術債少','產業進步潛力大','市場佔有率領先','管理層變動率低','離職率低','品牌長期信譽高','法律合規程度高','營運決策有邏輯','長期合約量充足','投資人穩定度','核心技術自持','內部職能完整','市場避險能力','風險控制機制','願景落實度高','員工平均年資長'] },
-            { v: '舒適', n: '環境舒適', d: '辦公設備機能、交通便利性、空間美感及數位流暢度。', i: ['設備人體工學化','通勤距離短','上下班時間彈性','企業管理系統好用','茶水休息間品質','洗手間整潔衛生','採光與隔音佳','週邊午餐機能佳','辦公位置寬敞感','環境整體美感佳','數位看板資訊明','空氣品質監測化','具備安全飲水','儲物空間配置','清潔外包頻率','綠色植物裝飾','安檢門禁流暢','周邊托育設施','交通停車方便','個人私隱保護'] },
-            { v: '地位', n: '升遷與發展', d: '晉升路徑明確性、考核公平性及個人規劃對標。', i: ['職級路徑極清晰','考核標準公正化','管理職缺釋出多','專家管理雙軌制','培訓預算極充足','部門輪調機制活','高階主管導師制','晉升速度具競爭','海外市場派駐機','職涯規劃對標感','人才梯隊建設全','晉升反饋面談頻','跨國轉調機會多','管理職前培訓全','內推文化興盛','學習資源豐沛','外部顧問交流頻繁','專業成長補助高','個人發展計畫詳盡','明確升遷時間表'] },
-            { v: '地位', n: '獲得認可', d: '貢獻被看見頻率、正面回饋質量與專業署名權。', i: ['正式表揚制度全','主管讚賞文化濃厚','績效反饋具即時性','同儕互推肯定風氣','業界口碑影響力','獲頒榮譽獎項多','專案成果署名權','受邀出席決策會議','團隊貢獻能見度','個人IP支持','會議公開致謝頻率','成果對內展現機會','內部通訊報導權','客戶指名感謝信','獎牌證書頒發制','參與官網成功案例','重要活動代表','專業社群推薦感','LinkedIn技能推薦','受邀演講機會'] },
-            { v: '地位', n: '決策權力', d: '在預算、專業、人員任用上擁有的裁量主導權。', i: ['專業影響權','人才任用意見權','資遣處理處理意見','專案預算主導權','合作廠商選擇權','流程最終影響權','策略方向建議權','技術架構決策','跨單位衝突調度','行政指令發布','會議議程定奪','績效點數分配','工具使用選擇權責','團隊規範定標','工作流程重組','關鍵時刻止損','外部資源對接','授權廣度與深度','資源分配主動權','代表公司對外發言'] },
-            { v: '地位', n: '社會地位', d: '品牌知名度、職稱專業威望及產業標竿的自豪感。', i: ['企業社會知名度','產業標竿領導位','職稱專業威望感','外界高度評價','身分認同自豪感','專業領域光強','外界職位嚮往度','參與高層次社交','品牌價值排名高','社會正面影響力','上市公司背景','媒體採訪機率','專業學會席位','社會公益代表','家屬福利自豪','產業高峰會邀','意見領袖身分','業界獎項背書','名片份量感強','與頂尖人才共事'] },
-            { v: '利他', n: '同事氣氛', d: '成員間的互信度、溝通直接性及拒絕內耗的文化。', i: ['團隊共擔專業責','分工明確群體戰','成員互信支援度','衝突處理成熟度','知識分享教學風','溝通風格透明直接','團隊情緒穩定度','人際競爭壓力小','人格尊嚴受尊重','部門小團體比例','非正式聚餐多','慶生互助文化','新進同仁關懷','專業互補程度','拒絕職場八卦','心理安全感高','工作外興趣社團','溝通工具流暢','坦誠錯誤文化','團隊幽默感與氛圍'] },
-            { v: '利他', n: '社會貢獻', d: '產品或服務對社會、環境與未來世代產生的價值。', i: ['弱勢族群扶持度','環境保護低碳實踐','推動產業進步價','參與社會公義率','對未來世代教育','醫療安全支援感','社區回饋志工參','道德影響社會責任','解決社會痛點度','企業永續經營價值','供應鏈合規性強','人道援助參與','科學知識推廣','減少貧富差距','提升身心健康','支持文化傳承','公共設施優化','動物福利關注','在地產業深耕','資源公平分配'] },
-            { v: '利他', n: '價值契合', d: '經營誠信、勞權、性別平等與個人底線一致性。', i: ['勞權意識與尊嚴','性別平等多樣性','經營合法合規度','職場公平競爭感','誠信與正直品質','個人隱私受尊重','組織正義感強度','宗教文化包容度','利益衝突迴避制','反對職場霸凌風','吹哨者保護制度','種族多樣性包容','廣告形象實質','政治中立原則','拒絕虛假行銷','財務誠實公開','採購透明化機制','經營決策透明度','多國文化兼容度','內部舉報保護'] },
-            { v: '安全', n: '制度合理', d: '規則透明度、分配公平性及執行一致性。', i: ['權責區分清晰明','工作責任分配合理','管理規章透明度','規則執行一致性','考核標準客觀','政策變動緩衝期','意見申訴管道通暢','勞基法規範遵循','報帳流程簡便度','薪酬體系具邏輯','工作手冊完備','會議決議確實行','請假審核迅速','出差津貼制度全','獎懲標準公開化','軟體授權合規','合約保護機制強','加班補休落實度','資歷審核嚴謹','檔案管理嚴謹'] },
-            { v: '安全', n: '主管領導', d: '主管對衝突的擔當、情緒覺察及資源爭議意願。', i: ['衝突時擔當保護','錯誤發生共同擔當','情緒覺察同理心','不濫用權力','定期面談職涯關懷','協助排除工作障礙','領導風格適切','決策考量下屬利益','積極爭取團隊資源','心理韌性引導','拒絕越級管理風','主動分擔高壓感','資遣預警透明化','公平分配工作量','支持實驗性失敗','承認下屬貢獻度','擋下無理要求力','協助職務重新設計','情緒穩定性高','言行一致性'] },
-            { v: '安全', n: '主管專業', d: '管理者指導深度、決策邏輯與潛力開發能力。', i: ['技術指導深度足','邏輯清晰決策力','領導風格溝通效率','流程優化管理專業','風險預警危機處理','辨識開發員工潛力','市場趨勢洞察力','反饋精確具建設','處事果斷不反覆','豐富資源對接力','架構思維引領感','專業方法論教學','會議主持效率高','專案管理工具化','精確目標設定力','多線任務協調力','核心問題辨識力','判斷優先順序力','解決問題邏輯強','任務分配合理感'] },
-            { v: '自主', n: '發揮創意', d: '實驗新流程權限、對提案開放度及容錯空間。', i: ['流程實驗權限高','細節微調自主權','提案被接納開放','容錯空間與試錯','鼓勵創新實質獎勵','思維碰撞會議文化','個人特色展現度','前瞻技術研發權','視覺設計表現自由','打破常規受支持','研發經費預算足','新商模探索機','品牌形象重塑','技術選型權限','內容創作主權','社群經營彈性','異業聯名發想','客戶服務創新','內部創業制度','自主視覺設計'] },
-            { v: '自主', n: '責任擔當', d: '專案成敗完全負責制及對最終結果的主宰感。', i: ['專案成敗完全負責','最終核決權限大','年度目標設定參與','執行路徑自主決定','風險與利潤對接','外部談判代表權','成果歸因度明確','授權深度與廣度','關鍵路徑掌控感','使命必達心理契約','代表公司對外','專案獎金分配','團隊編組自主權','進度報告主動權','失敗檢討主責感','危機處理主導','成果發表代表','部門預算核銷','資源優先分配','對外聲明發布'] }
-        ];
+        // =============================================
+        // 📦 matrix 從 JSON 載入（請勿在此修改）
+        // 內容管理請至 /data/twa-matrix.json
+        // =============================================
+        let matrix = [];
+        let focusConfig = {};
+
 
         let scores = {}; let currentScores = {}; let selected = {}; let notes = {};
         let radarMain = null; let radarFinal = null;
@@ -686,9 +671,19 @@
             
             const hc = Object.values(scores).filter(s => s >= 8).length;
             let fTxt = ""; let fExp = "";
-            if (hc > 6) { fTxt = "和諧均衡型"; fExp = "追求全方位的平衡滿足。代表你具備高度適應力，但也需思考：若資源受限時，哪一個才是絕不退讓的紅線？"; }
-            else if (hc > 2) { fTxt = "層次分明型"; fExp = "價值優先順序清晰。這種心理彈性能讓你在職場現實中守住底線，也能在非核心區展現包容調整空間。"; }
-            else { fTxt = "精準核心型"; fExp = "你的目標極其精確且聚焦。你知道只要保住這幾項核心，其他的都不重要。這讓你決策極快，但也需注意對核心項目的依賴度。"; }
+            const focusTypes = focusConfig.focusTypes || {};
+            if (hc > 6) {
+                fTxt = focusTypes["高"]?.label || "和諧均衡型";
+                fExp = focusTypes["高"]?.description || "";
+            }
+            else if (hc > 2) {
+                fTxt = focusTypes["中"]?.label || "層次分明型";
+                fExp = focusTypes["中"]?.description || "";
+            }
+            else {
+                fTxt = focusTypes["低"]?.label || "精準核心型";
+                fExp = focusTypes["低"]?.description || "";
+            }
             
             const sf = document.getElementById('stat-focus'); if(sf) sf.innerText = fTxt;
             const fsf = document.getElementById('final-stat-focus'); if(fsf) fsf.innerText = fTxt;
@@ -1001,7 +996,7 @@ async function submitAndPrint() {
       const userEmail = window.currentUserEmail || "未提供信箱";
       const userName = window.currentUserName || "Ormap 探索者";
 
-      btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> 資料分析與儲存中...';
+      btnText.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 mr-2 inline animate-spin"></i> 資料分析與儲存中...';
       btn.disabled = true;
 
       // 計算 Top 5 與雷達圖摘要
@@ -1055,7 +1050,76 @@ async function submitAndPrint() {
         btn.disabled = false;
       }
     }
-        window.onload = init;
+        window.onload = async function() {
+            try {
+                const [matrixRes, configRes, landingRes] = await Promise.all([
+                    fetch('../data/twa-matrix.json'),
+                    fetch('../data/twa-config.json'),
+                    fetch('../data/twa-landing.json')
+                ]);
+                if (!matrixRes.ok || !configRes.ok || !landingRes.ok) throw new Error('資料載入失敗');
+
+                const matrixData = await matrixRes.json();
+                const configData = await configRes.json();
+                const landingData = await landingRes.json();
+
+                // 組裝 matrix（對齊原本格式 {v, n, d, i}）
+                matrix = matrixData.matrix.map(item => ({
+                    v: item.value,
+                    n: item.need,
+                    d: item.definition,
+                    i: item.indicators
+                }));
+
+                focusConfig = configData;
+
+                // ===== 渲染 Landing Page 文案 =====
+                const L = landingData;
+                const setT = (id, val) => { const el = document.getElementById(id); if(el && val) el.innerHTML = val; };
+                const setTxt = (id, val) => { const el = document.getElementById(id); if(el && val) el.innerText = val; };
+                const setPlaceholder = (id, val) => { const el = document.getElementById(id); if(el && val) el.placeholder = val; };
+
+                // Hero 區
+                setT('lp-hero-title', L.hero?.title);
+                setT('lp-hero-quote', L.hero?.quote);
+                setT('lp-hero-intro', L.hero?.intro);
+
+                // SOP 步驟
+                if (L.sop?.steps) {
+                    L.sop.steps.forEach((step, i) => {
+                        setTxt(`lp-sop-title-${i+1}`, step.title);
+                        setTxt(`lp-sop-desc-${i+1}`, step.description);
+                    });
+                }
+
+                // 動機卡片
+                if (L.motivations?.cards) {
+                    L.motivations.cards.forEach((card, i) => {
+                        setT(`lp-mot-title-${i+1}`, card.title);
+                        setTxt(`lp-mot-desc-${i+1}`, card.description);
+                    });
+                }
+
+                // 反思卡片
+                if (L.reflections?.cards) {
+                    L.reflections.cards.forEach((card, i) => {
+                        setT(`lp-ref-title-${i+1}`, card.title);
+                        setTxt(`lp-ref-desc-${i+1}`, card.description);
+                    });
+                }
+
+                // 體悟區
+                setTxt('lp-insight-hint', L.insight?.hint);
+                setPlaceholder('final-insight', L.insight?.placeholder);
+
+            } catch (error) {
+                console.error('TWA 資料載入失敗:', error);
+                console.error('請確認 /data/twa-matrix.json 和 /data/twa-config.json 存在');
+                alert('系統資料載入失敗，請確認 data/ 資料夾已放入 twa-matrix.json 和 twa-config.json');
+                return;
+            }
+            init();
+        };
     </script>
 
 <script type="module">
@@ -1155,7 +1219,7 @@ async function syncDraftToCloud(uid) {
             
             if(statusText) {
                 const now = new Date();
-                statusText.innerHTML = `<span class="text-teal-600 font-medium"><i class="fa-solid fa-check mr-1"></i> 已同步至雲端 (${now.getHours()}:${now.getMinutes().toString().padStart(2,'0')})</span>`;
+                statusText.innerHTML = `<span class="text-teal-600 font-medium"><i data-lucide="check" class="w-4 h-4 mr-1 inline"></i> 已同步至雲端 (${now.getHours()}:${now.getMinutes().toString().padStart(2,'0')})</span>`;
             }
         } catch(e) { console.error("背景存檔失敗", e); }
     }

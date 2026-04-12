@@ -17,11 +17,12 @@ tailwind.config = {
   }
 }
 </script>
-<!-- ✅ Bug 1 修正：移除無效的 FontAwesome 引入，改用 Lucide Icons（全站統一） -->
 <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="bg-white font-sans antialiased text-secondary">
 <div class="relative overflow-hidden bg-slate-50 min-h-screen flex flex-col items-center justify-center px-4">
+
+  <!-- 背景格線 -->
   <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full opacity-10 pointer-events-none">
     <svg viewBox="0 0 100 100" class="w-full h-full">
       <defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="currentColor" stroke-width="0.5"/></pattern></defs>
@@ -29,6 +30,7 @@ tailwind.config = {
     </svg>
   </div>
 
+  <!-- 主要內容 -->
   <div class="relative z-10 max-w-3xl text-center">
     <div class="mb-8 flex justify-center">
       <img src="./ormap-logo.png" alt="Ormap Logo" class="w-24 h-auto drop-shadow-md">
@@ -49,15 +51,24 @@ tailwind.config = {
       <p class="text-sm text-slate-400">快速登入，無需註冊</p>
     </div>
 
-    <div id="loadingStatus" class="hidden flex flex-col items-center">
+    <div id="loadingStatus" class="hidden flex-col items-center">
       <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4"></div>
       <p class="text-slate-500 font-medium">身分驗證中...</p>
     </div>
   </div>
 
-  <footer class="absolute bottom-8 text-slate-400 text-sm">
-    &copy; 2026 Ormap 原味藍圖. All rights reserved.
+  <!-- Footer：諮詢師入口藏在版權文字裡 -->
+  <footer class="absolute bottom-8 flex flex-col items-center gap-1">
+    <p class="text-slate-400 text-sm">
+      &copy; 2026 Ormap 原味藍圖. All rights reserved.
+      <!-- 諮詢師入口：句點本身是可點擊的連結，極度不顯眼 -->
+      <a href="admin.html"
+        class="text-slate-400 hover:text-slate-500 transition-colors"
+        title=""
+        tabindex="-1">.</a>
+    </p>
   </footer>
+
 </div>
 
 <script type="module">
@@ -81,20 +92,17 @@ const provider = new GoogleAuthProvider();
 const loginArea = document.getElementById('loginArea');
 const loadingStatus = document.getElementById('loadingStatus');
 
-// 監聽登入狀態：如果已經登入，直接送去 Dashboard
 onAuthStateChanged(auth, (user) => {
   if (user) {
     window.location.href = 'dashboard.html';
   }
 });
 
-// 登入按鈕事件
 document.getElementById('googleLoginBtn').addEventListener('click', async () => {
   loginArea.classList.add('hidden');
   loadingStatus.classList.remove('hidden');
   try {
     await signInWithPopup(auth, provider);
-    // 登入成功後，onAuthStateChanged 會觸發自動跳轉
   } catch (error) {
     console.error("Login failed:", error);
     alert("登入失敗，請稍後再試。");

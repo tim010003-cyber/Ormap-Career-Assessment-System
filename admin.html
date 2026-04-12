@@ -21,13 +21,19 @@ tailwind.config = {
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
   body { font-family: 'Noto Sans TC', sans-serif; }
-  .status-未測驗  { background:#f1f5f9; color:#64748b; border-color:#e2e8f0; }
-  .status-已完成  { background:#f0fdf4; color:#16a34a; border-color:#bbf7d0; }
-  .status-已諮詢  { background:#eff6ff; color:#2563eb; border-color:#bfdbfe; }
-  .status-待追蹤  { background:#fff7ed; color:#ea580c; border-color:#fed7aa; }
+  .status-未測驗 { background:#f1f5f9; color:#64748b; border-color:#e2e8f0; }
+  .status-已完成 { background:#f0fdf4; color:#16a34a; border-color:#bbf7d0; }
+  .status-已諮詢 { background:#eff6ff; color:#2563eb; border-color:#bfdbfe; }
+  .status-待追蹤 { background:#fff7ed; color:#ea580c; border-color:#fed7aa; }
 </style>
 </head>
 <body class="bg-slate-50 min-h-screen antialiased text-slate-900">
+
+<!-- ✅ 修正：初始顯示全頁 loading，避免 Auth 初始化期間閃退 -->
+<div id="initLoading" class="fixed inset-0 bg-slate-50 flex flex-col items-center justify-center z-[100]">
+  <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4"></div>
+  <p class="text-slate-400 text-sm font-medium">驗證身分中...</p>
+</div>
 
 <!-- Navbar -->
 <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
@@ -50,7 +56,7 @@ tailwind.config = {
 </nav>
 
 <!-- 未授權畫面 -->
-<div id="accessDenied" class="hidden min-h-screen flex items-center justify-center">
+<div id="accessDenied" class="hidden min-h-[80vh] flex items-center justify-center">
   <div class="text-center px-4">
     <div class="flex justify-center mb-4 text-red-400">
       <i data-lucide="shield-x" class="w-16 h-16"></i>
@@ -61,7 +67,7 @@ tailwind.config = {
   </div>
 </div>
 
-<!-- 主體（驗證通過後顯示）-->
+<!-- 主體 -->
 <div id="mainContent" class="hidden">
   <div class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
 
@@ -71,7 +77,7 @@ tailwind.config = {
         <h1 class="text-2xl font-black text-secondary">學員紀錄總覽</h1>
         <p class="text-slate-500 text-sm mt-1">僅顯示已授權諮詢師查看的評測紀錄</p>
       </div>
-      <div id="statsBar" class="flex items-center gap-3 flex-wrap">
+      <div class="flex items-center gap-3">
         <div class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 flex items-center gap-2">
           <i data-lucide="users" class="w-4 h-4 text-primary"></i>
           共 <span id="totalCount" class="text-primary">0</span> 筆紀錄
@@ -87,14 +93,12 @@ tailwind.config = {
           class="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all">
       </div>
       <div class="flex gap-2 flex-wrap">
-        <!-- 工具篩選 -->
         <select id="filterTool"
           class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all">
           <option value="">全部工具</option>
           <option value="TWA">TWA</option>
           <option value="HTI">HTI</option>
         </select>
-        <!-- 狀態篩選 -->
         <select id="filterStatus"
           class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all">
           <option value="">全部狀態</option>
@@ -106,7 +110,7 @@ tailwind.config = {
       </div>
     </div>
 
-    <!-- Loading -->
+    <!-- Loading 骨架 -->
     <div id="loadingState" class="space-y-3">
       <div class="h-20 bg-slate-200 animate-pulse rounded-2xl"></div>
       <div class="h-20 bg-slate-200 animate-pulse rounded-2xl"></div>
@@ -137,14 +141,11 @@ tailwind.config = {
   </div>
 </div>
 
-<!-- ── 備註 & 狀態 側邊抽屜 ── -->
+<!-- 備註 & 狀態 側邊抽屜 -->
 <div id="drawer" class="fixed inset-0 z-50 hidden">
-  <!-- 半透明背景 -->
   <div id="drawerBackdrop" class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeDrawer()"></div>
-  <!-- 抽屜本體 -->
   <div id="drawerPanel" class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col transform translate-x-full transition-transform duration-300 ease-out">
 
-    <!-- 抽屜 Header -->
     <div class="flex items-center justify-between p-6 border-b border-slate-100">
       <div>
         <p class="text-[10px] font-black tracking-widest text-slate-400 uppercase mb-1">學員備註</p>
@@ -158,14 +159,13 @@ tailwind.config = {
     <!-- 狀態標籤 -->
     <div class="p-6 border-b border-slate-100">
       <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">學員狀態</p>
-      <div id="statusButtons" class="flex flex-wrap gap-2">
-        <!-- 動態產生 -->
-      </div>
+      <div id="statusButtons" class="flex flex-wrap gap-2"></div>
     </div>
 
-    <!-- 備註輸入區 -->
+    <!-- 備註輸入 -->
     <div class="flex-1 p-6 flex flex-col">
-      <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">諮詢備註
+      <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">
+        諮詢備註
         <span class="text-slate-300 font-normal normal-case ml-1">（所有諮詢師共用）</span>
       </p>
       <textarea id="noteInput" placeholder="在此輸入備註，例如：諮詢重點、追蹤事項、學員狀況…"
@@ -182,7 +182,7 @@ tailwind.config = {
       </div>
     </div>
 
-    <!-- 查看報告連結 -->
+    <!-- 查看報告 -->
     <div class="p-6 border-t border-slate-100">
       <a id="drawerReportLink" href="#" target="_blank"
         class="w-full flex items-center justify-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-2xl font-bold text-sm hover:bg-primary transition-all">
@@ -199,13 +199,12 @@ import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/fi
 import {
   getFirestore,
   collection, query, where, orderBy, getDocs,
-  doc, getDoc, setDoc, updateDoc, serverTimestamp
+  doc, getDoc, setDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-// ── 諮詢師 Email 白名單 ──────────────────────────────────
-// 如需新增諮詢師，在此陣列加入對應的 Google 帳號 Email
+// ── 諮詢師 Email 白名單 ────────────────────────────────
 const COUNSELOR_WHITELIST = [
-  "tim010003@gmail.com",   // ← 替換成實際諮詢師 Email
+  "tin010003@gmail.com",
 ];
 
 const firebaseConfig = {
@@ -222,31 +221,39 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 const STATUS_LIST = ['未測驗', '已完成', '已諮詢', '待追蹤'];
+let allRecords = [];
+let currentDocId = null;
 
-let allRecords = [];       // 全部原始資料
-let currentDocId = null;   // 目前抽屜對應的 docId
-
-// ── 身分驗證 ──────────────────────────────────────────
+// ── 身分驗證（修正閃退）────────────────────────────────
+// ✅ 關鍵修正：onAuthStateChanged 只會在 Firebase 確認狀態後才觸發
+// 因此只要在這裡做判斷，就不會有「初始化期間誤判未登入」的問題
+// 全頁 loading 遮罩會一直蓋著，直到這裡決定要顯示哪個畫面才移除
 onAuthStateChanged(auth, (user) => {
+  // 隱藏初始 loading 遮罩
+  document.getElementById('initLoading').style.display = 'none';
+
   if (!user) {
+    // 真的未登入 → 回首頁
     window.location.href = 'index.html';
     return;
   }
 
-  // 檢查是否在白名單
   if (!COUNSELOR_WHITELIST.includes(user.email)) {
+    // 登入了但不在白名單 → 顯示無權限畫面
+    document.getElementById('navUserInfo').classList.remove('hidden');
+    document.getElementById('navUserPhoto').src = user.photoURL || '';
+    document.getElementById('navUserName').innerText = user.displayName || user.email;
     document.getElementById('accessDenied').classList.remove('hidden');
     lucide.createIcons();
     return;
   }
 
-  // 通過驗證
+  // ✅ 通過驗證
   document.getElementById('navUserInfo').classList.remove('hidden');
   document.getElementById('navUserPhoto').src = user.photoURL || '';
   document.getElementById('navUserName').innerText = user.displayName || user.email;
   document.getElementById('mainContent').classList.remove('hidden');
   lucide.createIcons();
-
   loadRecords();
 });
 
@@ -268,7 +275,6 @@ async function loadRecords() {
       return;
     }
 
-    // 同時載入所有 counselor_notes
     const docIds = snapshot.docs.map(d => d.id);
     const notesMap = await fetchNotes(docIds);
 
@@ -288,16 +294,11 @@ async function loadRecords() {
 
 async function fetchNotes(docIds) {
   const map = {};
-  // Firestore 不支援大量 in query，批次每次最多 30 筆
   const chunks = [];
   for (let i = 0; i < docIds.length; i += 30) chunks.push(docIds.slice(i, i + 30));
-
   for (const chunk of chunks) {
-    const promises = chunk.map(id => getDoc(doc(db, "counselor_notes", id)));
-    const results = await Promise.all(promises);
-    results.forEach((snap, i) => {
-      if (snap.exists()) map[chunk[i]] = snap.data();
-    });
+    const results = await Promise.all(chunk.map(id => getDoc(doc(db, "counselor_notes", id))));
+    results.forEach((snap, i) => { if (snap.exists()) map[chunk[i]] = snap.data(); });
   }
   return map;
 }
@@ -305,31 +306,23 @@ async function fetchNotes(docIds) {
 // ── 渲染列表 ──────────────────────────────────────────
 function renderList(records) {
   const container = document.getElementById('recordsContainer');
-  const emptyState = document.getElementById('emptyState');
-  const noResultState = document.getElementById('noResultState');
   container.innerHTML = '';
-  emptyState.classList.add('hidden');
-  noResultState.classList.add('hidden');
+  document.getElementById('emptyState').classList.add('hidden');
+  document.getElementById('noResultState').classList.add('hidden');
 
   if (records.length === 0) {
-    noResultState.classList.remove('hidden');
+    document.getElementById('noResultState').classList.remove('hidden');
     return;
   }
 
-  records.forEach(record => {
-    const card = buildCard(record);
-    container.appendChild(card);
-  });
+  records.forEach(record => container.appendChild(buildCard(record)));
   lucide.createIcons();
 }
 
 function buildCard(record) {
   const date = record.createdAt?.toDate
-    ? record.createdAt.toDate().toLocaleDateString('zh-TW')
-    : '未知日期';
+    ? record.createdAt.toDate().toLocaleDateString('zh-TW') : '未知日期';
   const isHTI = record.toolType === 'HTI';
-  const toolLabel = isHTI ? 'HTI' : 'TWA';
-  const toolTitle = isHTI ? 'HTI 何倫特質解析' : 'TWA 工作價值觀評測';
   const name = record.clientInfo?.name || record.name || '（未留名）';
   const email = record.clientInfo?.email || record.email || '';
   const summary = record.summary?.text || '已完成評測';
@@ -348,7 +341,7 @@ function buildCard(record) {
       </div>
       <div class="min-w-0">
         <div class="flex items-center gap-2 flex-wrap mb-0.5">
-          <span class="text-xs font-black px-2 py-0.5 bg-slate-100 text-slate-500 rounded tracking-widest uppercase">${toolLabel}</span>
+          <span class="text-xs font-black px-2 py-0.5 bg-slate-100 text-slate-500 rounded tracking-widest uppercase">${record.toolType || '評測'}</span>
           <span class="text-xs text-slate-400">${date}</span>
           ${status ? `<span class="text-xs font-bold px-2 py-0.5 border rounded-full status-${status}">${status}</span>` : ''}
           ${hasNote ? `<span class="text-xs text-slate-400 flex items-center gap-0.5"><i data-lucide="message-square" class="w-3 h-3"></i> 有備註</span>` : ''}
@@ -369,7 +362,6 @@ function buildCard(record) {
       </button>
     </div>
   `;
-
   return card;
 }
 
@@ -409,10 +401,8 @@ window.openDrawer = async (docId) => {
   document.getElementById('noteInput').value = record._note?.note || '';
   document.getElementById('noteSavedMsg').classList.add('hidden');
 
-  // 狀態按鈕
   renderStatusButtons(record._note?.status || '');
 
-  // 開啟抽屜動畫
   const drawer = document.getElementById('drawer');
   const panel = document.getElementById('drawerPanel');
   drawer.classList.remove('hidden');
@@ -444,7 +434,7 @@ function renderStatusButtons(currentStatus) {
 
 async function selectStatus(newStatus, oldStatus) {
   if (!currentDocId) return;
-  const finalStatus = newStatus === oldStatus ? '' : newStatus; // 再點一次取消
+  const finalStatus = newStatus === oldStatus ? '' : newStatus;
 
   try {
     await setDoc(doc(db, "counselor_notes", currentDocId), {
@@ -452,7 +442,6 @@ async function selectStatus(newStatus, oldStatus) {
       updatedAt: serverTimestamp()
     }, { merge: true });
 
-    // 同步更新 allRecords
     const record = allRecords.find(r => r.id === currentDocId);
     if (record) {
       record._note = record._note || {};
@@ -460,7 +449,7 @@ async function selectStatus(newStatus, oldStatus) {
     }
 
     renderStatusButtons(finalStatus);
-    applyFilter(); // 重新渲染列表反映狀態變更
+    applyFilter();
     lucide.createIcons();
   } catch (error) {
     console.error(error);
@@ -484,7 +473,6 @@ document.getElementById('saveNoteBtn').addEventListener('click', async () => {
       updatedAt: serverTimestamp()
     }, { merge: true });
 
-    // 同步更新 allRecords
     const record = allRecords.find(r => r.id === currentDocId);
     if (record) {
       record._note = record._note || {};
@@ -495,7 +483,7 @@ document.getElementById('saveNoteBtn').addEventListener('click', async () => {
     btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> 儲存備註';
     document.getElementById('noteSavedMsg').classList.remove('hidden');
     lucide.createIcons();
-    applyFilter(); // 更新列表的「有備註」標記
+    applyFilter();
   } catch (error) {
     console.error(error);
     btn.disabled = false;
@@ -505,7 +493,6 @@ document.getElementById('saveNoteBtn').addEventListener('click', async () => {
   }
 });
 
-// 輸入時隱藏「已儲存」提示
 document.getElementById('noteInput').addEventListener('input', () => {
   document.getElementById('noteSavedMsg').classList.add('hidden');
 });

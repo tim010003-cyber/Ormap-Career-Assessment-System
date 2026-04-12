@@ -23,9 +23,9 @@ tailwind.config = {
         <span class="text-xl font-bold tracking-tight text-secondary">Ormap <span class="text-primary">SaaS</span></span>
       </div>
       <div class="flex items-center gap-3">
-        <!-- 諮詢師後台入口：預設隱藏，白名單才顯示 -->
-        <a id="adminLink" href="admin.html"
-          class="hidden items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-xl hover:bg-primary hover:text-white transition-all">
+        <!-- 後台管理連結：永遠顯示，安全性由 admin.html 的白名單把關 -->
+        <a href="admin.html"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-xl hover:bg-primary hover:text-white transition-all">
           <i data-lucide="shield" class="w-3.5 h-3.5"></i>
           後台管理
         </a>
@@ -132,12 +132,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { getFirestore, collection, query, where, orderBy, getDocs, deleteDoc, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-// 與 admin.html 保持一致的白名單
-// 未來新增諮詢師時，這裡也要同步更新
-const COUNSELOR_WHITELIST = [
-  "tin010003@gmail.com",
-];
-
 const firebaseConfig = {
   apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
   authDomain: "careervalue-ormap.firebaseapp.com",
@@ -161,12 +155,6 @@ onAuthStateChanged(auth, (user) => {
     document.getElementById('userInfo').classList.remove('hidden');
     document.getElementById('userPhoto').src = user.photoURL || 'https://via.placeholder.com/150';
     document.getElementById('userName').innerText = user.displayName;
-
-    // 白名單諮詢師才顯示「後台管理」連結
-    if (COUNSELOR_WHITELIST.includes(user.email)) {
-document.getElementById('adminLink').style.display = 'flex';
-    }
-
     fetchAssessments(user.uid);
   } else {
     window.location.href = 'index.html';

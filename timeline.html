@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TWA 工作價值觀成長軌跡 | Ormap</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: { extend: { colors: { primary: '#0d9488', secondary: '#0f172a' } } }
+}
+</script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+  body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; }
+</style>
+</head>
+<body class="min-h-screen antialiased text-slate-900">
+
+<!-- Navbar -->
+<nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <a href="dashboard.html" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
+        <i data-lucide="arrow-left" class="w-4 h-4 text-slate-600"></i>
+      </a>
+      <img src="./ormap-logo.png" alt="Ormap" class="w-7 h-7 object-contain">
+      <div>
+        <p class="text-sm font-bold text-secondary leading-tight">TWA 工作價值觀</p>
+        <p class="text-xs text-slate-400 leading-tight">成長軌跡</p>
+      </div>
+    </div>
+    <div id="userInfo" class="hidden flex items-center gap-2">
+      <img id="userPhoto" src="" alt="" class="w-7 h-7 rounded-full border border-slate-200">
+      <span id="userName" class="text-sm text-slate-600 hidden md:block"></span>
+    </div>
+  </div>
+</nav>
+
+<main class="max-w-3xl mx-auto px-4 py-8 sm:px-6">
+
+  <!-- Loading -->
+  <div id="loadingState" class="flex flex-col items-center justify-center py-32">
+    <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4"></div>
+    <p class="text-slate-400 text-sm">載入資料中...</p>
+  </div>
+
+  <!-- 空狀態（只有一筆，無法比較） -->
+  <div id="onlyOneState" class="hidden text-center py-32">
+    <div class="flex justify-center mb-4 text-slate-300">
+      <i data-lucide="clock" class="w-14 h-14"></i>
+    </div>
+    <h3 class="text-lg font-bold text-slate-600 mb-2">目前只有一次施測紀錄</h3>
+    <p class="text-slate-400 text-sm">完成第二次 TWA 評測後，這裡會顯示你的成長軌跡。</p>
+    <a href="tools/twa.html" class="inline-flex items-center gap-2 mt-6 px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-teal-700 transition-all">
+      <i data-lucide="plus" class="w-4 h-4"></i> 開始新一次評測
+    </a>
+  </div>
+
+  <!-- 主要內容 -->
+  <div id="mainContent" class="hidden">
+
+    <!-- 標題區 -->
+    <div class="mb-8">
+      <h1 class="text-2xl font-black text-secondary mb-1">工作價值觀成長軌跡</h1>
+      <p id="subtitleText" class="text-slate-500 text-sm"></p>
+    </div>
+
+    <!-- 時間軸 -->
+    <div id="timeline" class="flex gap-4">
+
+      <!-- 左側時間軸線 -->
+      <div id="timelineAxis" class="flex flex-col items-center flex-shrink-0 pt-5">
+        <!-- 動態產生 dots + lines -->
+      </div>
+
+      <!-- 右側卡片列表 -->
+      <div id="timelineCards" class="flex-1 flex flex-col gap-4 min-w-0">
+        <!-- 動態產生 -->
+      </div>
+
+    </div>
+
+  </div>
+
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { getFirestore, collection, query, where, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
+  authDomain: "careervalue-ormap.firebaseapp.com",
+  projectId: "careervalue-ormap",
+  storageBucket: "careervalue-ormap.firebasestorage.app",
+  messagingSenderId: "883599167982",
+  appId: "1:883599167982:web:6dee33f8abf03de9b53eff"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// 心理需求名稱對照（n0~n19）
+const NEED_NAMES = {
+  n0:'發揮專長', n1:'看見成果', n2:'工作節奏', n3:'獨立作業', n4:'內容變化',
+  n5:'薪資福利', n6:'公司穩健', n7:'環境舒適', n8:'升遷與發展', n9:'獲得認可',
+  n10:'決策權力', n11:'社會地位', n12:'同事氣氛', n13:'社會貢獻', n14:'價值契合',
+  n15:'制度合理', n16:'主管領導', n17:'主管專業', n18:'發揮創意', n19:'責任擔當'
+};
+
+// 決策狀態顏色
+const FOCUS_STYLE = {
+  '精準核心型': { bg: '#E1F5EE', text: '#085041', bar: '#0d9488' },
+  '層次分明型': { bg: '#EFF6FF', text: '#1d4ed8', bar: '#3b82f6' },
+  '和諧均衡型': { bg: '#F1F5F9', text: '#475569', bar: '#94a3b8' },
+};
+
+onAuthStateChanged(auth, (user) => {
+  if (!user) { window.location.href = 'index.html'; return; }
+  document.getElementById('userInfo').classList.remove('hidden');
+  document.getElementById('userPhoto').src = user.photoURL || '';
+  document.getElementById('userName').innerText = user.displayName || '';
+  lucide.createIcons();
+  loadTWARecords(user.uid);
+});
+
+async function loadTWARecords(uid) {
+  try {
+    const q = query(
+      collection(db, "assessments"),
+      where("uid", "==", uid),
+      where("toolType", "==", "TWA"),
+      orderBy("createdAt", "desc")
+    );
+    const snapshot = await getDocs(q);
+    document.getElementById('loadingState').classList.add('hidden');
+
+    const records = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    if (records.length === 0) {
+      document.getElementById('onlyOneState').classList.remove('hidden');
+      lucide.createIcons();
+      return;
+    }
+
+    if (records.length === 1) {
+      document.getElementById('onlyOneState').classList.remove('hidden');
+      lucide.createIcons();
+      return;
+    }
+
+    // 有 2 筆以上才進主畫面
+    document.getElementById('mainContent').classList.remove('hidden');
+    document.getElementById('subtitleText').innerText =
+      `共 ${records.length} 次施測・${getDateStr(records[records.length-1])} ～ ${getDateStr(records[0])}`;
+
+    renderTimeline(records);
+    lucide.createIcons();
+  } catch(err) {
+    console.error(err);
+    document.getElementById('loadingState').classList.add('hidden');
+  }
+}
+
+function getDateStr(record) {
+  return record.createdAt?.toDate
+    ? record.createdAt.toDate().toLocaleDateString('zh-TW')
+    : '未知';
+}
+
+// 取前五名需求（依 scores 排序）
+function getTop5(scores) {
+  if (!scores) return [];
+  return Object.entries(scores)
+    .sort(([,a],[,b]) => b - a)
+    .slice(0, 5)
+    .map(([key, val]) => ({ key, name: NEED_NAMES[key] || key, score: val }));
+}
+
+function renderTimeline(records) {
+  const axis = document.getElementById('timelineAxis');
+  const cardsContainer = document.getElementById('timelineCards');
+  axis.innerHTML = '';
+  cardsContainer.innerHTML = '';
+
+  records.forEach((record, index) => {
+    const isLatest = index === 0;
+    const isOldest = index === records.length - 1;
+    const prevRecord = index < records.length - 1 ? records[index + 1] : null;
+
+    const scores = record.rawData?.scores || {};
+    const top5 = getTop5(scores);
+    const prevScores = prevRecord?.rawData?.scores || null;
+    const focusType = record.rawData?.focusType || '—';
+    const style = FOCUS_STYLE[focusType] || FOCUS_STYLE['和諧均衡型'];
+    const dateStr = getDateStr(record);
+
+    // ── 時間軸 dot + line ──
+    const dotWrap = document.createElement('div');
+    dotWrap.className = 'flex flex-col items-center';
+    dotWrap.style.cssText = 'padding-top: 20px;';
+
+    const dot = document.createElement('div');
+    dot.className = 'w-3 h-3 rounded-full flex-shrink-0';
+    dot.style.background = isLatest ? '#0d9488' : (isOldest ? '#cbd5e1' : '#5eead4');
+    dotWrap.appendChild(dot);
+
+    if (!isOldest) {
+      const line = document.createElement('div');
+      line.style.cssText = 'width: 1px; background: #e2e8f0; flex: 1; min-height: 80px; margin: 4px 0;';
+      dotWrap.appendChild(line);
+    }
+    axis.appendChild(dotWrap);
+
+    // ── 卡片 ──
+    const card = document.createElement('div');
+    card.className = 'rounded-2xl border border-slate-200 overflow-hidden';
+    card.style.opacity = isOldest ? '0.6' : isLatest ? '1' : '0.85';
+
+    // 卡片 header
+    const header = document.createElement('div');
+    header.className = 'px-5 py-3 flex items-center justify-between';
+    header.style.background = '#f8fafc';
+    header.style.borderBottom = '0.5px solid #e2e8f0';
+    header.innerHTML = `
+      <div class="flex items-center gap-3 flex-wrap">
+        <span class="text-sm font-bold text-slate-700">${dateStr}</span>
+        <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full"
+          style="background:${style.bg}; color:${style.text};">${focusType}</span>
+        ${isLatest ? '<span class="text-[10px] font-bold px-2 py-0.5 bg-primary text-white rounded-full">最新</span>' : ''}
+        ${isOldest && !isLatest ? '<span class="text-[10px] text-slate-400">最早</span>' : ''}
+      </div>
+      <a href="report.html?id=${record.id}" target="_blank"
+        class="text-xs text-primary font-bold hover:underline flex items-center gap-1 flex-shrink-0">
+        查看完整報告 <i data-lucide="external-link" class="w-3 h-3"></i>
+      </a>
+    `;
+    card.appendChild(header);
+
+    // 前五名內容
+    const body = document.createElement('div');
+    body.className = 'px-5 py-4 bg-white';
+
+    const label = document.createElement('div');
+    label.className = 'text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3';
+    label.innerText = '前五名心理需求';
+    body.appendChild(label);
+
+    const needsList = document.createElement('div');
+    needsList.className = 'flex flex-col gap-2.5';
+
+    top5.forEach(({ key, name, score }, i) => {
+      // 計算與上一次同名需求的分數差
+      let changeTag = '';
+      if (prevScores) {
+        const prevTop5Keys = getTop5(prevScores).map(t => t.key);
+        const prevScore = prevScores[key];
+        const wasInTop5 = prevTop5Keys.includes(key);
+
+        if (prevScore !== undefined) {
+          const diff = score - prevScore;
+          if (diff > 0) {
+            changeTag = `<span class="text-[10px] font-bold text-green-600 flex-shrink-0">↑+${diff}</span>`;
+          } else if (diff < 0) {
+            changeTag = `<span class="text-[10px] font-bold text-red-500 flex-shrink-0">↓${diff}</span>`;
+          } else {
+            changeTag = `<span class="text-[10px] text-slate-400 flex-shrink-0">—</span>`;
+          }
+        } else {
+          // 這次有，但上次沒有這個需求的分數（理論上不應出現，保險）
+          changeTag = `<span class="text-[10px] font-bold text-green-600 flex-shrink-0">新↑</span>`;
+        }
+
+        // 如果這次是前五但上次不在前五
+        if (!wasInTop5 && prevScore !== undefined) {
+          changeTag = `<span class="text-[10px] font-bold text-green-600 flex-shrink-0">新進前五 ↑</span>`;
+        }
+      }
+
+      const maxScore = 10;
+      const barWidth = Math.round((score / maxScore) * 100);
+
+      const row = document.createElement('div');
+      row.className = 'flex items-center gap-3';
+      row.innerHTML = `
+        <span class="text-xs text-slate-600 flex-shrink-0" style="width:72px;">${name}</span>
+        <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+          <div class="h-full rounded-full transition-all" style="width:${barWidth}%; background:${style.bar};"></div>
+        </div>
+        <span class="text-xs font-bold text-slate-700 flex-shrink-0" style="width:16px; text-align:right;">${score}</span>
+        <div style="width:52px; text-align:right;">${changeTag}</div>
+      `;
+      needsList.appendChild(row);
+    });
+
+    // 若上一次有的需求這次掉出前五，顯示「退出前五」提示
+    if (prevScores) {
+      const prevTop5 = getTop5(prevScores);
+      const currTop5Keys = top5.map(t => t.key);
+      const dropped = prevTop5.filter(t => !currTop5Keys.includes(t.key));
+      if (dropped.length > 0) {
+        const dropNote = document.createElement('div');
+        dropNote.className = 'mt-3 pt-3 border-t border-slate-100';
+        dropNote.innerHTML = `
+          <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">退出前五名</div>
+          <div class="flex flex-wrap gap-2">
+            ${dropped.map(t => `
+              <span class="text-[11px] px-2.5 py-1 bg-red-50 text-red-500 border border-red-100 rounded-full flex items-center gap-1">
+                ${t.name} <span class="font-bold">${t.score}分</span> ↓退
+              </span>
+            `).join('')}
+          </div>
+        `;
+        body.appendChild(needsList);
+        body.appendChild(dropNote);
+        card.appendChild(body);
+      } else {
+        body.appendChild(needsList);
+        card.appendChild(body);
+      }
+    } else {
+      body.appendChild(needsList);
+      card.appendChild(body);
+    }
+
+    cardsContainer.appendChild(card);
+  });
+
+  lucide.createIcons();
+}
+</script>
+</body>
+</html>

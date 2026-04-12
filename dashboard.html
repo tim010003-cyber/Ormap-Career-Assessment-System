@@ -23,7 +23,6 @@ tailwind.config = {
         <span class="text-xl font-bold tracking-tight text-secondary">Ormap <span class="text-primary">SaaS</span></span>
       </div>
       <div class="flex items-center gap-3">
-        <!-- 後台管理連結：永遠顯示，安全性由 admin.html 的白名單把關 -->
         <a href="admin.html"
           class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-xl hover:bg-primary hover:text-white transition-all">
           <i data-lucide="shield" class="w-3.5 h-3.5"></i>
@@ -85,6 +84,21 @@ tailwind.config = {
     </div>
   </section>
 
+  <!-- TWA 成長軌跡入口（有兩筆以上才顯示）-->
+  <div id="timelineEntrance" class="hidden mb-8">
+    <a href="timeline.html"
+      class="flex items-center gap-4 p-5 bg-gradient-to-r from-teal-50 to-white border border-teal-100 rounded-2xl hover:border-primary hover:shadow-md transition-all group">
+      <div class="w-11 h-11 bg-primary text-white rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+        <i data-lucide="trending-up" class="w-5 h-5"></i>
+      </div>
+      <div class="flex-1 min-w-0">
+        <h3 class="font-bold text-secondary">TWA 工作價值觀成長軌跡</h3>
+        <p id="timelineSubtitle" class="text-sm text-slate-500 mt-0.5"></p>
+      </div>
+      <i data-lucide="chevron-right" class="w-5 h-5 text-slate-300 group-hover:text-primary transition-colors flex-shrink-0"></i>
+    </a>
+  </div>
+
   <!-- 歷史測驗紀錄 -->
   <section>
     <div class="flex items-center justify-between mb-6">
@@ -119,8 +133,7 @@ tailwind.config = {
         class="flex-1 px-4 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-all">
         取消
       </button>
-      <button id="authModal-confirm"
-        class="flex-1 px-4 py-3 rounded-2xl font-bold text-white transition-all">
+      <button id="authModal-confirm" class="flex-1 px-4 py-3 rounded-2xl font-bold text-white transition-all">
         確認
       </button>
     </div>
@@ -131,6 +144,8 @@ tailwind.config = {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { getFirestore, collection, query, where, orderBy, getDocs, deleteDoc, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+const COUNSELOR_WHITELIST = ["tim010003@gmail.com"];
 
 const firebaseConfig = {
   apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
@@ -153,8 +168,11 @@ const recordCount = document.getElementById('recordCount');
 onAuthStateChanged(auth, (user) => {
   if (user) {
     document.getElementById('userInfo').classList.remove('hidden');
-    document.getElementById('userPhoto').src = user.photoURL || 'https://via.placeholder.com/150';
+    document.getElementById('userPhoto').src = user.photoURL || '';
     document.getElementById('userName').innerText = user.displayName;
+    if (COUNSELOR_WHITELIST.includes(user.email)) {
+      document.getElementById('adminLink')?.classList.remove('hidden');
+    }
     fetchAssessments(user.uid);
   } else {
     window.location.href = 'index.html';
@@ -168,33 +186,47 @@ async function fetchAssessments(uid) {
       where("uid", "==", uid),
       orderBy("createdAt", "desc")
     );
-    const querySnapshot = await getDocs(q);
+    const snapshot = await getDocs(q);
     loadingState.classList.add('hidden');
 
-    if (querySnapshot.empty) {
+    if (snapshot.empty) {
       emptyState.classList.remove('hidden');
       return;
     }
 
-    recordCount.innerText = querySnapshot.size;
-    querySnapshot.forEach((docSnap) => renderCard(docSnap.id, docSnap.data()));
+    const allRecords = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    recordCount.innerText = allRecords.length;
+
+    // 檢查 TWA 筆數：2 筆以上才顯示成長軌跡入口
+    const twaRecords = allRecords.filter(r => r.toolType === 'TWA');
+    if (twaRecords.length >= 2) {
+      document.getElementById('timelineEntrance').classList.remove('hidden');
+      const oldest = twaRecords[twaRecords.length - 1]?.createdAt?.toDate
+        ? twaRecords[twaRecords.length - 1].createdAt.toDate().toLocaleDateString('zh-TW') : '';
+      const newest = twaRecords[0]?.createdAt?.toDate
+        ? twaRecords[0].createdAt.toDate().toLocaleDateString('zh-TW') : '';
+      document.getElementById('timelineSubtitle').innerText =
+        `共 ${twaRecords.length} 次施測・${oldest} ～ ${newest}`;
+    }
+
+    allRecords.forEach(r => renderCard(r.id, r));
     lucide.createIcons();
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error(err);
     loadingState.classList.add('hidden');
   }
 }
 
 function renderCard(docId, data) {
   const date = data.createdAt?.toDate
-    ? data.createdAt.toDate().toLocaleDateString('zh-TW')
-    : '未知日期';
+    ? data.createdAt.toDate().toLocaleDateString('zh-TW') : '未知日期';
 
   const card = document.createElement('div');
   card.id = `card-${docId}`;
   card.className = "group bg-white p-5 rounded-2xl border border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between hover:shadow-md transition-all gap-4";
 
   const isHTI = data.toolType === 'HTI';
+  const isTWA = data.toolType === 'TWA';
   const toolTitle = isHTI ? 'HTI 何倫特質解析' : 'TWA 工作價值觀評測';
   const summaryText = data.summary?.text || '已完成評測';
   const reportLink = `report.html?id=${docId}`;
@@ -239,20 +271,18 @@ function renderCard(docId, data) {
 function renderAuthBtn(docId, isAuthorized) {
   if (isAuthorized) {
     return `<button id="auth-btn-${docId}" onclick="confirmToggleAccess('${docId}', true)"
-      class="px-3 py-2 bg-teal-50 text-primary border border-teal-200 text-sm font-bold rounded-xl hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors flex items-center gap-1"
-      title="點擊取消授權">
+      class="px-3 py-2 bg-teal-50 text-primary border border-teal-200 text-sm font-bold rounded-xl hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors flex items-center gap-1">
       <i data-lucide="shield-check" class="w-4 h-4"></i><span>已授權</span>
     </button>`;
   } else {
     return `<button id="auth-btn-${docId}" onclick="confirmToggleAccess('${docId}', false)"
-      class="px-3 py-2 bg-white text-slate-400 border border-slate-200 text-sm font-bold rounded-xl hover:bg-teal-50 hover:text-primary hover:border-teal-200 transition-colors flex items-center gap-1"
-      title="授權諮詢師查看">
+      class="px-3 py-2 bg-white text-slate-400 border border-slate-200 text-sm font-bold rounded-xl hover:bg-teal-50 hover:text-primary hover:border-teal-200 transition-colors flex items-center gap-1">
       <i data-lucide="shield-off" class="w-4 h-4"></i><span>授權</span>
     </button>`;
   }
 }
 
-// ── Modal 控制 ────────────────────────────────────────
+// ── Modal ──────────────────────────────────────────────
 let _pendingAction = null;
 
 window.confirmToggleAccess = (docId, isCurrentlyAuthorized) => {
@@ -300,12 +330,9 @@ async function executeToggleAccess(docId, isCurrentlyAuthorized) {
   try {
     await updateDoc(doc(db, "assessments", docId), { counselorAccess: newState });
     const btn = document.getElementById(`auth-btn-${docId}`);
-    if (btn) {
-      btn.outerHTML = renderAuthBtn(docId, newState);
-      lucide.createIcons();
-    }
-  } catch (error) {
-    console.error(error);
+    if (btn) { btn.outerHTML = renderAuthBtn(docId, newState); lucide.createIcons(); }
+  } catch (err) {
+    console.error(err);
     alert("操作失敗，請稍後再試。");
   }
 }
@@ -320,11 +347,11 @@ async function deleteReport(docId) {
   try {
     await deleteDoc(doc(db, "assessments", docId));
     document.getElementById(`card-${docId}`)?.remove();
-    const currentCount = parseInt(recordCount.innerText) - 1;
-    recordCount.innerText = Math.max(currentCount, 0);
-    if (currentCount <= 0) emptyState.classList.remove('hidden');
-  } catch (error) {
-    console.error(error);
+    const current = parseInt(recordCount.innerText) - 1;
+    recordCount.innerText = Math.max(current, 0);
+    if (current <= 0) emptyState.classList.remove('hidden');
+  } catch (err) {
+    console.error(err);
     alert("刪除失敗，請稍後再試。");
   }
 }

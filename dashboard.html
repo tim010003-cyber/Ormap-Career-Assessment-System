@@ -46,6 +46,27 @@ tailwind.config = {
     <p class="text-slate-500">在這裡查看你的職涯評測紀錄，追蹤每一次的成長軌跡。</p>
   </header>
 
+  <!-- ⭐ 白板邀請通知（有 active session 才顯示）-->
+  <div id="wbNotice" class="hidden mb-8">
+    <div class="relative overflow-hidden flex items-center gap-5 p-5 bg-gradient-to-r from-teal-600 to-teal-500 rounded-2xl shadow-lg text-white">
+      <!-- Decorative circle -->
+      <div class="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8 pointer-events-none"></div>
+      <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
+        <i data-lucide="layout" class="w-6 h-6 text-white"></i>
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="text-xs font-black uppercase tracking-widest text-teal-100 mb-0.5">即時互動白板</p>
+        <h3 id="wbNoticeTitle" class="font-black text-base leading-tight">諮詢師邀請你進行即時諮詢</h3>
+        <p id="wbNoticeSubtitle" class="text-teal-100 text-sm mt-0.5">點擊加入，與諮詢師一起使用互動白板</p>
+      </div>
+      <a id="wbNoticeBtn" href="#"
+        class="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 bg-white text-primary rounded-xl font-black text-sm shadow hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all whitespace-nowrap">
+        <i data-lucide="arrow-right-circle" class="w-4 h-4"></i>
+        加入白板
+      </a>
+    </div>
+  </div>
+
   <!-- 開始新的評測 -->
   <section class="mb-12">
     <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400 mb-4">開始新的評測</h2>
@@ -143,7 +164,7 @@ tailwind.config = {
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { getFirestore, collection, query, where, orderBy, getDocs, deleteDoc, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, query, where, orderBy, getDocs, deleteDoc, updateDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const COUNSELOR_WHITELIST = ["tim010003@gmail.com"];
 
@@ -174,6 +195,7 @@ onAuthStateChanged(auth, (user) => {
       document.getElementById('adminLink')?.classList.remove('hidden');
     }
     fetchAssessments(user.uid);
+    checkActiveWhiteboards(user.uid);
   } else {
     window.location.href = 'index.html';
   }
@@ -357,6 +379,28 @@ async function deleteReport(docId) {
 }
 
 document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+
+// ── 白板邀請通知 ────────────────────────────────────────
+function checkActiveWhiteboards(uid) {
+  onSnapshot(doc(db, 'whiteboard_active', uid), (snap) => {
+    const notice = document.getElementById('wbNotice');
+    if (!snap.exists()) { notice.classList.add('hidden'); return; }
+    const data = snap.data();
+    if (data.status !== 'waiting' && data.status !== 'active') {
+      notice.classList.add('hidden'); return;
+    }
+    // Show notification
+    notice.classList.remove('hidden');
+    document.getElementById('wbNoticeTitle').textContent =
+      `${data.counselorName || '諮詢師'} 邀請你進行即時白板諮詢`;
+    document.getElementById('wbNoticeSubtitle').textContent =
+      `評測類型：${data.toolType || '自由模式'} ・ 點擊立即加入`;
+    document.getElementById('wbNoticeBtn').href =
+      `whiteboard.html?session=${data.sessionId}`;
+    lucide.createIcons();
+  });
+}
+
 lucide.createIcons();
 </script>
 </body>

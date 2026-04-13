@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>即時互動白板 | Ormap</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: { extend: { colors: { primary: '#0d9488', secondary: '#0f172a' } } }
+}
+</script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+* { font-family: 'Noto Sans TC', sans-serif; box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { height: 100%; overflow: hidden; }
+
+/* Canvas wrapper with dot grid */
+#canvas-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #f8fafc;
+  background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
+  background-size: 28px 28px;
+  overflow: hidden;
+}
+
+#main-canvas, #overlay-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  touch-action: none;
+}
+
+#overlay-canvas { pointer-events: none; }
+
+/* Remote cursor */
+.cursor-remote {
+  position: absolute;
+  pointer-events: none;
+  z-index: 200;
+  transition: left 0.06s linear, top 0.06s linear;
+  will-change: left, top;
+}
+.cursor-label {
+  position: absolute;
+  top: 18px; left: 6px;
+  font-size: 10px;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: 20px;
+  color: white;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+/* Sticky notes */
+.sticky-el {
+  position: absolute;
+  width: 168px;
+  min-height: 108px;
+  border-radius: 14px;
+  padding: 10px 12px;
+  cursor: move;
+  box-shadow: 2px 4px 16px rgba(0,0,0,0.12);
+  z-index: 50;
+  user-select: none;
+}
+.sticky-el textarea {
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 100%;
+  min-height: 72px;
+  resize: none;
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #1e293b;
+  cursor: text;
+}
+.sticky-delete {
+  position: absolute;
+  top: 5px; right: 6px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+  font-size: 10px;
+  color: #334155;
+  font-weight: 900;
+}
+.sticky-el:hover .sticky-delete { opacity: 1; }
+
+/* Tool buttons */
+.tool-btn {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: #64748b;
+  border: none;
+  background: transparent;
+}
+.tool-btn:hover { background: #f1f5f9; color: #0d9488; }
+.tool-btn.active { background: #0d9488; color: white; }
+
+/* Color dots */
+.c-dot {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.c-dot:hover { transform: scale(1.2); }
+.c-dot.active { border-color: #0f172a; transform: scale(1.1); }
+
+/* Side panel */
+.side-panel {
+  width: 272px;
+  min-width: 272px;
+  background: white;
+  border-left: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width 0.2s, min-width 0.2s;
+}
+.side-panel.collapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+}
+
+.panel-tab {
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+.panel-tab.active { color: #0d9488; border-bottom-color: #0d9488; }
+
+/* Width buttons */
+.w-btn {
+  width: 32px; height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+  border: none;
+  background: transparent;
+}
+.w-btn:hover { background: #f1f5f9; }
+.w-btn.active { background: #e0f2f1; }
+
+/* Separator */
+.tool-sep { width: 28px; height: 1px; background: #e2e8f0; margin: 2px auto; }
+
+/* Loading */
+#loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.dot-pulse span {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #0d9488;
+  margin: 0 2px;
+  animation: dp 1.4s ease-in-out infinite;
+}
+.dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
+.dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dp {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #f8fafc; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+
+/* Toast */
+.wb-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  background: #0f172a;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 20px;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  z-index: 9999;
+  transition: opacity 0.3s;
+  white-space: nowrap;
+}
+
+/* RIASEC bars */
+.riasec-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.riasec-track {
+  width: 28px;
+  height: 56px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.riasec-fill {
+  border-radius: 6px;
+  transition: height 0.5s ease;
+  width: 100%;
+}
+
+/* Active session badge */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+</style>
+</head>
+<body class="h-screen flex flex-col bg-slate-50">
+
+<!-- ═══════════════════ LOADING ════════════════════════════════ -->
+<div id="loading-overlay">
+  <img src="./ormap-logo.png" alt="Ormap" class="w-10 h-10 object-contain mb-4" onerror="this.style.display='none'">
+  <div class="dot-pulse mb-3"><span></span><span></span><span></span></div>
+  <p id="loading-msg" class="text-sm text-slate-400 font-medium">正在連線白板...</p>
+</div>
+
+<!-- ═══════════════════ SETUP MODAL ═══════════════════════════ -->
+<div id="setup-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-7">
+    <div class="flex items-center gap-3 mb-7">
+      <div class="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center">
+        <i data-lucide="layout" class="w-5 h-5 text-primary"></i>
+      </div>
+      <div>
+        <h2 class="font-black text-lg text-secondary leading-tight">即時互動白板</h2>
+        <p class="text-xs text-slate-400">Ormap 職涯諮詢工具</p>
+      </div>
+    </div>
+
+    <!-- Create section (counselor only) -->
+    <div id="create-section">
+      <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">建立新白板</p>
+      <div class="space-y-3 mb-4">
+        <div>
+          <label class="text-xs font-bold text-slate-600 block mb-1">評測類型</label>
+          <div class="flex gap-2">
+            <button onclick="pickTool('TWA')" id="pick-TWA"
+              class="flex-1 py-2 rounded-xl border-2 border-primary bg-teal-50 text-primary text-sm font-black transition-all">TWA</button>
+            <button onclick="pickTool('HTI')" id="pick-HTI"
+              class="flex-1 py-2 rounded-xl border-2 border-slate-200 text-slate-500 text-sm font-bold transition-all hover:border-primary">HTI</button>
+            <button onclick="pickTool(null)" id="pick-FREE"
+              class="flex-1 py-2 rounded-xl border-2 border-slate-200 text-slate-500 text-sm font-bold transition-all hover:border-primary">自由</button>
+          </div>
+        </div>
+      </div>
+      <button id="create-btn" onclick="createSession()"
+        class="w-full bg-primary text-white rounded-2xl py-3 font-black text-sm shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all">
+        建立白板
+      </button>
+      <div class="my-5 flex items-center gap-3">
+        <div class="flex-1 h-px bg-slate-100"></div>
+        <span class="text-xs text-slate-300 font-bold">或</span>
+        <div class="flex-1 h-px bg-slate-100"></div>
+      </div>
+    </div>
+
+    <!-- Join section -->
+    <div>
+      <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">加入工作階段</p>
+      <div class="flex gap-2">
+        <input id="join-input" type="text" placeholder="貼上邀請連結或 Session ID"
+          class="flex-1 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary transition-colors min-w-0">
+        <button onclick="joinSession()"
+          class="bg-secondary text-white rounded-xl px-4 text-sm font-bold hover:bg-slate-700 transition-colors whitespace-nowrap">
+          加入
+        </button>
+      </div>
+    </div>
+
+    <a href="dashboard.html" class="block text-center text-xs text-slate-300 mt-5 hover:text-slate-500 transition-colors">← 返回個人後臺</a>
+  </div>
+</div>
+
+<!-- ═══════════════════ INVITE MODAL ══════════════════════════ -->
+<div id="invite-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-7 text-center">
+    <div class="w-14 h-14 bg-teal-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+      <i data-lucide="check-circle-2" class="w-7 h-7 text-primary"></i>
+    </div>
+    <h3 class="font-black text-xl text-secondary mb-1">白板已建立！</h3>
+    <p class="text-slate-400 text-sm mb-5">將以下連結傳給學員，雙方即可即時協作</p>
+    <div class="bg-slate-50 rounded-xl p-3.5 mb-4 flex items-start gap-3 text-left">
+      <span id="invite-url" class="text-xs text-slate-600 flex-1 break-all leading-relaxed"></span>
+      <button onclick="copyInvite()" class="flex-shrink-0 text-primary hover:text-teal-700 mt-0.5 transition-colors">
+        <i data-lucide="copy" class="w-4 h-4"></i>
+      </button>
+    </div>
+    <div class="flex items-center gap-2 justify-center text-amber-600 bg-amber-50 rounded-xl py-2.5 px-4 mb-5">
+      <i data-lucide="clock" class="w-4 h-4"></i>
+      <span class="text-xs font-bold">等待學員加入中...</span>
+    </div>
+    <button onclick="enterBoard()"
+      class="w-full bg-primary text-white rounded-2xl py-3 font-black text-sm shadow-lg hover:-translate-y-0.5 transition-all">
+      進入白板
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════ MAIN WHITEBOARD ═══════════════════════ -->
+<div id="wb-app" class="hidden flex flex-col h-screen">
+
+  <!-- Navbar -->
+  <nav class="h-12 bg-white border-b border-slate-200 flex items-center justify-between px-4 flex-shrink-0 z-40 gap-3">
+    <div class="flex items-center gap-2.5 min-w-0">
+      <a href="dashboard.html" class="text-slate-400 hover:text-primary transition-colors flex-shrink-0">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+      </a>
+      <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
+      <span class="font-black text-sm text-secondary whitespace-nowrap">即時白板</span>
+      <span id="tool-badge" class="hidden text-xs font-black px-2 py-0.5 bg-teal-50 text-primary rounded-lg flex-shrink-0"></span>
+    </div>
+
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <!-- Status -->
+      <div id="status-area" class="status-badge bg-amber-50 text-amber-600">
+        <span id="status-dot" class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
+        <span id="status-txt">等待中</span>
+      </div>
+
+      <!-- Participants -->
+      <div id="participants" class="flex -space-x-1.5"></div>
+
+      <!-- Panel toggle -->
+      <button onclick="togglePanel()" title="側欄"
+        class="tool-btn w-8 h-8">
+        <i data-lucide="panel-right" class="w-4 h-4"></i>
+      </button>
+
+      <!-- End (counselor only) -->
+      <button id="end-btn" onclick="confirmEnd()" class="hidden bg-white border border-red-200 text-red-500 rounded-xl px-3 py-1.5 text-xs font-bold hover:bg-red-50 transition-all">
+        結束
+      </button>
+    </div>
+  </nav>
+
+  <!-- Body -->
+  <div class="flex flex-1 overflow-hidden">
+
+    <!-- Left Toolbar -->
+    <div class="w-12 bg-white border-r border-slate-200 flex flex-col items-center py-2 gap-0.5 flex-shrink-0 z-30 overflow-y-auto">
+
+      <button id="tool-pointer" class="tool-btn" onclick="setTool('pointer')" title="指標">
+        <i data-lucide="mouse-pointer-2" class="w-4 h-4"></i>
+      </button>
+
+      <div class="tool-sep"></div>
+
+      <button id="tool-pen" class="tool-btn active" onclick="setTool('pen')" title="畫筆">
+        <i data-lucide="pen-line" class="w-4 h-4"></i>
+      </button>
+      <button id="tool-highlight" class="tool-btn" onclick="setTool('highlight')" title="螢光筆">
+        <i data-lucide="highlighter" class="w-4 h-4"></i>
+      </button>
+      <button id="tool-eraser" class="tool-btn" onclick="setTool('eraser')" title="橡皮擦">
+        <i data-lucide="eraser" class="w-4 h-4"></i>
+      </button>
+
+      <div class="tool-sep"></div>
+
+      <button id="tool-sticky" class="tool-btn" onclick="setTool('sticky')" title="便利貼（點擊畫布）">
+        <i data-lucide="sticky-note" class="w-4 h-4"></i>
+      </button>
+
+      <div class="tool-sep"></div>
+
+      <!-- Width -->
+      <div class="flex flex-col items-center gap-1 py-1">
+        <button class="w-btn active" id="w-2" onclick="setWidth(2)" title="細">
+          <div style="width:14px;height:2px;background:#475569;border-radius:2px"></div>
+        </button>
+        <button class="w-btn" id="w-4" onclick="setWidth(4)" title="中">
+          <div style="width:14px;height:4px;background:#475569;border-radius:2px"></div>
+        </button>
+        <button class="w-btn" id="w-8" onclick="setWidth(8)" title="粗">
+          <div style="width:14px;height:7px;background:#475569;border-radius:3px"></div>
+        </button>
+      </div>
+
+      <div class="tool-sep"></div>
+
+      <!-- Colors -->
+      <div class="flex flex-col items-center gap-1.5 py-1">
+        <button class="c-dot active" id="cd-0d9488" style="background:#0d9488" onclick="setColor('#0d9488')" title="青色"></button>
+        <button class="c-dot" id="cd-0f172a" style="background:#0f172a" onclick="setColor('#0f172a')" title="黑色"></button>
+        <button class="c-dot" id="cd-ef4444" style="background:#ef4444" onclick="setColor('#ef4444')" title="紅色"></button>
+        <button class="c-dot" id="cd-f97316" style="background:#f97316" onclick="setColor('#f97316')" title="橘色"></button>
+        <button class="c-dot" id="cd-eab308" style="background:#eab308" onclick="setColor('#eab308')" title="黃色"></button>
+        <button class="c-dot" id="cd-3b82f6" style="background:#3b82f6" onclick="setColor('#3b82f6')" title="藍色"></button>
+        <button class="c-dot" id="cd-8b5cf6" style="background:#8b5cf6" onclick="setColor('#8b5cf6')" title="紫色"></button>
+        <button class="c-dot" id="cd-ffffff" style="background:#fff;border:1.5px solid #e2e8f0" onclick="setColor('#ffffff')" title="白色（修正）"></button>
+      </div>
+
+      <div class="flex-1"></div>
+      <div class="tool-sep"></div>
+
+      <button class="tool-btn text-red-400 hover:bg-red-50 hover:text-red-500" onclick="clearAll()" title="清除全部">
+        <i data-lucide="trash-2" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <!-- Canvas -->
+    <div id="canvas-area" class="flex-1 relative overflow-hidden">
+      <div id="canvas-wrapper">
+        <canvas id="main-canvas"></canvas>
+        <canvas id="overlay-canvas"></canvas>
+        <!-- Dynamic: remote cursors, stickies -->
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div id="side-panel" class="side-panel">
+      <div class="flex border-b border-slate-200 flex-shrink-0">
+        <button class="panel-tab active flex-1 text-center" onclick="switchTab('live')" id="tab-live">即時資料</button>
+        <button class="panel-tab flex-1 text-center" onclick="switchTab('session')" id="tab-session">工作階段</button>
+      </div>
+
+      <!-- Live Data -->
+      <div id="panel-live" class="flex-1 overflow-y-auto p-4">
+        <div id="live-empty" class="py-10 text-center">
+          <div class="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <i data-lucide="user-round" class="w-5 h-5 text-slate-400"></i>
+          </div>
+          <p class="text-sm font-bold text-slate-400">等待學員加入</p>
+          <p class="text-xs text-slate-300 mt-1 leading-relaxed">學員加入後<br>即時評測進度將顯示於此</p>
+        </div>
+
+        <div id="live-data" class="hidden space-y-4">
+          <!-- Student card -->
+          <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+            <div id="stu-avatar" class="w-9 h-9 rounded-full bg-orange-400 text-white flex items-center justify-center text-sm font-black flex-shrink-0">?</div>
+            <div class="min-w-0">
+              <p id="stu-name" class="text-sm font-bold text-secondary truncate">-</p>
+              <p id="stu-email" class="text-xs text-slate-400 truncate">-</p>
+            </div>
+          </div>
+
+          <!-- Tool badge -->
+          <div id="live-tool-row" class="hidden">
+            <p class="text-xs font-black text-slate-300 uppercase tracking-widest mb-2">進行中</p>
+            <div id="live-tool-pill" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-bold"></div>
+          </div>
+
+          <!-- TWA Panel -->
+          <div id="twa-panel" class="hidden space-y-4">
+            <div>
+              <div class="flex justify-between items-center mb-1.5">
+                <p class="text-xs font-black text-slate-400 uppercase tracking-widest">預算使用</p>
+                <span id="twa-budget-num" class="text-xs font-black text-primary">0 / 115</span>
+              </div>
+              <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div id="twa-budget-bar" class="h-full bg-primary rounded-full transition-all duration-600 ease-out" style="width:0%"></div>
+              </div>
+            </div>
+
+            <div>
+              <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">前五名心理需求</p>
+              <div id="twa-top5" class="space-y-2"></div>
+            </div>
+
+            <div id="twa-insight-wrap" class="hidden">
+              <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">學員體悟</p>
+              <p id="twa-insight" class="text-xs text-slate-600 bg-slate-50 rounded-xl p-3 leading-relaxed border-l-2 border-primary"></p>
+            </div>
+
+            <div id="twa-focus-wrap" class="hidden">
+              <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">決策狀態</p>
+              <div id="twa-focus" class="text-xs font-bold px-3 py-2 bg-teal-50 text-primary rounded-xl"></div>
+            </div>
+          </div>
+
+          <!-- HTI Panel -->
+          <div id="hti-panel" class="hidden space-y-4">
+            <div>
+              <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">RIASEC 六維分數</p>
+              <div id="hti-bars" class="flex gap-2 justify-center"></div>
+            </div>
+            <div id="hti-top-wrap" class="hidden">
+              <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">目前領先特質</p>
+              <div id="hti-top-traits" class="flex gap-2 flex-wrap"></div>
+            </div>
+            <div id="hti-acts-wrap" class="hidden">
+              <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">已選活動</p>
+              <span id="hti-acts-count" class="text-2xl font-black text-secondary"></span>
+              <span class="text-sm text-slate-400"> / 25 項</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session Info -->
+      <div id="panel-session" class="hidden flex-1 overflow-y-auto p-4 space-y-5">
+        <div>
+          <p class="text-xs font-black text-slate-300 uppercase tracking-widest mb-2.5">工作階段資訊</p>
+          <div class="bg-slate-50 rounded-xl p-3.5 space-y-2.5">
+            <div class="flex justify-between items-start gap-2">
+              <span class="text-xs text-slate-400 flex-shrink-0">Session ID</span>
+              <span id="sid-display" class="text-xs font-mono text-slate-600 break-all text-right leading-relaxed"></span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-xs text-slate-400">你的身分</span>
+              <span id="role-display" class="text-xs font-bold text-primary">-</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-xs text-slate-400">狀態</span>
+              <span id="sstat-display" class="text-xs font-bold text-amber-600">等待中</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="invite-area">
+          <p class="text-xs font-black text-slate-300 uppercase tracking-widest mb-2.5">邀請連結</p>
+          <div class="bg-slate-50 rounded-xl p-3.5">
+            <p class="text-xs text-slate-400 mb-2">傳給學員即可加入</p>
+            <div class="flex gap-2 items-start">
+              <span id="invite-url-panel" class="text-xs text-slate-600 flex-1 break-all leading-relaxed"></span>
+              <button onclick="copyInvitePanel()" class="flex-shrink-0 text-primary hover:text-teal-700 transition-colors mt-0.5">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="end-area" class="hidden">
+          <button onclick="confirmEnd()"
+            class="w-full bg-white border border-red-200 text-red-500 rounded-xl py-2.5 text-sm font-bold hover:bg-red-50 transition-all">
+            結束白板階段
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ FIREBASE + LOGIC ══════════════════════ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import {
+  getFirestore, doc, setDoc, addDoc, getDoc, updateDoc, deleteDoc,
+  collection, onSnapshot, serverTimestamp, query, orderBy, writeBatch
+} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+// ── Config ────────────────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
+  authDomain: "careervalue-ormap.firebaseapp.com",
+  projectId: "careervalue-ormap",
+  storageBucket: "careervalue-ormap.firebasestorage.app",
+  messagingSenderId: "883599167982",
+  appId: "1:883599167982:web:6dee33f8abf03de9b53eff"
+};
+
+const COUNSELOR_WHITELIST = ["tim010003@gmail.com"];
+const C_COLOR = "#0d9488";   // counselor cursor/sticky color
+const S_COLOR = "#f97316";   // student cursor/sticky color
+const STICKY_BG = { counselor: "#d1fae5", student: "#fef3c7" };
+const RIASEC_COLORS = { R:"#ef4444", I:"#3b82f6", A:"#8b5cf6", S:"#22c55e", E:"#f97316", C:"#eab308" };
+const RIASEC_LABELS = { R:"實", I:"研", A:"藝", S:"社", E:"領", C:"統" };
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentUser = null;
+let userRole = null;          // 'counselor' | 'student'
+let sessionId = null;
+let sessionData = null;
+let currentTool = 'pen';
+let currentColor = '#0d9488';
+let currentWidth = 2;
+let isDrawing = false;
+let currentPts = [];
+let strokesMap = {};
+let panelOpen = true;
+let selectedToolType = 'TWA';
+
+let mainCanvas, ctx, overlayCanvas, octx, wrapper;
+let presenceTs = 0;
+let unsubs = [];
+
+// Parse session from URL
+const params = new URLSearchParams(window.location.search);
+sessionId = params.get('session');
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+onAuthStateChanged(auth, async user => {
+  if (!user) { window.location.href = 'index.html'; return; }
+  currentUser = user;
+
+  if (!sessionId) {
+    hideLoading();
+    if (!COUNSELOR_WHITELIST.includes(user.email)) {
+      // Student landing — hide create section
+      document.getElementById('create-section').style.display = 'none';
+    }
+    showSetup();
+    return;
+  }
+
+  setMsg('讀取白板資料...');
+  await initSession();
+});
+
+function hideLoading() { document.getElementById('loading-overlay').style.display = 'none'; }
+function showSetup() {
+  document.getElementById('setup-modal').classList.remove('hidden');
+  lucide.createIcons();
+}
+function setMsg(m) { document.getElementById('loading-msg').textContent = m; }
+
+// ── Setup ─────────────────────────────────────────────────────────────────────
+window.pickTool = function(t) {
+  selectedToolType = t;
+  ['TWA','HTI','FREE'].forEach(x => {
+    const btn = document.getElementById(`pick-${x}`);
+    if (!btn) return;
+    btn.className = 'flex-1 py-2 rounded-xl border-2 text-sm font-bold transition-all ' +
+      ((x === t || (t === null && x === 'FREE'))
+        ? 'border-primary bg-teal-50 text-primary font-black'
+        : 'border-slate-200 text-slate-500 hover:border-primary');
+  });
+};
+
+window.createSession = async function() {
+  const btn = document.getElementById('create-btn');
+  btn.textContent = '建立中...'; btn.disabled = true;
+  try {
+    const ref = doc(collection(db, 'whiteboard_sessions'));
+    sessionId = ref.id;
+    await setDoc(ref, {
+      counselorUid: currentUser.uid,
+      counselorName: currentUser.displayName || '諮詢師',
+      counselorEmail: currentUser.email,
+      studentUid: null,
+      studentName: null,
+      studentEmail: null,
+      toolType: selectedToolType,
+      status: 'waiting',
+      createdAt: serverTimestamp()
+    });
+
+    const url = buildInviteUrl();
+    document.getElementById('invite-url').textContent = url;
+    document.getElementById('setup-modal').classList.add('hidden');
+    document.getElementById('invite-modal').classList.remove('hidden');
+    lucide.createIcons();
+  } catch(e) {
+    btn.textContent = '建立失敗，請重試'; btn.disabled = false;
+    console.error(e);
+  }
+};
+
+window.copyInvite = function() {
+  navigator.clipboard.writeText(buildInviteUrl()).then(() => toast('連結已複製！'));
+};
+
+window.enterBoard = async function() {
+  document.getElementById('invite-modal').classList.add('hidden');
+  document.getElementById('loading-overlay').style.display = 'flex';
+  setMsg('進入白板...');
+  await initSession();
+};
+
+window.joinSession = async function() {
+  let val = document.getElementById('join-input').value.trim();
+  if (!val) return;
+  // Support full URL or just ID
+  if (val.includes('session=')) {
+    val = new URL(val.startsWith('http') ? val : 'https://x.com?' + val.split('?')[1]).searchParams.get('session') || val;
+  }
+  sessionId = val;
+  document.getElementById('setup-modal').classList.add('hidden');
+  document.getElementById('loading-overlay').style.display = 'flex';
+  setMsg('加入工作階段...');
+  await initSession();
+};
+
+function buildInviteUrl() {
+  return `${window.location.origin}${window.location.pathname}?session=${sessionId}`;
+}
+
+// ── Init Session ──────────────────────────────────────────────────────────────
+async function initSession() {
+  const sRef = doc(db, 'whiteboard_sessions', sessionId);
+  try {
+    const snap = await getDoc(sRef);
+    if (!snap.exists()) {
+      hideLoading();
+      return showFatalError('找不到此白板階段，請確認連結正確。');
+    }
+    sessionData = snap.data();
+
+    if (sessionData.status === 'ended') {
+      hideLoading();
+      return showFatalError('此白板階段已結束。');
+    }
+
+    // Determine role
+    userRole = (sessionData.counselorUid === currentUser.uid) ? 'counselor' : 'student';
+
+    // Auto-join student
+    if (userRole === 'student' && !sessionData.studentUid) {
+      await updateDoc(sRef, {
+        studentUid: currentUser.uid,
+        studentName: currentUser.displayName || '學員',
+        studentEmail: currentUser.email,
+        status: 'active'
+      });
+      sessionData.studentUid = currentUser.uid;
+      sessionData.studentName = currentUser.displayName || '學員';
+      sessionData.studentEmail = currentUser.email;
+      sessionData.status = 'active';
+    }
+
+    hideLoading();
+    document.getElementById('wb-app').classList.remove('hidden');
+
+    initCanvas();
+    setupStaticUI();
+    subSession();
+    subStrokes();
+    subStickies();
+    subPresence();
+    if (userRole === 'counselor') subAssessment();
+
+    lucide.createIcons();
+    // Update history so URL has session id
+    if (!window.location.search.includes('session=')) {
+      history.replaceState({}, '', `${window.location.pathname}?session=${sessionId}`);
+    }
+  } catch(e) {
+    hideLoading();
+    console.error(e);
+    showFatalError('連線失敗，請重新整理頁面。');
+  }
+}
+
+// ── Static UI ─────────────────────────────────────────────────────────────────
+function setupStaticUI() {
+  if (sessionData.toolType) {
+    const b = document.getElementById('tool-badge');
+    b.textContent = sessionData.toolType;
+    b.classList.remove('hidden');
+  }
+  document.getElementById('sid-display').textContent = sessionId;
+  document.getElementById('role-display').textContent = userRole === 'counselor' ? '諮詢師' : '學員';
+  document.getElementById('invite-url-panel').textContent = buildInviteUrl();
+
+  if (userRole === 'counselor') {
+    document.getElementById('end-btn').classList.remove('hidden');
+    document.getElementById('end-area').classList.remove('hidden');
+  } else {
+    document.getElementById('invite-area').style.display = 'none';
+    document.getElementById('end-area').style.display = 'none';
+  }
+  updateSelfAvatar();
+}
+
+function updateSelfAvatar() {
+  const area = document.getElementById('participants');
+  const color = userRole === 'counselor' ? C_COLOR : S_COLOR;
+  const label = userRole === 'counselor' ? '諮' : '學';
+  const title = currentUser.displayName || (userRole === 'counselor' ? '諮詢師' : '學員');
+  area.innerHTML = `<div style="width:26px;height:26px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:white;border:2px solid white;" title="${title}">${label}</div>`;
+}
+
+// ── Canvas ────────────────────────────────────────────────────────────────────
+function initCanvas() {
+  wrapper = document.getElementById('canvas-wrapper');
+  mainCanvas = document.getElementById('main-canvas');
+  ctx = mainCanvas.getContext('2d');
+  overlayCanvas = document.getElementById('overlay-canvas');
+  octx = overlayCanvas.getContext('2d');
+
+  resize();
+  window.addEventListener('resize', resize);
+
+  mainCanvas.addEventListener('mousedown', onDown);
+  mainCanvas.addEventListener('mousemove', onMove);
+  mainCanvas.addEventListener('mouseup', onUp);
+  mainCanvas.addEventListener('mouseleave', onLeave);
+  mainCanvas.addEventListener('click', onClick);
+
+  mainCanvas.addEventListener('touchstart', e => { e.preventDefault(); onDown(e.touches[0]); }, { passive: false });
+  mainCanvas.addEventListener('touchmove', e => { e.preventDefault(); onMove(e.touches[0]); }, { passive: false });
+  mainCanvas.addEventListener('touchend', e => { e.preventDefault(); onUp(e.changedTouches[0]); }, { passive: false });
+}
+
+function resize() {
+  if (!wrapper || !mainCanvas) return;
+  const w = wrapper.offsetWidth, h = wrapper.offsetHeight;
+  mainCanvas.width = w; mainCanvas.height = h;
+  overlayCanvas.width = w; overlayCanvas.height = h;
+  redraw();
+}
+
+function getXY(e) {
+  const r = mainCanvas.getBoundingClientRect();
+  const scaleX = mainCanvas.width / r.width;
+  const scaleY = mainCanvas.height / r.height;
+  return { x: (e.clientX - r.left) * scaleX, y: (e.clientY - r.top) * scaleY };
+}
+
+// ── Tool Controls ─────────────────────────────────────────────────────────────
+window.setTool = function(t) {
+  currentTool = t;
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`tool-${t}`)?.classList.add('active');
+  if (!mainCanvas) return;
+  const cursors = { pointer: 'default', pen: 'crosshair', highlight: 'crosshair', eraser: 'cell', sticky: 'copy' };
+  mainCanvas.style.cursor = cursors[t] || 'crosshair';
+};
+
+window.setColor = function(c) {
+  currentColor = c;
+  document.querySelectorAll('.c-dot').forEach(b => b.classList.remove('active'));
+  document.getElementById(`cd-${c.replace('#','')}`)?.classList.add('active');
+};
+
+window.setWidth = function(w) {
+  currentWidth = w;
+  document.querySelectorAll('.w-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`w-${w}`)?.classList.add('active');
+};
+
+window.togglePanel = function() {
+  panelOpen = !panelOpen;
+  document.getElementById('side-panel').classList.toggle('collapsed', !panelOpen);
+};
+
+window.switchTab = function(t) {
+  ['live','session'].forEach(x => {
+    document.getElementById(`tab-${x}`).classList.toggle('active', x === t);
+    document.getElementById(`panel-${x}`).classList.toggle('hidden', x !== t);
+  });
+};
+
+// ── Draw Events ───────────────────────────────────────────────────────────────
+function onDown(e) {
+  if (currentTool === 'pointer' || currentTool === 'sticky') return;
+  const p = getXY(e);
+  isDrawing = true;
+  currentPts = [p];
+  if (currentTool === 'eraser') { applyEraser(p); return; }
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y);
+}
+
+function onMove(e) {
+  const p = getXY(e);
+
+  // Presence throttle
+  const now = Date.now();
+  if (now - presenceTs > 80) { presenceTs = now; pushPresence(p); }
+
+  if (!isDrawing) return;
+  currentPts.push(p);
+
+  if (currentTool === 'eraser') { applyEraser(p); return; }
+
+  // Smooth preview
+  redraw();
+  renderPath(ctx, currentPts, strokeColor(), strokeWidth(), currentTool === 'highlight');
+}
+
+function onUp(e) {
+  if (!isDrawing) return;
+  isDrawing = false;
+  if (currentPts.length < 2) { currentPts = []; return; }
+  if (currentTool === 'eraser') { currentPts = []; return; }
+  saveStroke();
+  currentPts = [];
+}
+
+function onLeave() { if (isDrawing) onUp({}); }
+
+function onClick(e) {
+  if (currentTool === 'sticky') {
+    const p = getXY(e);
+    spawnSticky(p.x, p.y);
+  }
+}
+
+function applyEraser(p) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'destination-out';
+  const r = currentWidth * 8;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function strokeColor() {
+  return currentTool === 'highlight' ? hexAlpha(currentColor, 0.3) : currentColor;
+}
+
+function strokeWidth() {
+  return currentTool === 'highlight' ? currentWidth * 5 : currentWidth;
+}
+
+// ── Rendering ─────────────────────────────────────────────────────────────────
+function renderPath(context, pts, color, width, isHL) {
+  if (!pts || pts.length < 2) return;
+  context.save();
+  context.strokeStyle = color;
+  context.lineWidth = width;
+  context.lineCap = 'round';
+  context.lineJoin = 'round';
+  if (isHL) context.globalAlpha = 0.42;
+
+  context.beginPath();
+  const p0 = pts[0];
+  context.moveTo(p0.x ?? p0[0], p0.y ?? p0[1]);
+
+  for (let i = 1; i < pts.length - 1; i++) {
+    const ax = pts[i].x ?? pts[i][0], ay = pts[i].y ?? pts[i][1];
+    const bx = pts[i+1].x ?? pts[i+1][0], by = pts[i+1].y ?? pts[i+1][1];
+    context.quadraticCurveTo(ax, ay, (ax+bx)/2, (ay+by)/2);
+  }
+
+  const last = pts[pts.length-1];
+  context.lineTo(last.x ?? last[0], last.y ?? last[1]);
+  context.stroke();
+  context.restore();
+}
+
+function redraw() {
+  if (!ctx) return;
+  ctx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+  const sorted = Object.values(strokesMap).sort((a,b) => (a.t||0)-(b.t||0));
+  for (const s of sorted) {
+    renderPath(ctx, s.points, s.color, s.width, s.isHL);
+  }
+}
+
+// ── Firestore: Strokes ────────────────────────────────────────────────────────
+async function saveStroke() {
+  const color = strokeColor();
+  const width = strokeWidth();
+  try {
+    await addDoc(collection(db, 'whiteboard_sessions', sessionId, 'strokes'), {
+      uid: currentUser.uid,
+      role: userRole,
+      tool: currentTool,
+      color, width,
+      isHL: currentTool === 'highlight',
+      points: currentPts.map(p => [Math.round(p.x), Math.round(p.y)]),
+      t: Date.now()
+    });
+  } catch(e) { console.error('Stroke save:', e); }
+}
+
+function subStrokes() {
+  const q = query(collection(db, 'whiteboard_sessions', sessionId, 'strokes'), orderBy('t', 'asc'));
+  const u = onSnapshot(q, snap => {
+    snap.docChanges().forEach(ch => {
+      if (ch.type === 'added' || ch.type === 'modified') strokesMap[ch.doc.id] = ch.doc.data();
+      if (ch.type === 'removed') delete strokesMap[ch.doc.id];
+    });
+    redraw();
+  });
+  unsubs.push(u);
+}
+
+// ── Firestore: Stickies ────────────────────────────────────────────────────────
+function spawnSticky(x, y, id, text, color, fromRemote) {
+  const sId = id || `s-${Date.now()}-${Math.random().toString(36).substr(2,5)}`;
+  if (document.getElementById(`stk-${sId}`)) return;
+  const bg = color || STICKY_BG[userRole] || '#fef9c3';
+
+  const el = document.createElement('div');
+  el.className = 'sticky-el';
+  el.id = `stk-${sId}`;
+  el.style.cssText = `left:${x}px;top:${y}px;background:${bg};`;
+
+  const del = document.createElement('div');
+  del.className = 'sticky-delete';
+  del.textContent = '✕';
+  del.onclick = (e) => { e.stopPropagation(); removeSticky(sId); };
+
+  const ta = document.createElement('textarea');
+  ta.placeholder = '輸入備註...';
+  ta.value = text || '';
+  if (fromRemote) ta.readOnly = true;
+  ta.onblur = () => updateStickyText(sId, ta.value);
+
+  el.appendChild(del);
+  el.appendChild(ta);
+  wrapper.appendChild(el);
+
+  // Drag
+  let drag = false, ox = 0, oy = 0;
+  el.addEventListener('mousedown', ev => {
+    if (ev.target === ta || ev.target === del) return;
+    drag = true; ox = ev.clientX - el.offsetLeft; oy = ev.clientY - el.offsetTop;
+    el.style.zIndex = 60;
+  });
+  document.addEventListener('mousemove', ev => {
+    if (!drag) return;
+    el.style.left = `${ev.clientX - ox}px`;
+    el.style.top = `${ev.clientY - oy}px`;
+  });
+  document.addEventListener('mouseup', () => {
+    if (!drag) return;
+    drag = false; el.style.zIndex = 50;
+    moveStickyFirestore(sId, parseFloat(el.style.left), parseFloat(el.style.top));
+  });
+
+  if (!id) saveStickyFirestore(sId, x, y, '', bg);
+  if (!fromRemote) setTimeout(() => ta.focus(), 50);
+}
+
+async function saveStickyFirestore(id, x, y, text, color) {
+  await setDoc(doc(db, 'whiteboard_sessions', sessionId, 'stickies', id), {
+    uid: currentUser.uid, role: userRole, x, y, text, color, t: Date.now()
+  }).catch(console.error);
+}
+
+async function updateStickyText(id, text) {
+  await updateDoc(doc(db, 'whiteboard_sessions', sessionId, 'stickies', id), { text }).catch(()=>{});
+}
+
+async function moveStickyFirestore(id, x, y) {
+  await updateDoc(doc(db, 'whiteboard_sessions', sessionId, 'stickies', id), { x, y }).catch(()=>{});
+}
+
+async function removeSticky(id) {
+  document.getElementById(`stk-${id}`)?.remove();
+  await deleteDoc(doc(db, 'whiteboard_sessions', sessionId, 'stickies', id)).catch(()=>{});
+}
+
+function subStickies() {
+  const u = onSnapshot(collection(db, 'whiteboard_sessions', sessionId, 'stickies'), snap => {
+    snap.docChanges().forEach(ch => {
+      const d = ch.doc.data(); const sId = ch.doc.id;
+      if (ch.type === 'added' && !document.getElementById(`stk-${sId}`) && d.uid !== currentUser.uid) {
+        spawnSticky(d.x, d.y, sId, d.text, d.color, true);
+      }
+      if (ch.type === 'modified' && d.uid !== currentUser.uid) {
+        const el = document.getElementById(`stk-${sId}`);
+        if (el) {
+          el.style.left = `${d.x}px`; el.style.top = `${d.y}px`;
+          const ta = el.querySelector('textarea');
+          if (ta) ta.value = d.text || '';
+        }
+      }
+      if (ch.type === 'removed') document.getElementById(`stk-${sId}`)?.remove();
+    });
+  });
+  unsubs.push(u);
+}
+
+// ── Presence ──────────────────────────────────────────────────────────────────
+async function pushPresence(pos) {
+  if (!sessionId || !currentUser) return;
+  await setDoc(doc(db, 'whiteboard_sessions', sessionId, 'presence', currentUser.uid), {
+    x: Math.round(pos.x), y: Math.round(pos.y),
+    name: currentUser.displayName || (userRole === 'counselor' ? '諮詢師' : '學員'),
+    role: userRole, ts: Date.now()
+  }, { merge: true }).catch(()=>{});
+}
+
+function subPresence() {
+  const u = onSnapshot(collection(db, 'whiteboard_sessions', sessionId, 'presence'), snap => {
+    const others = [];
+    snap.docs.forEach(d => {
+      if (d.id === currentUser.uid) return;
+      const data = d.data();
+      others.push({ id: d.id, ...data });
+      renderRemoteCursor(d.id, data);
+    });
+    updateParticipantBar(others);
+  });
+  unsubs.push(u);
+}
+
+function renderRemoteCursor(uid, data) {
+  let el = document.getElementById(`cur-${uid}`);
+  const color = data.role === 'counselor' ? C_COLOR : S_COLOR;
+  if (!el) {
+    el = document.createElement('div');
+    el.id = `cur-${uid}`;
+    el.className = 'cursor-remote';
+    el.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="${color}" xmlns="http://www.w3.org/2000/svg"><path d="M4.5 2.5l11 7.8L9.2 12l-2.3 6.5z"/></svg>
+      <span class="cursor-label" style="background:${color}">${data.name || '用戶'}</span>
+    `;
+    wrapper.appendChild(el);
+  }
+  el.style.left = `${data.x}px`;
+  el.style.top = `${data.y}px`;
+}
+
+function updateParticipantBar(others) {
+  const area = document.getElementById('participants');
+  const myColor = userRole === 'counselor' ? C_COLOR : S_COLOR;
+  const myLabel = userRole === 'counselor' ? '諮' : '學';
+  let html = `<div style="width:26px;height:26px;border-radius:50%;background:${myColor};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:white;border:2px solid white;" title="${currentUser.displayName || '你'}">${myLabel}</div>`;
+  others.forEach(o => {
+    const c = o.role === 'counselor' ? C_COLOR : S_COLOR;
+    const l = o.role === 'counselor' ? '諮' : '學';
+    html += `<div style="width:26px;height:26px;border-radius:50%;background:${c};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:white;border:2px solid white;" title="${o.name || '用戶'}">${l}</div>`;
+  });
+  area.innerHTML = html;
+}
+
+// ── Session Subscription ──────────────────────────────────────────────────────
+function subSession() {
+  const u = onSnapshot(doc(db, 'whiteboard_sessions', sessionId), snap => {
+    if (!snap.exists()) return;
+    const prev = sessionData;
+    sessionData = snap.data();
+
+    // Student joined for the first time
+    if (sessionData.studentUid && (!prev || !prev.studentUid)) {
+      if (userRole === 'counselor') {
+        toast(`${sessionData.studentName || '學員'} 已加入白板`);
+        subAssessment();
+        revealLivePanel();
+      }
+    }
+
+    updateSessionStatus();
+    if (sessionData.status === 'ended' && prev && prev.status !== 'ended') {
+      toast('白板階段已結束');
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 2000);
+    }
+  });
+  unsubs.push(u);
+}
+
+function updateSessionStatus() {
+  const dot = document.getElementById('status-dot');
+  const txt = document.getElementById('status-txt');
+  const area = document.getElementById('status-area');
+  const sd = document.getElementById('sstat-display');
+
+  if (sessionData.status === 'active') {
+    dot.style.background = '#22c55e';
+    area.className = 'status-badge bg-green-50 text-green-600';
+    txt.textContent = '連線中';
+    if (sd) { sd.textContent = '進行中'; sd.className = 'text-xs font-bold text-green-600'; }
+  } else if (sessionData.status === 'waiting') {
+    dot.style.background = '#f59e0b';
+    area.className = 'status-badge bg-amber-50 text-amber-600';
+    txt.textContent = '等待中';
+  } else if (sessionData.status === 'ended') {
+    dot.style.background = '#94a3b8';
+    area.className = 'status-badge bg-slate-100 text-slate-500';
+    txt.textContent = '已結束';
+  }
+}
+
+// ── Assessment Live Data ───────────────────────────────────────────────────────
+function revealLivePanel() {
+  document.getElementById('live-empty').classList.add('hidden');
+  document.getElementById('live-data').classList.remove('hidden');
+
+  const name = sessionData.studentName || '學員';
+  document.getElementById('stu-avatar').textContent = name.charAt(0).toUpperCase();
+  document.getElementById('stu-name').textContent = name;
+  document.getElementById('stu-email').textContent = sessionData.studentEmail || '';
+
+  if (sessionData.toolType) {
+    document.getElementById('live-tool-row').classList.remove('hidden');
+    const pill = document.getElementById('live-tool-pill');
+    if (sessionData.toolType === 'TWA') {
+      pill.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-bold bg-teal-50 text-primary';
+      pill.innerHTML = `<span>🧭</span> TWA 工作價值觀`;
+      document.getElementById('twa-panel').classList.remove('hidden');
+    } else if (sessionData.toolType === 'HTI') {
+      pill.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-bold bg-orange-50 text-orange-600';
+      pill.innerHTML = `<span>🧬</span> HTI 何倫特質`;
+      document.getElementById('hti-panel').classList.remove('hidden');
+      buildHTIBars({ R:0,I:0,A:0,S:0,E:0,C:0 });
+    }
+  }
+}
+
+function subAssessment() {
+  if (!sessionData.studentUid) return;
+  const tool = sessionData.toolType;
+  if (!tool || tool === 'FREE') return;
+
+  const key = `${sessionData.studentUid}_${tool}`;
+  const u = onSnapshot(doc(db, 'user_progress', key), snap => {
+    if (!snap.exists()) return;
+    if (!document.getElementById('live-data').classList.contains('hidden') === false) {
+      revealLivePanel();
+    }
+    try {
+      const raw = snap.data();
+      const payload = typeof raw.data === 'string' ? JSON.parse(raw.data) : raw;
+      if (tool === 'TWA') updateTWA(payload);
+      else if (tool === 'HTI') updateHTI(payload);
+    } catch(e) { console.error('Assessment parse:', e); }
+  });
+  unsubs.push(u);
+}
+
+function updateTWA(d) {
+  const scores = d.scores || d.rawData?.scores || {};
+  const total = Object.values(scores).reduce((s, v) => s + (Number(v)||0), 0);
+  const pct = Math.min(100, (total / 115) * 100);
+
+  document.getElementById('twa-budget-num').textContent = `${total} / 115`;
+  const bar = document.getElementById('twa-budget-bar');
+  bar.style.width = `${pct}%`;
+  bar.className = `h-full rounded-full transition-all duration-500 ${pct > 95 ? 'bg-red-400' : 'bg-primary'}`;
+
+  // Top5
+  const sorted = Object.entries(scores).sort(([,a],[,b]) => Number(b)-Number(a)).slice(0,5);
+  const max = sorted[0]?.[1] || 1;
+  document.getElementById('twa-top5').innerHTML = sorted.map(([k,v], i) => `
+    <div class="flex items-center gap-2">
+      <span class="text-xs font-black text-slate-300 w-3">${i+1}</span>
+      <span class="text-xs text-slate-600 flex-1 truncate leading-none">${k}</span>
+      <div class="w-14 h-1.5 bg-slate-100 rounded-full overflow-hidden flex-shrink-0">
+        <div class="h-full bg-primary rounded-full" style="width:${(Number(v)/max)*100}%"></div>
+      </div>
+      <span class="text-xs font-black text-primary w-5 text-right">${v}</span>
+    </div>
+  `).join('');
+
+  // Insight
+  const insight = d.insight || d.rawData?.insight || '';
+  if (insight) {
+    document.getElementById('twa-insight-wrap').classList.remove('hidden');
+    document.getElementById('twa-insight').textContent = insight;
+  }
+
+  // Focus type
+  const focus = d.focusType || d.rawData?.focusType || '';
+  if (focus) {
+    document.getElementById('twa-focus-wrap').classList.remove('hidden');
+    document.getElementById('twa-focus').textContent = focus;
+  }
+}
+
+function buildHTIBars(scores) {
+  const codes = ['R','I','A','S','E','C'];
+  const max = Math.max(...Object.values(scores), 1);
+  document.getElementById('hti-bars').innerHTML = codes.map(c => {
+    const v = scores[c] || 0;
+    const pct = (v / max) * 100;
+    return `
+      <div class="riasec-bar flex-1">
+        <div class="riasec-track">
+          <div class="riasec-fill" id="bar-${c}" style="height:${pct}%;background:${RIASEC_COLORS[c]}"></div>
+        </div>
+        <span style="font-size:11px;font-weight:900;color:#64748b">${c}</span>
+        <span style="font-size:10px;color:#94a3b8">${RIASEC_LABELS[c]}</span>
+        <span style="font-size:11px;font-weight:900;color:#0f172a" id="barv-${c}">${v}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function updateHTI(d) {
+  const scores = d.scores || {};
+  const selected = d.selectedActivities || d.step1Selected || [];
+  const max = Math.max(...Object.values(scores).map(Number), 1);
+  const codes = ['R','I','A','S','E','C'];
+
+  // If bars already exist, just update heights
+  const firstBar = document.getElementById('bar-R');
+  if (!firstBar) { buildHTIBars(scores); return; }
+
+  codes.forEach(c => {
+    const v = Number(scores[c]) || 0;
+    const pct = (v / max) * 100;
+    const barEl = document.getElementById(`bar-${c}`);
+    const valEl = document.getElementById(`barv-${c}`);
+    if (barEl) barEl.style.height = `${pct}%`;
+    if (valEl) valEl.textContent = v;
+  });
+
+  // Top traits
+  const top = codes.filter(c => scores[c] > 0).sort((a,b) => Number(scores[b])-Number(scores[a])).slice(0,3);
+  if (top.length) {
+    document.getElementById('hti-top-wrap').classList.remove('hidden');
+    document.getElementById('hti-top-traits').innerHTML = top.map(c =>
+      `<span style="background:${RIASEC_COLORS[c]}20;color:${RIASEC_COLORS[c]};font-size:12px;font-weight:900;padding:4px 12px;border-radius:20px;">${c}</span>`
+    ).join('');
+  }
+
+  // Activities selected
+  if (selected.length) {
+    document.getElementById('hti-acts-wrap').classList.remove('hidden');
+    document.getElementById('hti-acts-count').textContent = selected.length;
+  }
+}
+
+// ── Clear All ─────────────────────────────────────────────────────────────────
+window.clearAll = async function() {
+  if (!confirm('確定清除所有筆跡？便利貼不受影響，且操作無法復原。')) return;
+  ctx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+  strokesMap = {};
+
+  const strokesRef = collection(db, 'whiteboard_sessions', sessionId, 'strokes');
+  const snap = await new Promise(res => {
+    const u = onSnapshot(query(strokesRef), s => { u(); res(s); });
+  });
+  const batch = writeBatch(db);
+  snap.docs.forEach(d => batch.delete(d.ref));
+  await batch.commit();
+  toast('筆跡已清除');
+};
+
+// ── End Session ───────────────────────────────────────────────────────────────
+window.confirmEnd = function() {
+  if (confirm('確定結束此白板階段？雙方都將離開白板。')) {
+    updateDoc(doc(db, 'whiteboard_sessions', sessionId), { status: 'ended', endedAt: serverTimestamp() })
+      .then(() => { toast('白板階段已結束'); setTimeout(() => { window.location.href = 'admin.html'; }, 1500); })
+      .catch(console.error);
+  }
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function hexAlpha(hex, a) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+window.copyInvitePanel = function() {
+  navigator.clipboard.writeText(buildInviteUrl()).then(() => toast('連結已複製！'));
+};
+
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'wb-toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; }, 2000);
+  setTimeout(() => t.remove(), 2400);
+}
+
+function showFatalError(msg) {
+  document.body.innerHTML = `
+    <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f8fafc;padding:32px;text-align:center;font-family:'Noto Sans TC',sans-serif;">
+      <div style="width:56px;height:56px;background:#fee2e2;border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+        <svg width="28" height="28" fill="none" stroke="#ef4444" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+      </div>
+      <h2 style="font-weight:900;font-size:20px;color:#0f172a;margin-bottom:8px">發生錯誤</h2>
+      <p style="color:#94a3b8;font-size:14px;margin-bottom:24px">${msg}</p>
+      <a href="dashboard.html" style="background:#0d9488;color:white;border-radius:16px;padding:12px 28px;font-weight:900;font-size:14px;text-decoration:none;">返回後臺</a>
+    </div>`;
+}
+
+// Cleanup on unload
+window.addEventListener('beforeunload', () => {
+  if (sessionId && currentUser) {
+    deleteDoc(doc(db, 'whiteboard_sessions', sessionId, 'presence', currentUser.uid)).catch(()=>{});
+  }
+  unsubs.forEach(u => u?.());
+});
+
+lucide.createIcons();
+</script>
+
+</body>
+</html>

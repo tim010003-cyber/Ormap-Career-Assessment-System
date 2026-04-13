@@ -156,6 +156,11 @@ tailwind.config = {
         </div>
         <p id="detailEmail" class="text-sm text-slate-400 mt-0.5"></p>
       </div>
+      <button id="wbBtn" onclick="openWhiteboard()"
+        class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:-translate-y-0.5 active:translate-y-0 shadow-sm hover:bg-teal-700 transition-all">
+        <i data-lucide="layout" class="w-4 h-4"></i>
+        開啟白板
+      </button>
     </div>
   </div>
 
@@ -204,7 +209,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import {
   getFirestore, collection, query, orderBy, getDocs,
-  doc, getDoc, setDoc
+  doc, getDoc, setDoc, addDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const COUNSELOR_WHITELIST = ["tim010003@gmail.com"];
@@ -665,6 +670,60 @@ document.getElementById('addNoteBtn').addEventListener('click', async () => {
   btn.innerHTML = '<i data-lucide="plus" class="w-4 h-4"></i> 新增紀錄';
   lucide.createIcons();
 });
+
+// ── 白板 ──────────────────────────────────────────────
+window.openWhiteboard = async function() {
+  if (!currentUid) return;
+  const client = clientMap[currentUid];
+  if (!client) return;
+
+  const btn = document.getElementById('wbBtn');
+  if (btn) { btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> 建立中...'; btn.disabled = true; }
+
+  try {
+    // Check existing active session
+    const existing = await getDoc(doc(db, 'whiteboard_active', currentUid));
+    if (existing.exists() && existing.data().status === 'waiting') {
+      const url = `whiteboard.html?session=${existing.data().sessionId}`;
+      window.open(url, '_blank');
+      if (btn) { btn.innerHTML = '<i data-lucide="layout" class="w-4 h-4"></i> 開啟白板'; btn.disabled = false; lucide.createIcons(); }
+      return;
+    }
+
+    // Detect latest tool type
+    const latestTool = client.assessments[0]?.toolType || 'TWA';
+
+    // Create new session
+    const sessionRef = await addDoc(collection(db, 'whiteboard_sessions'), {
+      counselorUid: auth.currentUser.uid,
+      counselorName: currentCounselorName,
+      counselorEmail: auth.currentUser.email,
+      studentUid: currentUid,
+      studentName: client.name,
+      studentEmail: client.email,
+      toolType: latestTool,
+      status: 'waiting',
+      createdAt: serverTimestamp()
+    });
+
+    // Save pointer for student lookup
+    await setDoc(doc(db, 'whiteboard_active', currentUid), {
+      sessionId: sessionRef.id,
+      counselorName: currentCounselorName,
+      toolType: latestTool,
+      status: 'waiting',
+      createdAt: serverTimestamp()
+    });
+
+    const url = `whiteboard.html?session=${sessionRef.id}`;
+    window.open(url, '_blank');
+  } catch(e) {
+    console.error(e);
+    alert('白板建立失敗，請稍後再試。');
+  }
+
+  if (btn) { btn.innerHTML = '<i data-lucide="layout" class="w-4 h-4"></i> 開啟白板'; btn.disabled = false; lucide.createIcons(); }
+};
 
 lucide.createIcons();
 </script>

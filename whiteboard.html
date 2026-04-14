@@ -5,384 +5,131 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>即時互動白板 | Ormap</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script>
-tailwind.config = {
-  theme: { extend: { colors: { primary: '#0d9488', secondary: '#0f172a' } } }
-}
-</script>
+<script>tailwind.config = { theme: { extend: { colors: { primary: '#0d9488', secondary: '#0f172a' } } } }</script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
-* { font-family: 'Noto Sans TC', sans-serif; box-sizing: border-box; margin: 0; padding: 0; }
+*{ font-family:'Noto Sans TC',sans-serif; box-sizing:border-box; margin:0; padding:0; }
+html,body{ height:100%; overflow:hidden; }
 
-html, body { height: 100%; overflow: hidden; }
+#loading-overlay{ position:fixed;inset:0;background:white;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999; }
+.dp span{ display:inline-block;width:7px;height:7px;border-radius:50%;background:#0d9488;margin:0 2px;animation:dp 1.4s ease-in-out infinite; }
+.dp span:nth-child(2){animation-delay:.2s}.dp span:nth-child(3){animation-delay:.4s}
+@keyframes dp{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
 
-/* Canvas wrapper with dot grid */
-#canvas-wrapper {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  background: #f8fafc;
-  background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
-  background-size: 28px 28px;
-  overflow: hidden;
-}
+#mirror-scroll{ position:absolute;inset:0;overflow-y:auto;z-index:1;background:#f8fafc; }
+#anno-canvas{ position:absolute;inset:0;z-index:10;pointer-events:none; }
+#anno-canvas.draw{ pointer-events:auto; }
 
-#main-canvas, #overlay-canvas {
-  position: absolute;
-  top: 0; left: 0;
-  touch-action: none;
-}
+.m-section{ padding:14px 18px;border-bottom:1px solid #e2e8f0; }
+.m-cat-header{ font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;margin-bottom:8px;display:flex;align-items:center;gap:6px; }
+.m-need-row{ display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:8px 10px;background:white;border-radius:10px;border:1px solid #e2e8f0;transition:border-color .2s; }
+.m-need-row.top{ border-color:#b2dfdb;background:#f0fdf4; }
+.m-need-name{ font-size:12px;font-weight:700;color:#334155;width:68px;flex-shrink:0;line-height:1.3; }
+.m-bars{ flex:1;display:flex;flex-direction:column;gap:3px; }
+.m-bar-row{ display:flex;align-items:center;gap:5px; }
+.m-bar-label{ font-size:9px;font-weight:900;width:12px; }
+.m-bar-track{ flex:1;height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden; }
+.m-bar-ideal{ height:100%;background:#0d9488;border-radius:3px;transition:width .5s ease; }
+.m-bar-curr{ height:100%;background:#94a3b8;border-radius:3px;transition:width .5s ease; }
+.m-bar-val{ font-size:10px;font-weight:900;width:12px;text-align:right; }
+.m-delta{ font-size:10px;font-weight:900;width:22px;text-align:right; }
 
-#overlay-canvas { pointer-events: none; }
+.tool-btn{ width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;color:#64748b;border:none;background:transparent; }
+.tool-btn:hover{ background:#f1f5f9;color:#0d9488; }
+.tool-btn.active{ background:#0d9488;color:white; }
+.c-dot{ width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s; }
+.c-dot:hover{ transform:scale(1.2); }.c-dot.active{ border-color:#0f172a;transform:scale(1.1); }
+.w-btn{ width:28px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;border:none;background:transparent; }
+.w-btn:hover{ background:#f1f5f9; }.w-btn.active{ background:#e0f2f1; }
+.tool-sep{ width:28px;height:1px;background:#e2e8f0;margin:2px auto; }
 
-/* Remote cursor */
-.cursor-remote {
-  position: absolute;
-  pointer-events: none;
-  z-index: 200;
-  transition: left 0.06s linear, top 0.06s linear;
-  will-change: left, top;
-}
-.cursor-label {
-  position: absolute;
-  top: 18px; left: 6px;
-  font-size: 10px;
-  font-weight: 900;
-  padding: 2px 8px;
-  border-radius: 20px;
-  color: white;
-  white-space: nowrap;
-  letter-spacing: 0.02em;
-}
+.side-panel{ width:240px;min-width:240px;background:white;border-left:1px solid #e2e8f0;display:flex;flex-direction:column;overflow:hidden;transition:width .2s,min-width .2s; }
+.side-panel.collapsed{ width:0!important;min-width:0!important; }
+.panel-tab{ padding:10px 12px;font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;color:#94a3b8;white-space:nowrap; }
+.panel-tab.active{ color:#0d9488;border-bottom-color:#0d9488; }
+.s-badge{ display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700; }
 
-/* Sticky notes */
-.sticky-el {
-  position: absolute;
-  width: 168px;
-  min-height: 108px;
-  border-radius: 14px;
-  padding: 10px 12px;
-  cursor: move;
-  box-shadow: 2px 4px 16px rgba(0,0,0,0.12);
-  z-index: 50;
-  user-select: none;
-}
-.sticky-el textarea {
-  background: transparent;
-  border: none;
-  outline: none;
-  width: 100%;
-  min-height: 72px;
-  resize: none;
-  font-family: 'Noto Sans TC', sans-serif;
-  font-size: 13px;
-  line-height: 1.6;
-  color: #1e293b;
-  cursor: text;
-}
-.sticky-delete {
-  position: absolute;
-  top: 5px; right: 6px;
-  width: 18px; height: 18px;
-  border-radius: 50%;
-  background: rgba(0,0,0,0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.2s;
-  font-size: 10px;
-  color: #334155;
-  font-weight: 900;
-}
-.sticky-el:hover .sticky-delete { opacity: 1; }
+.sticky-el{ position:absolute;width:156px;min-height:92px;border-radius:12px;padding:9px;cursor:move;box-shadow:2px 4px 14px rgba(0,0,0,.12);z-index:20;user-select:none; }
+.sticky-el textarea{ background:transparent;border:none;outline:none;width:100%;min-height:60px;resize:none;font-family:'Noto Sans TC',sans-serif;font-size:12px;line-height:1.6;color:#1e293b;cursor:text; }
+.sticky-del{ position:absolute;top:4px;right:5px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .2s;font-size:9px;color:#334155;font-weight:900; }
+.sticky-el:hover .sticky-del{ opacity:1; }
 
-/* Tool buttons */
-.tool-btn {
-  width: 38px; height: 38px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.15s;
-  color: #64748b;
-  border: none;
-  background: transparent;
-}
-.tool-btn:hover { background: #f1f5f9; color: #0d9488; }
-.tool-btn.active { background: #0d9488; color: white; }
+.wb-toast{ position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0f172a;color:white;font-size:13px;font-weight:700;padding:9px 18px;border-radius:20px;box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:9999;transition:opacity .3s;white-space:nowrap; }
 
-/* Color dots */
-.c-dot {
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  cursor: pointer;
-  border: 2px solid transparent;
-  transition: transform 0.15s, border-color 0.15s;
-}
-.c-dot:hover { transform: scale(1.2); }
-.c-dot.active { border-color: #0f172a; transform: scale(1.1); }
-
-/* Side panel */
-.side-panel {
-  width: 272px;
-  min-width: 272px;
-  background: white;
-  border-left: 1px solid #e2e8f0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  transition: width 0.2s, min-width 0.2s;
-}
-.side-panel.collapsed {
-  width: 0 !important;
-  min-width: 0 !important;
-}
-
-.panel-tab {
-  padding: 10px 14px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: all 0.15s;
-  color: #94a3b8;
-  white-space: nowrap;
-}
-.panel-tab.active { color: #0d9488; border-bottom-color: #0d9488; }
-
-/* Width buttons */
-.w-btn {
-  width: 32px; height: 28px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.15s;
-  border: none;
-  background: transparent;
-}
-.w-btn:hover { background: #f1f5f9; }
-.w-btn.active { background: #e0f2f1; }
-
-/* Separator */
-.tool-sep { width: 28px; height: 1px; background: #e2e8f0; margin: 2px auto; }
-
-/* Loading */
-#loading-overlay {
-  position: fixed;
-  inset: 0;
-  background: white;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
-
-.dot-pulse span {
-  display: inline-block;
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: #0d9488;
-  margin: 0 2px;
-  animation: dp 1.4s ease-in-out infinite;
-}
-.dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
-.dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes dp {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-  40% { transform: scale(1); opacity: 1; }
-}
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: #f8fafc; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
-
-/* Toast */
-.wb-toast {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%) translateY(0);
-  background: #0f172a;
-  color: white;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 10px 20px;
-  border-radius: 20px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-  z-index: 9999;
-  transition: opacity 0.3s;
-  white-space: nowrap;
-}
-
-/* RIASEC bars */
-.riasec-bar {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-.riasec-track {
-  width: 28px;
-  height: 56px;
-  background: #f1f5f9;
-  border-radius: 6px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-}
-.riasec-fill {
-  border-radius: 6px;
-  transition: height 0.5s ease;
-  width: 100%;
-}
-
-/* Active session badge */
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 700;
-}
+::-webkit-scrollbar{ width:4px }
+::-webkit-scrollbar-track{ background:#f8fafc }
+::-webkit-scrollbar-thumb{ background:#cbd5e1;border-radius:2px }
 </style>
 </head>
-<body class="h-screen flex flex-col bg-slate-50">
+<body class="h-screen flex flex-col">
 
-<!-- ═══════════════════ LOADING ════════════════════════════════ -->
 <div id="loading-overlay">
-  <img src="./ormap-logo.png" alt="Ormap" class="w-10 h-10 object-contain mb-4" onerror="this.style.display='none'">
-  <div class="dot-pulse mb-3"><span></span><span></span><span></span></div>
-  <p id="loading-msg" class="text-sm text-slate-400 font-medium">正在連線白板...</p>
+  <img src="./ormap-logo.png" alt="" class="w-10 h-10 object-contain mb-4" onerror="this.style.display='none'">
+  <div class="dp mb-3"><span></span><span></span><span></span></div>
+  <p id="loading-msg" class="text-sm text-slate-400 font-medium">正在連線...</p>
 </div>
 
-<!-- ═══════════════════ SETUP MODAL ═══════════════════════════ -->
+<!-- Setup Modal -->
 <div id="setup-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
   <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-7">
-    <div class="flex items-center gap-3 mb-7">
-      <div class="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center">
-        <i data-lucide="layout" class="w-5 h-5 text-primary"></i>
-      </div>
-      <div>
-        <h2 class="font-black text-lg text-secondary leading-tight">即時互動白板</h2>
-        <p class="text-xs text-slate-400">Ormap 職涯諮詢工具</p>
-      </div>
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center"><i data-lucide="layout" class="w-5 h-5 text-primary"></i></div>
+      <div><h2 class="font-black text-lg text-secondary">即時互動白板</h2><p class="text-xs text-slate-400">諮詢師即時觀看評測鏡像</p></div>
     </div>
-
-    <!-- Create section (counselor only) -->
     <div id="create-section">
       <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">建立新白板</p>
-      <div class="space-y-3 mb-4">
-        <div>
-          <label class="text-xs font-bold text-slate-600 block mb-1">評測類型</label>
-          <div class="flex gap-2">
-            <button onclick="pickTool('TWA')" id="pick-TWA"
-              class="flex-1 py-2 rounded-xl border-2 border-primary bg-teal-50 text-primary text-sm font-black transition-all">TWA</button>
-            <button onclick="pickTool('HTI')" id="pick-HTI"
-              class="flex-1 py-2 rounded-xl border-2 border-slate-200 text-slate-500 text-sm font-bold transition-all hover:border-primary">HTI</button>
-            <button onclick="pickTool(null)" id="pick-FREE"
-              class="flex-1 py-2 rounded-xl border-2 border-slate-200 text-slate-500 text-sm font-bold transition-all hover:border-primary">自由</button>
-          </div>
-        </div>
+      <div class="flex gap-2 mb-4">
+        <button onclick="pickTool('TWA')" id="pick-TWA" class="flex-1 py-2 rounded-xl border-2 border-primary bg-teal-50 text-primary text-sm font-black">TWA</button>
+        <button onclick="pickTool('HTI')" id="pick-HTI" class="flex-1 py-2 rounded-xl border-2 border-slate-200 text-slate-500 text-sm font-bold hover:border-primary">HTI</button>
+        <button onclick="pickTool(null)" id="pick-FREE" class="flex-1 py-2 rounded-xl border-2 border-slate-200 text-slate-500 text-sm font-bold hover:border-primary">自由</button>
       </div>
-      <button id="create-btn" onclick="createSession()"
-        class="w-full bg-primary text-white rounded-2xl py-3 font-black text-sm shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all">
-        建立白板
-      </button>
-      <div class="my-5 flex items-center gap-3">
-        <div class="flex-1 h-px bg-slate-100"></div>
-        <span class="text-xs text-slate-300 font-bold">或</span>
-        <div class="flex-1 h-px bg-slate-100"></div>
-      </div>
+      <button id="create-btn" onclick="createSession()" class="w-full bg-primary text-white rounded-2xl py-3 font-black text-sm shadow-lg hover:-translate-y-0.5 transition-all">建立白板</button>
+      <div class="my-4 flex items-center gap-3"><div class="flex-1 h-px bg-slate-100"></div><span class="text-xs text-slate-300">或</span><div class="flex-1 h-px bg-slate-100"></div></div>
     </div>
-
-    <!-- Join section -->
-    <div>
-      <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">加入工作階段</p>
-      <div class="flex gap-2">
-        <input id="join-input" type="text" placeholder="貼上邀請連結或 Session ID"
-          class="flex-1 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary transition-colors min-w-0">
-        <button onclick="joinSession()"
-          class="bg-secondary text-white rounded-xl px-4 text-sm font-bold hover:bg-slate-700 transition-colors whitespace-nowrap">
-          加入
-        </button>
-      </div>
+    <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">加入工作階段</p>
+    <div class="flex gap-2">
+      <input id="join-input" type="text" placeholder="貼上邀請連結或 Session ID" class="flex-1 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary min-w-0">
+      <button onclick="joinSession()" class="bg-secondary text-white rounded-xl px-4 text-sm font-bold hover:bg-slate-700 whitespace-nowrap">加入</button>
     </div>
-
-    <a href="dashboard.html" class="block text-center text-xs text-slate-300 mt-5 hover:text-slate-500 transition-colors">← 返回個人後臺</a>
+    <a href="dashboard.html" class="block text-center text-xs text-slate-300 mt-5 hover:text-slate-500">← 返回後臺</a>
   </div>
 </div>
 
-<!-- ═══════════════════ INVITE MODAL ══════════════════════════ -->
+<!-- Invite Modal -->
 <div id="invite-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
   <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-7 text-center">
-    <div class="w-14 h-14 bg-teal-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-      <i data-lucide="check-circle-2" class="w-7 h-7 text-primary"></i>
-    </div>
+    <div class="w-14 h-14 bg-teal-50 rounded-2xl flex items-center justify-center mx-auto mb-4"><i data-lucide="check-circle-2" class="w-7 h-7 text-primary"></i></div>
     <h3 class="font-black text-xl text-secondary mb-1">白板已建立！</h3>
-    <p class="text-slate-400 text-sm mb-5">將以下連結傳給學員，雙方即可即時協作</p>
+    <p class="text-slate-400 text-sm mb-5">傳連結給學員 → 學員去做評測 → 你在這裡即時看到</p>
     <div class="bg-slate-50 rounded-xl p-3.5 mb-4 flex items-start gap-3 text-left">
       <span id="invite-url" class="text-xs text-slate-600 flex-1 break-all leading-relaxed"></span>
-      <button onclick="copyInvite()" class="flex-shrink-0 text-primary hover:text-teal-700 mt-0.5 transition-colors">
-        <i data-lucide="copy" class="w-4 h-4"></i>
-      </button>
+      <button onclick="copyInvite()" class="flex-shrink-0 text-primary mt-0.5"><i data-lucide="copy" class="w-4 h-4"></i></button>
     </div>
-    <div class="flex items-center gap-2 justify-center text-amber-600 bg-amber-50 rounded-xl py-2.5 px-4 mb-5">
-      <i data-lucide="clock" class="w-4 h-4"></i>
-      <span class="text-xs font-bold">等待學員加入中...</span>
-    </div>
-    <button onclick="enterBoard()"
-      class="w-full bg-primary text-white rounded-2xl py-3 font-black text-sm shadow-lg hover:-translate-y-0.5 transition-all">
-      進入白板
-    </button>
+    <button onclick="enterBoard()" class="w-full bg-primary text-white rounded-2xl py-3 font-black text-sm shadow-lg hover:-translate-y-0.5 transition-all">進入白板</button>
   </div>
 </div>
 
-<!-- ═══════════════════ MAIN WHITEBOARD ═══════════════════════ -->
+<!-- Main App -->
 <div id="wb-app" class="hidden flex flex-col h-screen">
 
   <!-- Navbar -->
   <nav class="h-12 bg-white border-b border-slate-200 flex items-center justify-between px-4 flex-shrink-0 z-40 gap-3">
     <div class="flex items-center gap-2.5 min-w-0">
-      <a href="dashboard.html" class="text-slate-400 hover:text-primary transition-colors flex-shrink-0">
-        <i data-lucide="arrow-left" class="w-4 h-4"></i>
-      </a>
+      <a href="dashboard.html" class="text-slate-400 hover:text-primary flex-shrink-0"><i data-lucide="arrow-left" class="w-4 h-4"></i></a>
       <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
       <span class="font-black text-sm text-secondary whitespace-nowrap">即時白板</span>
       <span id="tool-badge" class="hidden text-xs font-black px-2 py-0.5 bg-teal-50 text-primary rounded-lg flex-shrink-0"></span>
     </div>
-
     <div class="flex items-center gap-2 flex-shrink-0">
-      <!-- Status -->
-      <div id="status-area" class="status-badge bg-amber-50 text-amber-600">
+      <div id="status-area" class="s-badge bg-amber-50 text-amber-600">
         <span id="status-dot" class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
         <span id="status-txt">等待中</span>
       </div>
-
-      <!-- Participants -->
       <div id="participants" class="flex -space-x-1.5"></div>
-
-      <!-- Panel toggle -->
-      <button onclick="togglePanel()" title="側欄"
-        class="tool-btn w-8 h-8">
-        <i data-lucide="panel-right" class="w-4 h-4"></i>
-      </button>
-
-      <!-- End (counselor only) -->
-      <button id="end-btn" onclick="confirmEnd()" class="hidden bg-white border border-red-200 text-red-500 rounded-xl px-3 py-1.5 text-xs font-bold hover:bg-red-50 transition-all">
-        結束
-      </button>
+      <span id="last-update" class="text-xs text-teal-600 font-medium hidden"></span>
+      <button onclick="togglePanel()" class="tool-btn w-8 h-8"><i data-lucide="panel-right" class="w-4 h-4"></i></button>
+      <button id="end-btn" onclick="confirmEnd()" class="hidden bg-white border border-red-200 text-red-500 rounded-xl px-3 py-1.5 text-xs font-bold hover:bg-red-50">結束</button>
     </div>
   </nav>
 
@@ -391,209 +138,153 @@ html, body { height: 100%; overflow: hidden; }
 
     <!-- Left Toolbar -->
     <div class="w-12 bg-white border-r border-slate-200 flex flex-col items-center py-2 gap-0.5 flex-shrink-0 z-30 overflow-y-auto">
-
-      <button id="tool-pointer" class="tool-btn" onclick="setTool('pointer')" title="指標">
-        <i data-lucide="mouse-pointer-2" class="w-4 h-4"></i>
-      </button>
-
+      <div title="瀏覽（可滾動）" id="tool-pointer" class="tool-btn active" onclick="setTool('pointer')"><i data-lucide="mouse-pointer-2" class="w-4 h-4"></i></div>
       <div class="tool-sep"></div>
-
-      <button id="tool-pen" class="tool-btn active" onclick="setTool('pen')" title="畫筆">
-        <i data-lucide="pen-line" class="w-4 h-4"></i>
-      </button>
-      <button id="tool-highlight" class="tool-btn" onclick="setTool('highlight')" title="螢光筆">
-        <i data-lucide="highlighter" class="w-4 h-4"></i>
-      </button>
-      <button id="tool-eraser" class="tool-btn" onclick="setTool('eraser')" title="橡皮擦">
-        <i data-lucide="eraser" class="w-4 h-4"></i>
-      </button>
-
+      <div title="畫筆" id="tool-pen" class="tool-btn" onclick="setTool('pen')"><i data-lucide="pen-line" class="w-4 h-4"></i></div>
+      <div title="螢光筆" id="tool-highlight" class="tool-btn" onclick="setTool('highlight')"><i data-lucide="highlighter" class="w-4 h-4"></i></div>
+      <div title="橡皮擦" id="tool-eraser" class="tool-btn" onclick="setTool('eraser')"><i data-lucide="eraser" class="w-4 h-4"></i></div>
       <div class="tool-sep"></div>
-
-      <button id="tool-sticky" class="tool-btn" onclick="setTool('sticky')" title="便利貼（點擊畫布）">
-        <i data-lucide="sticky-note" class="w-4 h-4"></i>
-      </button>
-
+      <div title="便利貼" id="tool-sticky" class="tool-btn" onclick="setTool('sticky')"><i data-lucide="sticky-note" class="w-4 h-4"></i></div>
       <div class="tool-sep"></div>
-
-      <!-- Width -->
       <div class="flex flex-col items-center gap-1 py-1">
-        <button class="w-btn active" id="w-2" onclick="setWidth(2)" title="細">
-          <div style="width:14px;height:2px;background:#475569;border-radius:2px"></div>
-        </button>
-        <button class="w-btn" id="w-4" onclick="setWidth(4)" title="中">
-          <div style="width:14px;height:4px;background:#475569;border-radius:2px"></div>
-        </button>
-        <button class="w-btn" id="w-8" onclick="setWidth(8)" title="粗">
-          <div style="width:14px;height:7px;background:#475569;border-radius:3px"></div>
-        </button>
+        <button class="w-btn active" id="w-2" onclick="setWidth(2)"><div style="width:12px;height:2px;background:#475569;border-radius:2px"></div></button>
+        <button class="w-btn" id="w-4" onclick="setWidth(4)"><div style="width:12px;height:4px;background:#475569;border-radius:2px"></div></button>
+        <button class="w-btn" id="w-8" onclick="setWidth(8)"><div style="width:12px;height:7px;background:#475569;border-radius:3px"></div></button>
       </div>
-
       <div class="tool-sep"></div>
-
-      <!-- Colors -->
       <div class="flex flex-col items-center gap-1.5 py-1">
-        <button class="c-dot active" id="cd-0d9488" style="background:#0d9488" onclick="setColor('#0d9488')" title="青色"></button>
-        <button class="c-dot" id="cd-0f172a" style="background:#0f172a" onclick="setColor('#0f172a')" title="黑色"></button>
-        <button class="c-dot" id="cd-ef4444" style="background:#ef4444" onclick="setColor('#ef4444')" title="紅色"></button>
-        <button class="c-dot" id="cd-f97316" style="background:#f97316" onclick="setColor('#f97316')" title="橘色"></button>
-        <button class="c-dot" id="cd-eab308" style="background:#eab308" onclick="setColor('#eab308')" title="黃色"></button>
-        <button class="c-dot" id="cd-3b82f6" style="background:#3b82f6" onclick="setColor('#3b82f6')" title="藍色"></button>
-        <button class="c-dot" id="cd-8b5cf6" style="background:#8b5cf6" onclick="setColor('#8b5cf6')" title="紫色"></button>
-        <button class="c-dot" id="cd-ffffff" style="background:#fff;border:1.5px solid #e2e8f0" onclick="setColor('#ffffff')" title="白色（修正）"></button>
+        <button class="c-dot active" id="cd-ef4444" style="background:#ef4444" onclick="setColor('#ef4444')" title="紅"></button>
+        <button class="c-dot" id="cd-f97316" style="background:#f97316" onclick="setColor('#f97316')" title="橘"></button>
+        <button class="c-dot" id="cd-eab308" style="background:#eab308" onclick="setColor('#eab308')" title="黃"></button>
+        <button class="c-dot" id="cd-0d9488" style="background:#0d9488" onclick="setColor('#0d9488')" title="青"></button>
+        <button class="c-dot" id="cd-3b82f6" style="background:#3b82f6" onclick="setColor('#3b82f6')" title="藍"></button>
+        <button class="c-dot" id="cd-8b5cf6" style="background:#8b5cf6" onclick="setColor('#8b5cf6')" title="紫"></button>
+        <button class="c-dot" id="cd-0f172a" style="background:#0f172a" onclick="setColor('#0f172a')" title="黑"></button>
       </div>
-
       <div class="flex-1"></div>
       <div class="tool-sep"></div>
-
-      <button class="tool-btn text-red-400 hover:bg-red-50 hover:text-red-500" onclick="clearAll()" title="清除全部">
-        <i data-lucide="trash-2" class="w-4 h-4"></i>
-      </button>
+      <div class="tool-btn text-red-400 hover:bg-red-50" onclick="clearAnno()" title="清除標注"><i data-lucide="trash-2" class="w-4 h-4"></i></div>
     </div>
 
-    <!-- Canvas -->
-    <div id="canvas-area" class="flex-1 relative overflow-hidden">
-      <div id="canvas-wrapper">
-        <canvas id="main-canvas"></canvas>
-        <canvas id="overlay-canvas"></canvas>
-        <!-- Dynamic: remote cursors, stickies -->
-      </div>
+    <!-- Mirror + Canvas -->
+    <div class="flex-1 relative overflow-hidden">
+      <div id="mirror-scroll">
+
+        <!-- Waiting -->
+        <div id="mirror-waiting" class="flex flex-col items-center justify-center min-h-full py-16 text-center px-8">
+          <div class="w-16 h-16 bg-teal-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
+            <i data-lucide="monitor" class="w-8 h-8 text-primary"></i>
+          </div>
+          <h3 class="font-black text-xl text-secondary mb-2">等待學員開始評測</h3>
+          <p class="text-slate-400 text-sm leading-relaxed mb-6">學員加入並開始做評測後，<br>此處即時顯示其評測畫面</p>
+          <div class="bg-slate-100 rounded-xl px-4 py-3 flex items-center gap-3 max-w-sm w-full">
+            <span id="wb-invite-url" class="text-xs text-slate-500 font-mono flex-1 text-left truncate"></span>
+            <button onclick="copyMainInvite()" class="flex-shrink-0 text-primary hover:text-teal-700"><i data-lucide="copy" class="w-4 h-4"></i></button>
+          </div>
+          <p class="text-xs text-slate-400 mt-3">傳連結給學員 → 學員去 twa.html / hti.html 做評測</p>
+        </div>
+
+        <!-- TWA Mirror -->
+        <div id="mirror-twa" class="hidden">
+          <!-- Sticky header -->
+          <div class="m-section" style="position:sticky;top:0;background:white;z-index:5;border-bottom:2px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,.04);">
+            <div class="flex items-center gap-4 flex-wrap">
+              <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-green-400" id="live-dot"></div>
+                <span class="text-xs font-black text-slate-600 uppercase tracking-wider">TWA 即時鏡像</span>
+              </div>
+              <div class="flex items-center gap-2 flex-1 min-w-40">
+                <span class="text-xs font-bold text-slate-400 whitespace-nowrap">預算</span>
+                <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div id="twa-budget-bar" class="h-full bg-primary rounded-full transition-all duration-500" style="width:0%"></div>
+                </div>
+                <span id="twa-budget-num" class="text-xs font-black text-primary whitespace-nowrap">0/115</span>
+              </div>
+              <div id="twa-focus-badge" class="hidden px-3 py-1 bg-teal-50 text-primary rounded-xl text-xs font-black"></div>
+            </div>
+          </div>
+          <div id="twa-needs-container" class="p-4 space-y-4"></div>
+          <div id="twa-insight-section" class="hidden m-section">
+            <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">學員體悟</p>
+            <div class="bg-amber-50 rounded-xl p-4 border-l-4 border-amber-400">
+              <p id="twa-insight-text" class="text-sm text-slate-700 leading-relaxed italic"></p>
+            </div>
+          </div>
+          <div class="h-16"></div>
+        </div>
+
+        <!-- HTI Mirror -->
+        <div id="mirror-hti" class="hidden">
+          <div class="m-section" style="position:sticky;top:0;background:white;z-index:5;border-bottom:2px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,.04);">
+            <div class="flex items-center gap-4 flex-wrap">
+              <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-green-400"></div>
+                <span class="text-xs font-black text-slate-600 uppercase tracking-wider">HTI 即時鏡像</span>
+              </div>
+              <div id="hti-bars-header" class="flex gap-2"></div>
+              <div id="hti-top-badge" class="flex gap-2 flex-wrap"></div>
+            </div>
+          </div>
+          <div id="hti-acts-container" class="p-4"></div>
+          <div class="h-16"></div>
+        </div>
+
+      </div><!-- mirror-scroll -->
+      <canvas id="anno-canvas"></canvas>
     </div>
 
     <!-- Right Panel -->
     <div id="side-panel" class="side-panel">
       <div class="flex border-b border-slate-200 flex-shrink-0">
-        <button class="panel-tab active flex-1 text-center" onclick="switchTab('live')" id="tab-live">即時資料</button>
-        <button class="panel-tab flex-1 text-center" onclick="switchTab('session')" id="tab-session">工作階段</button>
+        <button class="panel-tab active flex-1 text-center" onclick="switchTab('info')" id="tab-info">工作階段</button>
+        <button class="panel-tab flex-1 text-center" onclick="switchTab('notes')" id="tab-notes">備忘</button>
       </div>
 
-      <!-- Live Data -->
-      <div id="panel-live" class="flex-1 overflow-y-auto p-4">
-        <div id="live-empty" class="py-10 text-center">
-          <div class="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-            <i data-lucide="user-round" class="w-5 h-5 text-slate-400"></i>
-          </div>
-          <p class="text-sm font-bold text-slate-400">等待學員加入</p>
-          <p class="text-xs text-slate-300 mt-1 leading-relaxed">學員加入後<br>即時評測進度將顯示於此</p>
-        </div>
-
-        <div id="live-data" class="hidden space-y-4">
-          <!-- Student card -->
-          <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-            <div id="stu-avatar" class="w-9 h-9 rounded-full bg-orange-400 text-white flex items-center justify-center text-sm font-black flex-shrink-0">?</div>
-            <div class="min-w-0">
-              <p id="stu-name" class="text-sm font-bold text-secondary truncate">-</p>
-              <p id="stu-email" class="text-xs text-slate-400 truncate">-</p>
-            </div>
-          </div>
-
-          <!-- Tool badge -->
-          <div id="live-tool-row" class="hidden">
-            <p class="text-xs font-black text-slate-300 uppercase tracking-widest mb-2">進行中</p>
-            <div id="live-tool-pill" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-bold"></div>
-          </div>
-
-          <!-- TWA Panel -->
-          <div id="twa-panel" class="hidden space-y-4">
-            <div>
-              <div class="flex justify-between items-center mb-1.5">
-                <p class="text-xs font-black text-slate-400 uppercase tracking-widest">預算使用</p>
-                <span id="twa-budget-num" class="text-xs font-black text-primary">0 / 115</span>
-              </div>
-              <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div id="twa-budget-bar" class="h-full bg-primary rounded-full transition-all duration-600 ease-out" style="width:0%"></div>
-              </div>
-            </div>
-
-            <div>
-              <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">前五名心理需求</p>
-              <div id="twa-top5" class="space-y-2"></div>
-            </div>
-
-            <div id="twa-insight-wrap" class="hidden">
-              <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">學員體悟</p>
-              <p id="twa-insight" class="text-xs text-slate-600 bg-slate-50 rounded-xl p-3 leading-relaxed border-l-2 border-primary"></p>
-            </div>
-
-            <div id="twa-focus-wrap" class="hidden">
-              <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">決策狀態</p>
-              <div id="twa-focus" class="text-xs font-bold px-3 py-2 bg-teal-50 text-primary rounded-xl"></div>
-            </div>
-          </div>
-
-          <!-- HTI Panel -->
-          <div id="hti-panel" class="hidden space-y-4">
-            <div>
-              <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">RIASEC 六維分數</p>
-              <div id="hti-bars" class="flex gap-2 justify-center"></div>
-            </div>
-            <div id="hti-top-wrap" class="hidden">
-              <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">目前領先特質</p>
-              <div id="hti-top-traits" class="flex gap-2 flex-wrap"></div>
-            </div>
-            <div id="hti-acts-wrap" class="hidden">
-              <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">已選活動</p>
-              <span id="hti-acts-count" class="text-2xl font-black text-secondary"></span>
-              <span class="text-sm text-slate-400"> / 25 項</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Session Info -->
-      <div id="panel-session" class="hidden flex-1 overflow-y-auto p-4 space-y-5">
+      <div id="panel-info" class="flex-1 overflow-y-auto p-4 space-y-4">
         <div>
-          <p class="text-xs font-black text-slate-300 uppercase tracking-widest mb-2.5">工作階段資訊</p>
-          <div class="bg-slate-50 rounded-xl p-3.5 space-y-2.5">
-            <div class="flex justify-between items-start gap-2">
-              <span class="text-xs text-slate-400 flex-shrink-0">Session ID</span>
-              <span id="sid-display" class="text-xs font-mono text-slate-600 break-all text-right leading-relaxed"></span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-xs text-slate-400">你的身分</span>
-              <span id="role-display" class="text-xs font-bold text-primary">-</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-xs text-slate-400">狀態</span>
-              <span id="sstat-display" class="text-xs font-bold text-amber-600">等待中</span>
-            </div>
+          <p class="text-xs font-black text-slate-300 uppercase tracking-widest mb-2">工作階段</p>
+          <div class="bg-slate-50 rounded-xl p-3 space-y-2">
+            <div class="flex justify-between"><span class="text-xs text-slate-400">角色</span><span id="role-display" class="text-xs font-bold text-primary">-</span></div>
+            <div class="flex justify-between"><span class="text-xs text-slate-400">狀態</span><span id="sstat-display" class="text-xs font-bold text-amber-600">等待中</span></div>
           </div>
         </div>
-
-        <div id="invite-area">
-          <p class="text-xs font-black text-slate-300 uppercase tracking-widest mb-2.5">邀請連結</p>
-          <div class="bg-slate-50 rounded-xl p-3.5">
-            <p class="text-xs text-slate-400 mb-2">傳給學員即可加入</p>
+        <div id="stu-info-section" class="hidden">
+          <p class="text-xs font-black text-slate-300 uppercase tracking-widest mb-2">學員</p>
+          <div class="flex items-center gap-3 bg-slate-50 rounded-xl p-3">
+            <div id="stu-avatar" class="w-9 h-9 rounded-full bg-orange-400 text-white flex items-center justify-center text-sm font-black flex-shrink-0">?</div>
+            <div class="min-w-0"><p id="stu-name" class="text-sm font-bold text-secondary truncate">-</p><p id="stu-email" class="text-xs text-slate-400 truncate">-</p></div>
+          </div>
+        </div>
+        <div id="invite-section">
+          <p class="text-xs font-black text-slate-300 uppercase tracking-widest mb-2">邀請連結</p>
+          <div class="bg-slate-50 rounded-xl p-3">
+            <p class="text-xs text-slate-400 mb-2">傳給學員後，學員去做評測</p>
             <div class="flex gap-2 items-start">
               <span id="invite-url-panel" class="text-xs text-slate-600 flex-1 break-all leading-relaxed"></span>
-              <button onclick="copyInvitePanel()" class="flex-shrink-0 text-primary hover:text-teal-700 transition-colors mt-0.5">
-                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-              </button>
+              <button onclick="copyInvitePanel()" class="flex-shrink-0 text-primary mt-0.5"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
             </div>
           </div>
         </div>
-
         <div id="end-area" class="hidden">
-          <button onclick="confirmEnd()"
-            class="w-full bg-white border border-red-200 text-red-500 rounded-xl py-2.5 text-sm font-bold hover:bg-red-50 transition-all">
-            結束白板階段
-          </button>
+          <button onclick="confirmEnd()" class="w-full bg-white border border-red-200 text-red-500 rounded-xl py-2.5 text-sm font-bold hover:bg-red-50">結束白板階段</button>
         </div>
       </div>
+
+      <div id="panel-notes" class="hidden flex-1 p-4 flex flex-col">
+        <p class="text-xs font-black text-slate-300 uppercase tracking-widest mb-2">諮詢備忘</p>
+        <textarea id="notes-ta" rows="8" placeholder="諮詢重點、觀察、待追蹤..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-slate-700 leading-relaxed focus:outline-none focus:border-primary resize-none"></textarea>
+        <button onclick="toast('備忘已儲存')" class="mt-3 w-full bg-primary text-white rounded-xl py-2 text-sm font-bold hover:bg-teal-700">儲存備忘</button>
+      </div>
     </div>
+
   </div>
 </div>
 
-<!-- ═══════════════════ FIREBASE + LOGIC ══════════════════════ -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import {
-  getFirestore, doc, setDoc, addDoc, getDoc, updateDoc, deleteDoc,
-  collection, onSnapshot, serverTimestamp, query, orderBy, writeBatch
-} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, addDoc, getDoc, updateDoc, collection, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-// ── Config ────────────────────────────────────────────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
   authDomain: "careervalue-ormap.firebaseapp.com",
@@ -604,814 +295,524 @@ const firebaseConfig = {
 };
 
 const COUNSELOR_WHITELIST = ["tim010003@gmail.com"];
-const C_COLOR = "#0d9488";   // counselor cursor/sticky color
-const S_COLOR = "#f97316";   // student cursor/sticky color
-const STICKY_BG = { counselor: "#d1fae5", student: "#fef3c7" };
-const RIASEC_COLORS = { R:"#ef4444", I:"#3b82f6", A:"#8b5cf6", S:"#22c55e", E:"#f97316", C:"#eab308" };
-const RIASEC_LABELS = { R:"實", I:"研", A:"藝", S:"社", E:"領", C:"統" };
+const RIASEC_C = { R:"#ef4444",I:"#3b82f6",A:"#8b5cf6",S:"#22c55e",E:"#f97316",C:"#eab308" };
+const RIASEC_L = { R:"實作",I:"研究",A:"藝術",S:"社交",E:"領導",C:"系統" };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
 
-// ── State ─────────────────────────────────────────────────────────────────────
-let currentUser = null;
-let userRole = null;          // 'counselor' | 'student'
-let sessionId = null;
-let sessionData = null;
-let currentTool = 'pen';
-let currentColor = '#0d9488';
-let currentWidth = 2;
-let isDrawing = false;
-let currentPts = [];
-let strokesMap = {};
-let panelOpen = true;
-let selectedToolType = 'TWA';
+let currentUser=null, userRole=null, sessionId=new URLSearchParams(location.search).get('session'), sessionData=null;
+let twaMatrix=null, htiActivities=null;
+let currentTool='pointer', currentColor='#ef4444', currentWidth=2;
+let isDrawing=false, drawPts=[], localStrokes=[];
+let selectedTool='TWA', panelOpen=true;
+let annoCanvas, actx, unsubs=[];
 
-let mainCanvas, ctx, overlayCanvas, octx, wrapper;
-let presenceTs = 0;
-let unsubs = [];
-
-// Parse session from URL
-const params = new URLSearchParams(window.location.search);
-sessionId = params.get('session');
-
-// ── Auth ──────────────────────────────────────────────────────────────────────
 onAuthStateChanged(auth, async user => {
-  if (!user) { window.location.href = 'index.html'; return; }
-  currentUser = user;
-
-  if (!sessionId) {
+  // 學員未登入 + 有 session → 顯示學員歡迎登入頁，不跳去 index
+  if (!user && sessionId) {
     hideLoading();
-    if (!COUNSELOR_WHITELIST.includes(user.email)) {
-      // Student landing — hide create section
-      document.getElementById('create-section').style.display = 'none';
-    }
-    showSetup();
+    await showStudentWelcome(null);
     return;
   }
-
-  setMsg('讀取白板資料...');
+  if (!user) { location.href='index.html'; return; }
+  currentUser = user;
+  // 已登入 + 有 session + 可能是學員 → 先確認角色再決定畫面
+  if (!sessionId) {
+    hideLoading();
+    if (!COUNSELOR_WHITELIST.includes(user.email)) document.getElementById('create-section').style.display='none';
+    showSetup(); return;
+  }
+  setMsg('讀取白板...');
   await initSession();
 });
 
-function hideLoading() { document.getElementById('loading-overlay').style.display = 'none'; }
-function showSetup() {
-  document.getElementById('setup-modal').classList.remove('hidden');
-  lucide.createIcons();
-}
-function setMsg(m) { document.getElementById('loading-msg').textContent = m; }
+function hideLoading(){ document.getElementById('loading-overlay').style.display='none'; }
+function showSetup(){ document.getElementById('setup-modal').classList.remove('hidden'); lucide.createIcons(); }
+function setMsg(m){ document.getElementById('loading-msg').textContent=m; }
 
-// ── Setup ─────────────────────────────────────────────────────────────────────
-window.pickTool = function(t) {
-  selectedToolType = t;
-  ['TWA','HTI','FREE'].forEach(x => {
-    const btn = document.getElementById(`pick-${x}`);
-    if (!btn) return;
-    btn.className = 'flex-1 py-2 rounded-xl border-2 text-sm font-bold transition-all ' +
-      ((x === t || (t === null && x === 'FREE'))
-        ? 'border-primary bg-teal-50 text-primary font-black'
-        : 'border-slate-200 text-slate-500 hover:border-primary');
+window.pickTool=function(t){
+  selectedTool=t;
+  ['TWA','HTI','FREE'].forEach(x=>{
+    const b=document.getElementById(`pick-${x}`); if(!b)return;
+    const on=(x===t)||(t===null&&x==='FREE');
+    b.className=`flex-1 py-2 rounded-xl border-2 text-sm font-bold ${on?'border-primary bg-teal-50 text-primary font-black':'border-slate-200 text-slate-500 hover:border-primary'}`;
   });
 };
 
-window.createSession = async function() {
-  const btn = document.getElementById('create-btn');
-  btn.textContent = '建立中...'; btn.disabled = true;
-  try {
-    const ref = doc(collection(db, 'whiteboard_sessions'));
-    sessionId = ref.id;
-    await setDoc(ref, {
-      counselorUid: currentUser.uid,
-      counselorName: currentUser.displayName || '諮詢師',
-      counselorEmail: currentUser.email,
-      studentUid: null,
-      studentName: null,
-      studentEmail: null,
-      toolType: selectedToolType,
-      status: 'waiting',
-      createdAt: serverTimestamp()
-    });
-
-    const url = buildInviteUrl();
-    document.getElementById('invite-url').textContent = url;
+window.createSession=async function(){
+  const btn=document.getElementById('create-btn'); btn.textContent='建立中...'; btn.disabled=true;
+  try{
+    const ref=doc(collection(db,'whiteboard_sessions')); sessionId=ref.id;
+    await setDoc(ref,{counselorUid:currentUser.uid,counselorName:currentUser.displayName||'諮詢師',counselorEmail:currentUser.email,studentUid:null,studentName:null,studentEmail:null,toolType:selectedTool,status:'waiting',createdAt:serverTimestamp()});
+    document.getElementById('invite-url').textContent=buildUrl();
     document.getElementById('setup-modal').classList.add('hidden');
     document.getElementById('invite-modal').classList.remove('hidden');
     lucide.createIcons();
-  } catch(e) {
-    btn.textContent = '建立失敗，請重試'; btn.disabled = false;
-    console.error(e);
-  }
+  }catch(e){ btn.textContent='建立失敗，請重試'; btn.disabled=false; console.error(e); }
 };
 
-window.copyInvite = function() {
-  navigator.clipboard.writeText(buildInviteUrl()).then(() => toast('連結已複製！'));
-};
-
-window.enterBoard = async function() {
+window.copyInvite=function(){ navigator.clipboard.writeText(buildUrl()).then(()=>toast('連結已複製！')); };
+window.enterBoard=async function(){
   document.getElementById('invite-modal').classList.add('hidden');
-  document.getElementById('loading-overlay').style.display = 'flex';
-  setMsg('進入白板...');
-  await initSession();
+  document.getElementById('loading-overlay').style.display='flex';
+  setMsg('進入白板...'); await initSession();
 };
-
-window.joinSession = async function() {
-  let val = document.getElementById('join-input').value.trim();
-  if (!val) return;
-  // Support full URL or just ID
-  if (val.includes('session=')) {
-    val = new URL(val.startsWith('http') ? val : 'https://x.com?' + val.split('?')[1]).searchParams.get('session') || val;
-  }
-  sessionId = val;
+window.joinSession=async function(){
+  let v=document.getElementById('join-input').value.trim(); if(!v)return;
+  if(v.includes('session=')){try{v=new URL(v.startsWith('http')?v:'https://x?'+v.split('?')[1]).searchParams.get('session')||v;}catch(e){}}
+  sessionId=v;
   document.getElementById('setup-modal').classList.add('hidden');
-  document.getElementById('loading-overlay').style.display = 'flex';
-  setMsg('加入工作階段...');
-  await initSession();
+  document.getElementById('loading-overlay').style.display='flex';
+  setMsg('加入階段...'); await initSession();
 };
+function buildUrl(){ return `${location.origin}${location.pathname}?session=${sessionId}`; }
 
-function buildInviteUrl() {
-  return `${window.location.origin}${window.location.pathname}?session=${sessionId}`;
+async function initSession(){
+  const sRef=doc(db,'whiteboard_sessions',sessionId);
+  try{
+    const snap=await getDoc(sRef);
+    if(!snap.exists()){ hideLoading(); return fatalError('找不到此白板階段。'); }
+    sessionData=snap.data();
+    if(sessionData.status==='ended'){ hideLoading(); return fatalError('此白板階段已結束。'); }
+    userRole=sessionData.counselorUid===currentUser.uid?'counselor':'student';
+
+    // ⭐ 學員不應該停在白板畫面 — 顯示學員專屬歡迎頁
+    if(userRole==='student'){
+      hideLoading();
+      await showStudentWelcome(sessionData);
+      return;
+    }
+    // Pre-load JSON for mirror rendering
+    if(userRole==='counselor'){
+      if(sessionData.toolType==='TWA'){
+        try{ const r=await fetch('data/twa-matrix.json'); const d=await r.json(); twaMatrix=d.matrix; }catch(e){ console.warn(e); }
+      }
+      if(sessionData.toolType==='HTI'){
+        try{ const r=await fetch('data/hti-activities.json'); htiActivities=await r.json(); }catch(e){ console.warn(e); }
+      }
+    }
+    hideLoading();
+    document.getElementById('wb-app').classList.remove('hidden');
+    initCanvas(); setupUI(); subSession();
+    if(userRole==='counselor') subAssessment();
+    if(!location.search.includes('session=')) history.replaceState({},'',`${location.pathname}?session=${sessionId}`);
+    lucide.createIcons();
+  }catch(e){ hideLoading(); console.error(e); fatalError('連線失敗，請重新整理。'); }
 }
 
-// ── Init Session ──────────────────────────────────────────────────────────────
-async function initSession() {
-  const sRef = doc(db, 'whiteboard_sessions', sessionId);
+function setupUI(){
+  if(sessionData.toolType){ const b=document.getElementById('tool-badge'); b.textContent=sessionData.toolType; b.classList.remove('hidden'); }
+  document.getElementById('role-display').textContent=userRole==='counselor'?'諮詢師':'學員';
+  document.getElementById('invite-url-panel').textContent=buildUrl();
+  document.getElementById('wb-invite-url').textContent=buildUrl();
+  if(userRole==='counselor'){ document.getElementById('end-btn').classList.remove('hidden'); document.getElementById('end-area').classList.remove('hidden'); }
+  else { document.getElementById('invite-section').style.display='none'; }
+  if(sessionData.studentUid) showStuInfo();
+  const c=userRole==='counselor'?'#0d9488':'#f97316', l=userRole==='counselor'?'諮':'學';
+  document.getElementById('participants').innerHTML=`<div style="width:24px;height:24px;border-radius:50%;background:${c};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:white;border:2px solid white;" title="${currentUser.displayName||''}">${l}</div>`;
+}
+
+function showStuInfo(){
+  document.getElementById('stu-info-section').classList.remove('hidden');
+  const name=sessionData.studentName||'學員';
+  document.getElementById('stu-avatar').textContent=name.charAt(0).toUpperCase();
+  document.getElementById('stu-name').textContent=name;
+  document.getElementById('stu-email').textContent=sessionData.studentEmail||'';
+}
+
+function initCanvas(){
+  annoCanvas=document.getElementById('anno-canvas'); actx=annoCanvas.getContext('2d');
+  resizeCanvas(); window.addEventListener('resize',resizeCanvas);
+  annoCanvas.addEventListener('mousedown',onDown); annoCanvas.addEventListener('mousemove',onMove);
+  annoCanvas.addEventListener('mouseup',onUp); annoCanvas.addEventListener('mouseleave',onUp);
+  annoCanvas.addEventListener('touchstart',e=>{e.preventDefault();onDown(e.touches[0]);},{passive:false});
+  annoCanvas.addEventListener('touchmove',e=>{e.preventDefault();onMove(e.touches[0]);},{passive:false});
+  annoCanvas.addEventListener('touchend',e=>{e.preventDefault();onUp(e.changedTouches[0]);},{passive:false});
+  annoCanvas.addEventListener('click',onClick);
+}
+function resizeCanvas(){ if(!annoCanvas)return; const p=annoCanvas.parentElement; annoCanvas.width=p.offsetWidth; annoCanvas.height=p.offsetHeight; redraw(); }
+function getXY(e){ const r=annoCanvas.getBoundingClientRect(); return{x:(e.clientX-r.left)*(annoCanvas.width/r.width),y:(e.clientY-r.top)*(annoCanvas.height/r.height)}; }
+
+window.setTool=function(t){
+  currentTool=t;
+  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(`tool-${t}`)?.classList.add('active');
+  const d=['pen','highlight','eraser'].includes(t);
+  annoCanvas.classList.toggle('draw',d);
+  annoCanvas.style.cursor=d?(t==='eraser'?'cell':'crosshair'):'default';
+};
+window.setColor=function(c){ currentColor=c; document.querySelectorAll('.c-dot').forEach(b=>b.classList.remove('active')); document.getElementById(`cd-${c.replace('#','')}`)?.classList.add('active'); };
+window.setWidth=function(w){ currentWidth=w; document.querySelectorAll('.w-btn').forEach(b=>b.classList.remove('active')); document.getElementById(`w-${w}`)?.classList.add('active'); };
+window.togglePanel=function(){ panelOpen=!panelOpen; document.getElementById('side-panel').classList.toggle('collapsed',!panelOpen); };
+window.switchTab=function(t){ ['info','notes'].forEach(x=>{ document.getElementById(`tab-${x}`).classList.toggle('active',x===t); document.getElementById(`panel-${x}`).classList.toggle('hidden',x!==t); }); };
+
+function onDown(e){ if(!['pen','highlight','eraser'].includes(currentTool))return; const p=getXY(e); isDrawing=true; drawPts=[p]; }
+function onMove(e){
+  if(!isDrawing)return; const p=getXY(e); drawPts.push(p);
+  if(currentTool==='eraser'){ actx.save(); actx.globalCompositeOperation='destination-out'; actx.beginPath(); actx.arc(p.x,p.y,currentWidth*7,0,Math.PI*2); actx.fill(); actx.restore(); return; }
+  redraw(); renderPath(actx,drawPts,sColor(),sWidth(),currentTool==='highlight');
+}
+function onUp(e){
+  if(!isDrawing)return; isDrawing=false;
+  if(drawPts.length>=2&&currentTool!=='eraser') localStrokes.push({pts:[...drawPts],color:sColor(),width:sWidth(),isHL:currentTool==='highlight'});
+  drawPts=[]; redraw();
+}
+function onClick(e){ if(currentTool==='sticky'){ const p=getXY(e); spawnSticky(p.x,p.y); } }
+function sColor(){ return currentTool==='highlight'?hexA(currentColor,.35):currentColor; }
+function sWidth(){ return currentTool==='highlight'?currentWidth*5:currentWidth; }
+
+function renderPath(ctx,pts,color,width,isHL){
+  if(!pts||pts.length<2)return;
+  ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=width; ctx.lineCap='round'; ctx.lineJoin='round';
+  if(isHL) ctx.globalAlpha=.42;
+  ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
+  for(let i=1;i<pts.length-1;i++){ const mx=(pts[i].x+pts[i+1].x)/2,my=(pts[i].y+pts[i+1].y)/2; ctx.quadraticCurveTo(pts[i].x,pts[i].y,mx,my); }
+  ctx.lineTo(pts[pts.length-1].x,pts[pts.length-1].y); ctx.stroke(); ctx.restore();
+}
+function redraw(){ if(!actx)return; actx.clearRect(0,0,annoCanvas.width,annoCanvas.height); localStrokes.forEach(s=>renderPath(actx,s.pts,s.color,s.width,s.isHL)); }
+window.clearAnno=function(){ if(!confirm('清除所有標注？'))return; localStrokes=[]; redraw(); document.querySelectorAll('.sticky-el').forEach(e=>e.remove()); toast('標注已清除'); };
+
+function spawnSticky(x,y){
+  const el=document.createElement('div'); el.className='sticky-el'; el.style.cssText=`left:${x}px;top:${y}px;background:#fef9c3;`;
+  const del=document.createElement('div'); del.className='sticky-del'; del.textContent='✕'; del.onclick=()=>el.remove();
+  const ta=document.createElement('textarea'); ta.placeholder='備註...';
+  el.appendChild(del); el.appendChild(ta);
+  let drag=false,ox=0,oy=0;
+  el.addEventListener('mousedown',ev=>{ if(ev.target===ta||ev.target===del)return; drag=true; ox=ev.clientX-el.offsetLeft; oy=ev.clientY-el.offsetTop; el.style.zIndex=25; });
+  document.addEventListener('mousemove',ev=>{ if(!drag)return; el.style.left=`${ev.clientX-ox}px`; el.style.top=`${ev.clientY-oy}px`; });
+  document.addEventListener('mouseup',()=>{ if(!drag)return; drag=false; el.style.zIndex=20; });
+  annoCanvas.parentElement.appendChild(el);
+  setTimeout(()=>ta.focus(),50);
+}
+
+function subSession(){
+  const u=onSnapshot(doc(db,'whiteboard_sessions',sessionId),snap=>{
+    if(!snap.exists())return;
+    const prev=sessionData; sessionData=snap.data();
+
+    if(sessionData.studentUid&&(!prev||!prev.studentUid)){
+      toast(`${sessionData.studentName||'學員'} 已加入`);
+      showStuInfo();
+    }
+    updateStatus();
+
+    // ⭐ 核心：即時鏡像 — 收到 liveData 就直接渲染，不需要額外訂閱
+    if(userRole==='counselor' && sessionData.liveData){
+      try{
+        const data = typeof sessionData.liveData === 'string'
+          ? JSON.parse(sessionData.liveData)
+          : sessionData.liveData;
+        document.getElementById('mirror-waiting').classList.add('hidden');
+        const tool = sessionData.toolType;
+        if(tool==='TWA') renderTWA(data);
+        else if(tool==='HTI') renderHTI(data);
+        const now=new Date();
+        const el=document.getElementById('last-update');
+        if(el){ el.textContent=`${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')} 更新`; el.classList.remove('hidden'); }
+      }catch(e){ console.warn('liveData parse error',e); }
+    }
+
+    if(sessionData.status==='ended'&&prev?.status!=='ended'){ toast('白板階段已結束'); setTimeout(()=>{location.href='dashboard.html';},2000); }
+  });
+  unsubs.push(u);
+}
+
+function updateStatus(){
+  const d=document.getElementById('status-dot'),t=document.getElementById('status-txt'),a=document.getElementById('status-area'),s=document.getElementById('sstat-display');
+  if(sessionData.status==='active'){ d.style.background='#22c55e'; a.className='s-badge bg-green-50 text-green-600'; t.textContent='連線中'; if(s){s.textContent='進行中';s.className='text-xs font-bold text-green-600';} }
+  else if(sessionData.status==='waiting'){ d.style.background='#f59e0b'; a.className='s-badge bg-amber-50 text-amber-600'; t.textContent='等待中'; }
+  else{ d.style.background='#94a3b8'; a.className='s-badge bg-slate-100 text-slate-500'; t.textContent='已結束'; }
+}
+
+function subAssessment(){
+  if(!sessionData.studentUid)return;
+  const tool=sessionData.toolType;
+  if(!tool||tool==='FREE'){ document.getElementById('mirror-waiting').classList.add('hidden'); return; }
+  const key=`${sessionData.studentUid}_${tool}`;
+  const u=onSnapshot(doc(db,'user_progress',key),snap=>{
+    if(!snap.exists())return;
+    try{
+      const raw=snap.data();
+      const payload=typeof raw.data==='string'?JSON.parse(raw.data):raw;
+      document.getElementById('mirror-waiting').classList.add('hidden');
+      if(tool==='TWA') renderTWA(payload);
+      else if(tool==='HTI') renderHTI(payload);
+      const now=new Date();
+      const el=document.getElementById('last-update');
+      el.textContent=`${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')} 更新`;
+      el.classList.remove('hidden');
+    }catch(e){ console.error(e); }
+  });
+  unsubs.push(u);
+}
+
+// ── TWA Mirror ──
+const CAT_ICON={ 成就:'🏆', 舒適:'🌿', 地位:'⭐', 利他:'🤝', 安全:'🛡️', 自主:'🚀' };
+function renderTWA(data){
+  document.getElementById('mirror-twa').classList.remove('hidden');
+  document.getElementById('mirror-hti').classList.add('hidden');
+  const scores=data.scores||data.rawScores||{};
+  const curr=data.currentScores||data.rawCurrentScores||{};
+  const insight=data.insight||'';
+  const focusType=data.focusType||'';
+  const total=Object.values(scores).reduce((s,v)=>s+(Number(v)||0),0);
+  const pct=Math.min(100,(total/115)*100);
+  document.getElementById('twa-budget-num').textContent=`${total}/115`;
+  const bar=document.getElementById('twa-budget-bar');
+  bar.style.width=`${pct}%`; bar.style.background=pct>95?'#ef4444':'#0d9488';
+  if(focusType){ const fb=document.getElementById('twa-focus-badge'); fb.textContent=focusType; fb.classList.remove('hidden'); }
+
+  if(!twaMatrix){ document.getElementById('twa-needs-container').innerHTML='<p class="text-xs text-slate-400">載入評測資料中...</p>'; return; }
+  const cats={};
+  twaMatrix.forEach((item,i)=>{ const c=item.value; if(!cats[c])cats[c]=[]; cats[c].push({...item,id:`n${i}`}); });
+
+  let html='';
+  for(const [cat,needs] of Object.entries(cats)){
+    html+=`<div><div class="m-cat-header">${CAT_ICON[cat]||''} ${cat}</div>`;
+    for(const need of needs){
+      const ideal=Number(scores[need.id])||0;
+      const cv=Number(curr[need.id])||0;
+      const delta=cv-ideal;
+      const isTop=ideal>=7;
+      let dc='', dt='';
+      if(delta>0){dc='color:#22c55e';dt=`+${delta}`;}
+      else if(delta<0){dc='color:#ef4444';dt=`${delta}`;}
+      else{dc='color:#e2e8f0';dt='—';}
+      html+=`<div class="m-need-row${isTop?' top':''}">
+        <span class="m-need-name">${need.need}</span>
+        <div class="m-bars">
+          <div class="m-bar-row">
+            <span class="m-bar-label" style="color:#0d9488">理</span>
+            <div class="m-bar-track"><div class="m-bar-ideal" style="width:${ideal*10}%"></div></div>
+            <span class="m-bar-val" style="color:#0d9488">${ideal}</span>
+          </div>
+          <div class="m-bar-row">
+            <span class="m-bar-label" style="color:#94a3b8">現</span>
+            <div class="m-bar-track"><div class="m-bar-curr" style="width:${cv*10}%"></div></div>
+            <span class="m-bar-val" style="color:#94a3b8">${cv>0?cv:''}</span>
+          </div>
+        </div>
+        <span class="m-delta" style="${dc}">${cv>0||ideal>0?dt:''}</span>
+      </div>`;
+    }
+    html+='</div>';
+  }
+  document.getElementById('twa-needs-container').innerHTML=html;
+
+  if(insight){ document.getElementById('twa-insight-section').classList.remove('hidden'); document.getElementById('twa-insight-text').textContent=insight; }
+}
+
+// ── HTI Mirror ──
+function renderHTI(data){
+  document.getElementById('mirror-hti').classList.remove('hidden');
+  document.getElementById('mirror-twa').classList.add('hidden');
+  const scores=data.scores||{};
+  const selected=data.selected||data.step1Selected||[];
+  const motives=data.motives||data.step2Motives||{};
+  const codes=['R','I','A','S','E','C'];
+  const max=Math.max(...codes.map(c=>Number(scores[c])||0),1);
+
+  document.getElementById('hti-bars-header').innerHTML=codes.map(c=>{
+    const v=Number(scores[c])||0; const pct=(v/max)*100;
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+      <div style="width:26px;height:36px;background:#f1f5f9;border-radius:5px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;">
+        <div style="width:100%;height:${pct}%;background:${RIASEC_C[c]};border-radius:5px;transition:height .4s;"></div>
+      </div>
+      <span style="font-size:9px;font-weight:900;color:${RIASEC_C[c]}">${c}</span>
+      <span style="font-size:9px;font-weight:900;color:#0f172a">${v}</span>
+    </div>`;
+  }).join('');
+
+  const top=codes.filter(c=>scores[c]>0).sort((a,b)=>Number(scores[b])-Number(scores[a])).slice(0,3);
+  const tb=document.getElementById('hti-top-badge');
+  tb.innerHTML=top.map(c=>`<span style="background:${RIASEC_C[c]}20;color:${RIASEC_C[c]};font-size:10px;font-weight:900;padding:2px 9px;border-radius:20px;">${c} ${RIASEC_L[c]}</span>`).join('');
+
+  const container=document.getElementById('hti-acts-container');
+  if(!htiActivities||!htiActivities.activities){ container.innerHTML='<p class="text-xs text-slate-400">載入活動資料中...</p>'; return; }
+
+  let html='<div class="grid grid-cols-1 gap-2">';
+  for(const act of htiActivities.activities){
+    const sel=selected.includes(act.id)||selected.includes(String(act.id));
+    const am=motives[act.id]||motives[String(act.id)]||[];
+    const code=act.riasec||act.code||'';
+    html+=`<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid ${sel?'#b2dfdb':'#e2e8f0'};background:${sel?'#f0fdf4':'white'};">
+      <div style="width:18px;height:18px;border-radius:5px;background:${sel?'#0d9488':'#e2e8f0'};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+        ${sel?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>':''}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:13px;font-weight:700;color:${sel?'#065f46':'#475569'}">${act.name||act.title||act.id}</span>
+          ${code?`<span style="font-size:9px;font-weight:900;padding:1px 6px;border-radius:10px;background:${RIASEC_C[code[0]]||'#94a3b8'}20;color:${RIASEC_C[code[0]]||'#94a3b8'}">${code}</span>`:''}
+        </div>
+        ${am.length>0?`<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;">${am.map(m=>`<span style="font-size:10px;padding:1px 7px;border-radius:10px;background:#f0fdf4;color:#16a34a;font-weight:700;">${m}</span>`).join('')}</div>`:''}
+      </div>
+    </div>`;
+  }
+  html+='</div>';
+  container.innerHTML=html;
+}
+
+window.confirmEnd=function(){
+  if(confirm('確定結束此白板階段？')){
+    updateDoc(doc(db,'whiteboard_sessions',sessionId),{status:'ended',endedAt:serverTimestamp()})
+      .then(()=>{toast('已結束');setTimeout(()=>{location.href='admin.html';},1500);})
+      .catch(console.error);
+  }
+};
+
+function hexA(hex,a){ const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return `rgba(${r},${g},${b},${a})`; }
+window.copyInvitePanel=function(){ navigator.clipboard.writeText(buildUrl()).then(()=>toast('連結已複製！')); };
+window.copyMainInvite=function(){ navigator.clipboard.writeText(buildUrl()).then(()=>toast('連結已複製！')); };
+
+function toast(msg){ const t=document.createElement('div'); t.className='wb-toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>{ t.style.opacity='0'; },2000); setTimeout(()=>t.remove(),2400); }
+
+// ══ 學員歡迎頁（學員打開白板連結時看到的畫面）══════════════════
+async function showStudentWelcome(sData) {
+  // If no session data yet, try to load it
+  if (!sData && sessionId) {
+    try {
+      const snap = await getDoc(doc(db, 'whiteboard_sessions', sessionId));
+      if (snap.exists()) sData = snap.data();
+    } catch(e) {}
+  }
+
+  const counselorName = sData?.counselorName || new URLSearchParams(location.search).get('c') || '您的諮詢師';
+  const tool = sData?.toolType || new URLSearchParams(location.search).get('t') || 'TWA';
+  const toolName = tool === 'HTI' ? 'HTI 何倫特質解析' : 'TWA 工作價值觀評測';
+  const toolColor = tool === 'HTI' ? '#f97316' : '#0d9488';
+
+  // Hide all other screens, show student welcome
+  document.getElementById('loading-overlay').style.display = 'none';
+  document.getElementById('setup-modal').classList.add('hidden');
+  document.getElementById('wb-app').classList.add('hidden');
+
+  // Build student welcome screen
+  const screen = document.createElement('div');
+  screen.id = 'student-screen';
+  screen.style.cssText = 'position:fixed;inset:0;background:#f8fafc;display:flex;align-items:center;justify-content:center;padding:16px;z-index:100;font-family:Noto Sans TC,sans-serif;';
+  screen.innerHTML = `
+    <div style="background:white;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.12);width:100%;max-width:400px;overflow:hidden;">
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,${toolColor},${tool==='HTI'?'#ea580c':'#0f766e'});padding:32px 28px;text-align:center;position:relative;overflow:hidden;">
+        <div style="position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.12) 1px,transparent 1px);background-size:20px 20px;"></div>
+        <div style="position:relative;">
+          <div style="width:56px;height:56px;border-radius:16px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.3);font-size:22px;font-weight:900;color:white;">${counselorName.charAt(0).toUpperCase()}</div>
+          <p style="color:rgba(255,255,255,.8);font-size:12px;font-weight:700;margin-bottom:4px;">${counselorName} 邀請你</p>
+          <h1 style="color:white;font-size:20px;font-weight:900;margin:0;">${toolName}</h1>
+        </div>
+      </div>
+      <!-- Body -->
+      <div style="padding:28px;">
+        <div style="background:#f8fafc;border-radius:14px;padding:14px 16px;margin-bottom:20px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <div style="width:28px;height:28px;border-radius:8px;background:${toolColor}20;display:flex;align-items:center;justify-content:center;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${toolColor}" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <span style="font-size:13px;color:#334155;font-weight:700;">${tool==='HTI'?'從 25 個活動找出天賦代碼':'評測 20 個心理需求'}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <div style="width:28px;height:28px;border-radius:8px;background:${toolColor}20;display:flex;align-items:center;justify-content:center;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${toolColor}" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <span style="font-size:13px;color:#334155;font-weight:700;">預估 ${tool==='HTI'?'15–20':'20–30'} 分鐘完成</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:28px;height:28px;border-radius:8px;background:${toolColor}20;display:flex;align-items:center;justify-content:center;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${toolColor}" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <span style="font-size:13px;color:#334155;font-weight:700;">諮詢師同步陪伴，即時解讀結果</span>
+          </div>
+        </div>
+
+        ${currentUser ? `
+        <!-- Already logged in -->
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f1f5f9;border-radius:12px;margin-bottom:14px;">
+          <img src="${currentUser.photoURL||''}" style="width:32px;height:32px;border-radius:50%;border:1px solid #e2e8f0;" onerror="this.style.display='none'">
+          <div style="flex:1;min-width:0;">
+            <p style="font-size:12px;font-weight:700;color:#0f172a;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${currentUser.displayName||''}</p>
+            <p style="font-size:10px;color:#94a3b8;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${currentUser.email}</p>
+          </div>
+        </div>
+        <button id="student-start-btn" onclick="studentStartAssessment()" style="width:100%;padding:14px;background:${toolColor};color:white;border:none;border-radius:16px;font-size:14px;font-weight:900;cursor:pointer;transition:all .15s;font-family:Noto Sans TC,sans-serif;">
+          開始評測 →
+        </button>
+        ` : `
+        <!-- Login needed -->
+        <button onclick="studentLogin()" id="student-login-btn"
+          style="width:100%;padding:14px;background:#0f172a;color:white;border:none;border-radius:16px;font-size:14px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;font-family:Noto Sans TC,sans-serif;">
+          <svg width="18" height="18" viewBox="0 0 24 24" style="flex-shrink:0;">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          使用 Google 帳號登入並開始
+        </button>
+        `}
+        <p id="student-err" style="color:#ef4444;font-size:11px;text-align:center;margin-top:10px;display:none;"></p>
+        <p style="font-size:11px;color:#cbd5e1;text-align:center;margin-top:12px;">由 Ormap 職涯評測平台 提供服務</p>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(screen);
+  lucide.createIcons();
+
+  // Store session data for later use
+  window._pendingSession = { sessionId, sessionData: sData, tool, counselorName };
+}
+
+window.studentLogin = async function() {
+  const btn = document.getElementById('student-login-btn');
+  if (btn) { btn.textContent = '登入中...'; btn.disabled = true; }
   try {
-    const snap = await getDoc(sRef);
-    if (!snap.exists()) {
-      hideLoading();
-      return showFatalError('找不到此白板階段，請確認連結正確。');
-    }
-    sessionData = snap.data();
+    await signInWithPopup(auth, provider);
+    // onAuthStateChanged will fire and handle the rest
+  } catch(e) {
+    const err = document.getElementById('student-err');
+    if (err) { err.textContent = '登入失敗，請再試一次。'; err.style.display = 'block'; }
+    if (btn) { btn.textContent = '使用 Google 帳號登入並開始'; btn.disabled = false; }
+  }
+};
 
-    if (sessionData.status === 'ended') {
-      hideLoading();
-      return showFatalError('此白板階段已結束。');
-    }
-
-    // Determine role
-    userRole = (sessionData.counselorUid === currentUser.uid) ? 'counselor' : 'student';
-
-    // Auto-join student
-    if (userRole === 'student' && !sessionData.studentUid) {
+window.studentStartAssessment = async function() {
+  const btn = document.getElementById('student-start-btn');
+  if (btn) { btn.textContent = '準備中...'; btn.disabled = true; }
+  try {
+    const ps = window._pendingSession;
+    const sRef = doc(db, 'whiteboard_sessions', ps.sessionId);
+    // Update session with student info
+    if (!ps.sessionData?.studentUid) {
       await updateDoc(sRef, {
         studentUid: currentUser.uid,
         studentName: currentUser.displayName || '學員',
         studentEmail: currentUser.email,
         status: 'active'
       });
-      sessionData.studentUid = currentUser.uid;
-      sessionData.studentName = currentUser.displayName || '學員';
-      sessionData.studentEmail = currentUser.email;
-      sessionData.status = 'active';
     }
-
-    hideLoading();
-    document.getElementById('wb-app').classList.remove('hidden');
-
-    initCanvas();
-    setupStaticUI();
-    subSession();
-    subStrokes();
-    subStickies();
-    subPresence();
-    if (userRole === 'counselor') subAssessment();
-
-    lucide.createIcons();
-    // Update history so URL has session id
-    if (!window.location.search.includes('session=')) {
-      history.replaceState({}, '', `${window.location.pathname}?session=${sessionId}`);
-    }
+    // Write whiteboard_active
+    await setDoc(doc(db, 'whiteboard_active', currentUser.uid), {
+      sessionId: ps.sessionId,
+      counselorName: ps.counselorName,
+      toolType: ps.tool,
+      status: 'active',
+      createdAt: serverTimestamp()
+    });
+    // Go to assessment
+    window.location.href = ps.tool === 'HTI' ? `tools/hti.html?wb=1&sid=${ps.sessionId}` : `tools/twa.html?wb=1&sid=${ps.sessionId}`;
   } catch(e) {
-    hideLoading();
     console.error(e);
-    showFatalError('連線失敗，請重新整理頁面。');
-  }
-}
-
-// ── Static UI ─────────────────────────────────────────────────────────────────
-function setupStaticUI() {
-  if (sessionData.toolType) {
-    const b = document.getElementById('tool-badge');
-    b.textContent = sessionData.toolType;
-    b.classList.remove('hidden');
-  }
-  document.getElementById('sid-display').textContent = sessionId;
-  document.getElementById('role-display').textContent = userRole === 'counselor' ? '諮詢師' : '學員';
-  document.getElementById('invite-url-panel').textContent = buildInviteUrl();
-
-  if (userRole === 'counselor') {
-    document.getElementById('end-btn').classList.remove('hidden');
-    document.getElementById('end-area').classList.remove('hidden');
-  } else {
-    document.getElementById('invite-area').style.display = 'none';
-    document.getElementById('end-area').style.display = 'none';
-  }
-  updateSelfAvatar();
-}
-
-function updateSelfAvatar() {
-  const area = document.getElementById('participants');
-  const color = userRole === 'counselor' ? C_COLOR : S_COLOR;
-  const label = userRole === 'counselor' ? '諮' : '學';
-  const title = currentUser.displayName || (userRole === 'counselor' ? '諮詢師' : '學員');
-  area.innerHTML = `<div style="width:26px;height:26px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:white;border:2px solid white;" title="${title}">${label}</div>`;
-}
-
-// ── Canvas ────────────────────────────────────────────────────────────────────
-function initCanvas() {
-  wrapper = document.getElementById('canvas-wrapper');
-  mainCanvas = document.getElementById('main-canvas');
-  ctx = mainCanvas.getContext('2d');
-  overlayCanvas = document.getElementById('overlay-canvas');
-  octx = overlayCanvas.getContext('2d');
-
-  resize();
-  window.addEventListener('resize', resize);
-
-  mainCanvas.addEventListener('mousedown', onDown);
-  mainCanvas.addEventListener('mousemove', onMove);
-  mainCanvas.addEventListener('mouseup', onUp);
-  mainCanvas.addEventListener('mouseleave', onLeave);
-  mainCanvas.addEventListener('click', onClick);
-
-  mainCanvas.addEventListener('touchstart', e => { e.preventDefault(); onDown(e.touches[0]); }, { passive: false });
-  mainCanvas.addEventListener('touchmove', e => { e.preventDefault(); onMove(e.touches[0]); }, { passive: false });
-  mainCanvas.addEventListener('touchend', e => { e.preventDefault(); onUp(e.changedTouches[0]); }, { passive: false });
-}
-
-function resize() {
-  if (!wrapper || !mainCanvas) return;
-  const w = wrapper.offsetWidth, h = wrapper.offsetHeight;
-  mainCanvas.width = w; mainCanvas.height = h;
-  overlayCanvas.width = w; overlayCanvas.height = h;
-  redraw();
-}
-
-function getXY(e) {
-  const r = mainCanvas.getBoundingClientRect();
-  const scaleX = mainCanvas.width / r.width;
-  const scaleY = mainCanvas.height / r.height;
-  return { x: (e.clientX - r.left) * scaleX, y: (e.clientY - r.top) * scaleY };
-}
-
-// ── Tool Controls ─────────────────────────────────────────────────────────────
-window.setTool = function(t) {
-  currentTool = t;
-  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(`tool-${t}`)?.classList.add('active');
-  if (!mainCanvas) return;
-  const cursors = { pointer: 'default', pen: 'crosshair', highlight: 'crosshair', eraser: 'cell', sticky: 'copy' };
-  mainCanvas.style.cursor = cursors[t] || 'crosshair';
-};
-
-window.setColor = function(c) {
-  currentColor = c;
-  document.querySelectorAll('.c-dot').forEach(b => b.classList.remove('active'));
-  document.getElementById(`cd-${c.replace('#','')}`)?.classList.add('active');
-};
-
-window.setWidth = function(w) {
-  currentWidth = w;
-  document.querySelectorAll('.w-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(`w-${w}`)?.classList.add('active');
-};
-
-window.togglePanel = function() {
-  panelOpen = !panelOpen;
-  document.getElementById('side-panel').classList.toggle('collapsed', !panelOpen);
-};
-
-window.switchTab = function(t) {
-  ['live','session'].forEach(x => {
-    document.getElementById(`tab-${x}`).classList.toggle('active', x === t);
-    document.getElementById(`panel-${x}`).classList.toggle('hidden', x !== t);
-  });
-};
-
-// ── Draw Events ───────────────────────────────────────────────────────────────
-function onDown(e) {
-  if (currentTool === 'pointer' || currentTool === 'sticky') return;
-  const p = getXY(e);
-  isDrawing = true;
-  currentPts = [p];
-  if (currentTool === 'eraser') { applyEraser(p); return; }
-  ctx.beginPath();
-  ctx.moveTo(p.x, p.y);
-}
-
-function onMove(e) {
-  const p = getXY(e);
-
-  // Presence throttle
-  const now = Date.now();
-  if (now - presenceTs > 80) { presenceTs = now; pushPresence(p); }
-
-  if (!isDrawing) return;
-  currentPts.push(p);
-
-  if (currentTool === 'eraser') { applyEraser(p); return; }
-
-  // Smooth preview
-  redraw();
-  renderPath(ctx, currentPts, strokeColor(), strokeWidth(), currentTool === 'highlight');
-}
-
-function onUp(e) {
-  if (!isDrawing) return;
-  isDrawing = false;
-  if (currentPts.length < 2) { currentPts = []; return; }
-  if (currentTool === 'eraser') { currentPts = []; return; }
-  saveStroke();
-  currentPts = [];
-}
-
-function onLeave() { if (isDrawing) onUp({}); }
-
-function onClick(e) {
-  if (currentTool === 'sticky') {
-    const p = getXY(e);
-    spawnSticky(p.x, p.y);
-  }
-}
-
-function applyEraser(p) {
-  ctx.save();
-  ctx.globalCompositeOperation = 'destination-out';
-  const r = currentWidth * 8;
-  ctx.beginPath();
-  ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-}
-
-function strokeColor() {
-  return currentTool === 'highlight' ? hexAlpha(currentColor, 0.3) : currentColor;
-}
-
-function strokeWidth() {
-  return currentTool === 'highlight' ? currentWidth * 5 : currentWidth;
-}
-
-// ── Rendering ─────────────────────────────────────────────────────────────────
-function renderPath(context, pts, color, width, isHL) {
-  if (!pts || pts.length < 2) return;
-  context.save();
-  context.strokeStyle = color;
-  context.lineWidth = width;
-  context.lineCap = 'round';
-  context.lineJoin = 'round';
-  if (isHL) context.globalAlpha = 0.42;
-
-  context.beginPath();
-  const p0 = pts[0];
-  context.moveTo(p0.x ?? p0[0], p0.y ?? p0[1]);
-
-  for (let i = 1; i < pts.length - 1; i++) {
-    const ax = pts[i].x ?? pts[i][0], ay = pts[i].y ?? pts[i][1];
-    const bx = pts[i+1].x ?? pts[i+1][0], by = pts[i+1].y ?? pts[i+1][1];
-    context.quadraticCurveTo(ax, ay, (ax+bx)/2, (ay+by)/2);
-  }
-
-  const last = pts[pts.length-1];
-  context.lineTo(last.x ?? last[0], last.y ?? last[1]);
-  context.stroke();
-  context.restore();
-}
-
-function redraw() {
-  if (!ctx) return;
-  ctx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
-  const sorted = Object.values(strokesMap).sort((a,b) => (a.t||0)-(b.t||0));
-  for (const s of sorted) {
-    renderPath(ctx, s.points, s.color, s.width, s.isHL);
-  }
-}
-
-// ── Firestore: Strokes ────────────────────────────────────────────────────────
-async function saveStroke() {
-  const color = strokeColor();
-  const width = strokeWidth();
-  try {
-    await addDoc(collection(db, 'whiteboard_sessions', sessionId, 'strokes'), {
-      uid: currentUser.uid,
-      role: userRole,
-      tool: currentTool,
-      color, width,
-      isHL: currentTool === 'highlight',
-      points: currentPts.map(p => [Math.round(p.x), Math.round(p.y)]),
-      t: Date.now()
-    });
-  } catch(e) { console.error('Stroke save:', e); }
-}
-
-function subStrokes() {
-  const q = query(collection(db, 'whiteboard_sessions', sessionId, 'strokes'), orderBy('t', 'asc'));
-  const u = onSnapshot(q, snap => {
-    snap.docChanges().forEach(ch => {
-      if (ch.type === 'added' || ch.type === 'modified') strokesMap[ch.doc.id] = ch.doc.data();
-      if (ch.type === 'removed') delete strokesMap[ch.doc.id];
-    });
-    redraw();
-  });
-  unsubs.push(u);
-}
-
-// ── Firestore: Stickies ────────────────────────────────────────────────────────
-function spawnSticky(x, y, id, text, color, fromRemote) {
-  const sId = id || `s-${Date.now()}-${Math.random().toString(36).substr(2,5)}`;
-  if (document.getElementById(`stk-${sId}`)) return;
-  const bg = color || STICKY_BG[userRole] || '#fef9c3';
-
-  const el = document.createElement('div');
-  el.className = 'sticky-el';
-  el.id = `stk-${sId}`;
-  el.style.cssText = `left:${x}px;top:${y}px;background:${bg};`;
-
-  const del = document.createElement('div');
-  del.className = 'sticky-delete';
-  del.textContent = '✕';
-  del.onclick = (e) => { e.stopPropagation(); removeSticky(sId); };
-
-  const ta = document.createElement('textarea');
-  ta.placeholder = '輸入備註...';
-  ta.value = text || '';
-  if (fromRemote) ta.readOnly = true;
-  ta.onblur = () => updateStickyText(sId, ta.value);
-
-  el.appendChild(del);
-  el.appendChild(ta);
-  wrapper.appendChild(el);
-
-  // Drag
-  let drag = false, ox = 0, oy = 0;
-  el.addEventListener('mousedown', ev => {
-    if (ev.target === ta || ev.target === del) return;
-    drag = true; ox = ev.clientX - el.offsetLeft; oy = ev.clientY - el.offsetTop;
-    el.style.zIndex = 60;
-  });
-  document.addEventListener('mousemove', ev => {
-    if (!drag) return;
-    el.style.left = `${ev.clientX - ox}px`;
-    el.style.top = `${ev.clientY - oy}px`;
-  });
-  document.addEventListener('mouseup', () => {
-    if (!drag) return;
-    drag = false; el.style.zIndex = 50;
-    moveStickyFirestore(sId, parseFloat(el.style.left), parseFloat(el.style.top));
-  });
-
-  if (!id) saveStickyFirestore(sId, x, y, '', bg);
-  if (!fromRemote) setTimeout(() => ta.focus(), 50);
-}
-
-async function saveStickyFirestore(id, x, y, text, color) {
-  await setDoc(doc(db, 'whiteboard_sessions', sessionId, 'stickies', id), {
-    uid: currentUser.uid, role: userRole, x, y, text, color, t: Date.now()
-  }).catch(console.error);
-}
-
-async function updateStickyText(id, text) {
-  await updateDoc(doc(db, 'whiteboard_sessions', sessionId, 'stickies', id), { text }).catch(()=>{});
-}
-
-async function moveStickyFirestore(id, x, y) {
-  await updateDoc(doc(db, 'whiteboard_sessions', sessionId, 'stickies', id), { x, y }).catch(()=>{});
-}
-
-async function removeSticky(id) {
-  document.getElementById(`stk-${id}`)?.remove();
-  await deleteDoc(doc(db, 'whiteboard_sessions', sessionId, 'stickies', id)).catch(()=>{});
-}
-
-function subStickies() {
-  const u = onSnapshot(collection(db, 'whiteboard_sessions', sessionId, 'stickies'), snap => {
-    snap.docChanges().forEach(ch => {
-      const d = ch.doc.data(); const sId = ch.doc.id;
-      if (ch.type === 'added' && !document.getElementById(`stk-${sId}`) && d.uid !== currentUser.uid) {
-        spawnSticky(d.x, d.y, sId, d.text, d.color, true);
-      }
-      if (ch.type === 'modified' && d.uid !== currentUser.uid) {
-        const el = document.getElementById(`stk-${sId}`);
-        if (el) {
-          el.style.left = `${d.x}px`; el.style.top = `${d.y}px`;
-          const ta = el.querySelector('textarea');
-          if (ta) ta.value = d.text || '';
-        }
-      }
-      if (ch.type === 'removed') document.getElementById(`stk-${sId}`)?.remove();
-    });
-  });
-  unsubs.push(u);
-}
-
-// ── Presence ──────────────────────────────────────────────────────────────────
-async function pushPresence(pos) {
-  if (!sessionId || !currentUser) return;
-  await setDoc(doc(db, 'whiteboard_sessions', sessionId, 'presence', currentUser.uid), {
-    x: Math.round(pos.x), y: Math.round(pos.y),
-    name: currentUser.displayName || (userRole === 'counselor' ? '諮詢師' : '學員'),
-    role: userRole, ts: Date.now()
-  }, { merge: true }).catch(()=>{});
-}
-
-function subPresence() {
-  const u = onSnapshot(collection(db, 'whiteboard_sessions', sessionId, 'presence'), snap => {
-    const others = [];
-    snap.docs.forEach(d => {
-      if (d.id === currentUser.uid) return;
-      const data = d.data();
-      others.push({ id: d.id, ...data });
-      renderRemoteCursor(d.id, data);
-    });
-    updateParticipantBar(others);
-  });
-  unsubs.push(u);
-}
-
-function renderRemoteCursor(uid, data) {
-  let el = document.getElementById(`cur-${uid}`);
-  const color = data.role === 'counselor' ? C_COLOR : S_COLOR;
-  if (!el) {
-    el = document.createElement('div');
-    el.id = `cur-${uid}`;
-    el.className = 'cursor-remote';
-    el.innerHTML = `
-      <svg width="18" height="18" viewBox="0 0 20 20" fill="${color}" xmlns="http://www.w3.org/2000/svg"><path d="M4.5 2.5l11 7.8L9.2 12l-2.3 6.5z"/></svg>
-      <span class="cursor-label" style="background:${color}">${data.name || '用戶'}</span>
-    `;
-    wrapper.appendChild(el);
-  }
-  el.style.left = `${data.x}px`;
-  el.style.top = `${data.y}px`;
-}
-
-function updateParticipantBar(others) {
-  const area = document.getElementById('participants');
-  const myColor = userRole === 'counselor' ? C_COLOR : S_COLOR;
-  const myLabel = userRole === 'counselor' ? '諮' : '學';
-  let html = `<div style="width:26px;height:26px;border-radius:50%;background:${myColor};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:white;border:2px solid white;" title="${currentUser.displayName || '你'}">${myLabel}</div>`;
-  others.forEach(o => {
-    const c = o.role === 'counselor' ? C_COLOR : S_COLOR;
-    const l = o.role === 'counselor' ? '諮' : '學';
-    html += `<div style="width:26px;height:26px;border-radius:50%;background:${c};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:white;border:2px solid white;" title="${o.name || '用戶'}">${l}</div>`;
-  });
-  area.innerHTML = html;
-}
-
-// ── Session Subscription ──────────────────────────────────────────────────────
-function subSession() {
-  const u = onSnapshot(doc(db, 'whiteboard_sessions', sessionId), snap => {
-    if (!snap.exists()) return;
-    const prev = sessionData;
-    sessionData = snap.data();
-
-    // Student joined for the first time
-    if (sessionData.studentUid && (!prev || !prev.studentUid)) {
-      if (userRole === 'counselor') {
-        toast(`${sessionData.studentName || '學員'} 已加入白板`);
-        subAssessment();
-        revealLivePanel();
-      }
-    }
-
-    updateSessionStatus();
-    if (sessionData.status === 'ended' && prev && prev.status !== 'ended') {
-      toast('白板階段已結束');
-      setTimeout(() => { window.location.href = 'dashboard.html'; }, 2000);
-    }
-  });
-  unsubs.push(u);
-}
-
-function updateSessionStatus() {
-  const dot = document.getElementById('status-dot');
-  const txt = document.getElementById('status-txt');
-  const area = document.getElementById('status-area');
-  const sd = document.getElementById('sstat-display');
-
-  if (sessionData.status === 'active') {
-    dot.style.background = '#22c55e';
-    area.className = 'status-badge bg-green-50 text-green-600';
-    txt.textContent = '連線中';
-    if (sd) { sd.textContent = '進行中'; sd.className = 'text-xs font-bold text-green-600'; }
-  } else if (sessionData.status === 'waiting') {
-    dot.style.background = '#f59e0b';
-    area.className = 'status-badge bg-amber-50 text-amber-600';
-    txt.textContent = '等待中';
-  } else if (sessionData.status === 'ended') {
-    dot.style.background = '#94a3b8';
-    area.className = 'status-badge bg-slate-100 text-slate-500';
-    txt.textContent = '已結束';
-  }
-}
-
-// ── Assessment Live Data ───────────────────────────────────────────────────────
-function revealLivePanel() {
-  document.getElementById('live-empty').classList.add('hidden');
-  document.getElementById('live-data').classList.remove('hidden');
-
-  const name = sessionData.studentName || '學員';
-  document.getElementById('stu-avatar').textContent = name.charAt(0).toUpperCase();
-  document.getElementById('stu-name').textContent = name;
-  document.getElementById('stu-email').textContent = sessionData.studentEmail || '';
-
-  if (sessionData.toolType) {
-    document.getElementById('live-tool-row').classList.remove('hidden');
-    const pill = document.getElementById('live-tool-pill');
-    if (sessionData.toolType === 'TWA') {
-      pill.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-bold bg-teal-50 text-primary';
-      pill.innerHTML = `<span>🧭</span> TWA 工作價值觀`;
-      document.getElementById('twa-panel').classList.remove('hidden');
-    } else if (sessionData.toolType === 'HTI') {
-      pill.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-bold bg-orange-50 text-orange-600';
-      pill.innerHTML = `<span>🧬</span> HTI 何倫特質`;
-      document.getElementById('hti-panel').classList.remove('hidden');
-      buildHTIBars({ R:0,I:0,A:0,S:0,E:0,C:0 });
-    }
-  }
-}
-
-function subAssessment() {
-  if (!sessionData.studentUid) return;
-  const tool = sessionData.toolType;
-  if (!tool || tool === 'FREE') return;
-
-  const key = `${sessionData.studentUid}_${tool}`;
-  const u = onSnapshot(doc(db, 'user_progress', key), snap => {
-    if (!snap.exists()) return;
-    if (!document.getElementById('live-data').classList.contains('hidden') === false) {
-      revealLivePanel();
-    }
-    try {
-      const raw = snap.data();
-      const payload = typeof raw.data === 'string' ? JSON.parse(raw.data) : raw;
-      if (tool === 'TWA') updateTWA(payload);
-      else if (tool === 'HTI') updateHTI(payload);
-    } catch(e) { console.error('Assessment parse:', e); }
-  });
-  unsubs.push(u);
-}
-
-function updateTWA(d) {
-  const scores = d.scores || d.rawData?.scores || {};
-  const total = Object.values(scores).reduce((s, v) => s + (Number(v)||0), 0);
-  const pct = Math.min(100, (total / 115) * 100);
-
-  document.getElementById('twa-budget-num').textContent = `${total} / 115`;
-  const bar = document.getElementById('twa-budget-bar');
-  bar.style.width = `${pct}%`;
-  bar.className = `h-full rounded-full transition-all duration-500 ${pct > 95 ? 'bg-red-400' : 'bg-primary'}`;
-
-  // Top5
-  const sorted = Object.entries(scores).sort(([,a],[,b]) => Number(b)-Number(a)).slice(0,5);
-  const max = sorted[0]?.[1] || 1;
-  document.getElementById('twa-top5').innerHTML = sorted.map(([k,v], i) => `
-    <div class="flex items-center gap-2">
-      <span class="text-xs font-black text-slate-300 w-3">${i+1}</span>
-      <span class="text-xs text-slate-600 flex-1 truncate leading-none">${k}</span>
-      <div class="w-14 h-1.5 bg-slate-100 rounded-full overflow-hidden flex-shrink-0">
-        <div class="h-full bg-primary rounded-full" style="width:${(Number(v)/max)*100}%"></div>
-      </div>
-      <span class="text-xs font-black text-primary w-5 text-right">${v}</span>
-    </div>
-  `).join('');
-
-  // Insight
-  const insight = d.insight || d.rawData?.insight || '';
-  if (insight) {
-    document.getElementById('twa-insight-wrap').classList.remove('hidden');
-    document.getElementById('twa-insight').textContent = insight;
-  }
-
-  // Focus type
-  const focus = d.focusType || d.rawData?.focusType || '';
-  if (focus) {
-    document.getElementById('twa-focus-wrap').classList.remove('hidden');
-    document.getElementById('twa-focus').textContent = focus;
-  }
-}
-
-function buildHTIBars(scores) {
-  const codes = ['R','I','A','S','E','C'];
-  const max = Math.max(...Object.values(scores), 1);
-  document.getElementById('hti-bars').innerHTML = codes.map(c => {
-    const v = scores[c] || 0;
-    const pct = (v / max) * 100;
-    return `
-      <div class="riasec-bar flex-1">
-        <div class="riasec-track">
-          <div class="riasec-fill" id="bar-${c}" style="height:${pct}%;background:${RIASEC_COLORS[c]}"></div>
-        </div>
-        <span style="font-size:11px;font-weight:900;color:#64748b">${c}</span>
-        <span style="font-size:10px;color:#94a3b8">${RIASEC_LABELS[c]}</span>
-        <span style="font-size:11px;font-weight:900;color:#0f172a" id="barv-${c}">${v}</span>
-      </div>
-    `;
-  }).join('');
-}
-
-function updateHTI(d) {
-  const scores = d.scores || {};
-  const selected = d.selectedActivities || d.step1Selected || [];
-  const max = Math.max(...Object.values(scores).map(Number), 1);
-  const codes = ['R','I','A','S','E','C'];
-
-  // If bars already exist, just update heights
-  const firstBar = document.getElementById('bar-R');
-  if (!firstBar) { buildHTIBars(scores); return; }
-
-  codes.forEach(c => {
-    const v = Number(scores[c]) || 0;
-    const pct = (v / max) * 100;
-    const barEl = document.getElementById(`bar-${c}`);
-    const valEl = document.getElementById(`barv-${c}`);
-    if (barEl) barEl.style.height = `${pct}%`;
-    if (valEl) valEl.textContent = v;
-  });
-
-  // Top traits
-  const top = codes.filter(c => scores[c] > 0).sort((a,b) => Number(scores[b])-Number(scores[a])).slice(0,3);
-  if (top.length) {
-    document.getElementById('hti-top-wrap').classList.remove('hidden');
-    document.getElementById('hti-top-traits').innerHTML = top.map(c =>
-      `<span style="background:${RIASEC_COLORS[c]}20;color:${RIASEC_COLORS[c]};font-size:12px;font-weight:900;padding:4px 12px;border-radius:20px;">${c}</span>`
-    ).join('');
-  }
-
-  // Activities selected
-  if (selected.length) {
-    document.getElementById('hti-acts-wrap').classList.remove('hidden');
-    document.getElementById('hti-acts-count').textContent = selected.length;
-  }
-}
-
-// ── Clear All ─────────────────────────────────────────────────────────────────
-window.clearAll = async function() {
-  if (!confirm('確定清除所有筆跡？便利貼不受影響，且操作無法復原。')) return;
-  ctx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
-  strokesMap = {};
-
-  const strokesRef = collection(db, 'whiteboard_sessions', sessionId, 'strokes');
-  const snap = await new Promise(res => {
-    const u = onSnapshot(query(strokesRef), s => { u(); res(s); });
-  });
-  const batch = writeBatch(db);
-  snap.docs.forEach(d => batch.delete(d.ref));
-  await batch.commit();
-  toast('筆跡已清除');
-};
-
-// ── End Session ───────────────────────────────────────────────────────────────
-window.confirmEnd = function() {
-  if (confirm('確定結束此白板階段？雙方都將離開白板。')) {
-    updateDoc(doc(db, 'whiteboard_sessions', sessionId), { status: 'ended', endedAt: serverTimestamp() })
-      .then(() => { toast('白板階段已結束'); setTimeout(() => { window.location.href = 'admin.html'; }, 1500); })
-      .catch(console.error);
+    const err = document.getElementById('student-err');
+    if (err) { err.textContent = '發生錯誤，請重新整理。'; err.style.display = 'block'; }
+    if (btn) { btn.textContent = '開始評測 →'; btn.disabled = false; }
   }
 };
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function hexAlpha(hex, a) {
-  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
-  return `rgba(${r},${g},${b},${a})`;
-}
-
-window.copyInvitePanel = function() {
-  navigator.clipboard.writeText(buildInviteUrl()).then(() => toast('連結已複製！'));
-};
-
-function toast(msg) {
-  const t = document.createElement('div');
-  t.className = 'wb-toast';
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => { t.style.opacity = '0'; }, 2000);
-  setTimeout(() => t.remove(), 2400);
-}
-
-function showFatalError(msg) {
-  document.body.innerHTML = `
-    <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f8fafc;padding:32px;text-align:center;font-family:'Noto Sans TC',sans-serif;">
-      <div style="width:56px;height:56px;background:#fee2e2;border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
-        <svg width="28" height="28" fill="none" stroke="#ef4444" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
-      </div>
-      <h2 style="font-weight:900;font-size:20px;color:#0f172a;margin-bottom:8px">發生錯誤</h2>
-      <p style="color:#94a3b8;font-size:14px;margin-bottom:24px">${msg}</p>
-      <a href="dashboard.html" style="background:#0d9488;color:white;border-radius:16px;padding:12px 28px;font-weight:900;font-size:14px;text-decoration:none;">返回後臺</a>
-    </div>`;
-}
-
-// Cleanup on unload
-window.addEventListener('beforeunload', () => {
-  if (sessionId && currentUser) {
-    deleteDoc(doc(db, 'whiteboard_sessions', sessionId, 'presence', currentUser.uid)).catch(()=>{});
-  }
-  unsubs.forEach(u => u?.());
-});
-
+function fatalError(msg){ document.body.innerHTML=`<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f8fafc;padding:32px;text-align:center;font-family:'Noto Sans TC',sans-serif;"><h2 style="font-weight:900;font-size:20px;color:#0f172a;margin-bottom:8px">發生錯誤</h2><p style="color:#94a3b8;font-size:14px;margin-bottom:24px">${msg}</p><a href="dashboard.html" style="background:#0d9488;color:white;border-radius:16px;padding:12px 28px;font-weight:900;font-size:14px;text-decoration:none;">返回後臺</a></div>`; }
+window.addEventListener('beforeunload',()=>{ unsubs.forEach(u=>u?.()); });
 lucide.createIcons();
 </script>
-
 </body>
 </html>

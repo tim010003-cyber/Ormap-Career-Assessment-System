@@ -415,9 +415,16 @@
         const LS_KEY = 'LPK_TWA_V2026_ULTIMATE_FINAL';
         
         
+        // ⭐ 白板諮詢模式：?wb=1 時跳過舊進度恢復，從空白開始
+        const _isWbMode = new URLSearchParams(window.location.search).get('wb') === '1';
+        if (_isWbMode) {
+            localStorage.removeItem(LS_KEY);
+            localStorage.removeItem('LPK_TWA_REALITY_CHECK');
+        }
+
         function init() {
             hasSeenRealityCheck = localStorage.getItem('LPK_TWA_REALITY_CHECK') === 'true';
-            const saved = localStorage.getItem(LS_KEY);
+            const saved = _isWbMode ? null : localStorage.getItem(LS_KEY); // 白板模式不恢復舊資料
             if (saved) {
                 try {
                     const p = JSON.parse(saved);
@@ -989,6 +996,8 @@
             const td = document.getElementById('test-date')?.value || "";
             const fi = document.getElementById('final-insight')?.value || "";
             localStorage.setItem(LS_KEY, JSON.stringify({ scores, currentScores, selected, notes, name: un, email: ue, job: uj, goal: ug, date: td, insight: fi })); 
+            // ⭐ 白板廣播：有 session 時即時 sync
+            window._wbDebouncedSync?.();
         }
         
         function handleReset() { 
@@ -1136,7 +1145,7 @@ async function submitAndPrint() {
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, serverTimestamp, setDoc, getDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, serverTimestamp, setDoc, getDoc, doc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
@@ -1153,7 +1162,7 @@ const db = getFirestore(app);
 
 // 🛡️ 頁面守衛與全域引擎啟動
 // 監聽登入狀態並顯示大頭照與資訊
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                 window.currentUserEmail = user.email;
                 window.currentUserName = user.displayName;
@@ -1176,10 +1185,121 @@ const db = getFirestore(app);
                     dateEl.innerText = new Date().toLocaleDateString('zh-TW');
                 }
 
+                // ⭐ 白板 Session 偵測 & 即時廣播設定
+                setupWhiteboardBroadcast(user.uid);
+
             } else {
                 window.location.href = '../index.html';
             }
         });
+
+// ⭐ 白板廣播機制
+async function setupWhiteboardBroadcast(uid) {
+    let _syncTimer = null;
+    let _intervalTimer = null;
+
+    // ⭐ 從 URL 直接讀 sessionId，不需要查 Firestore
+    const _sidFromUrl = new URLSearchParams(window.location.search).get('sid');
+
+    // Debounced sync（每次滑桿移動觸發）
+    window._wbDebouncedSync = function() {
+        clearTimeout(_syncTimer);
+        _syncTimer = setTimeout(() => {
+            if (typeof saveAll === 'function') saveAll();
+            if (window._wbSessionId) {
+                syncToWhiteboardSession(window._wbSessionId, {
+                    scores: scores || {},
+                    currentScores: currentScores || {},
+                    insight: document.getElementById('final-insight')?.value || '',
+                    focusType: document.getElementById('stat-focus')?.innerText || ''
+                });
+            }
+        }, 400);
+    };
+
+    // 立即顯示狀態指示器
+    _updateSyncBadge(_sidFromUrl ? `sid 已讀取: ${_sidFromUrl.slice(-6)}` : '⚠️ 無 sid 參數');
+
+    if (!_sidFromUrl) {
+        // 沒有 sid 參數，嘗試從 whiteboard_active 查（向下相容）
+        try {
+            const wbSnap = await getDoc(doc(db, 'whiteboard_active', uid));
+            if (wbSnap.exists()) {
+                window._wbSessionId = wbSnap.data().sessionId;
+                showWbBanner(wbSnap.data().counselorName || '諮詢師', window._wbSessionId);
+            }
+        } catch(e) { console.warn('whiteboard_active lookup failed:', e); }
+    } else {
+        // ✅ 直接從 URL 拿到 sessionId，最可靠的方式
+        window._wbSessionId = _sidFromUrl;
+
+        // 從 session 拿諮詢師名字顯示橫幅
+        try {
+            const sSnap = await getDoc(doc(db, 'whiteboard_sessions', _sidFromUrl));
+            const counselorName = sSnap.exists() ? (sSnap.data().counselorName || '諮詢師') : '諮詢師';
+            showWbBanner(counselorName, _sidFromUrl);
+        } catch(e) {
+            showWbBanner('諮詢師', _sidFromUrl);
+        }
+    }
+
+    if (window._wbSessionId) {
+        // 立即寫入空白初始狀態，讓諮詢師白板清空舊資料
+        await syncToWhiteboardSession(window._wbSessionId, {
+            scores: {}, currentScores: {}, insight: '', focusType: '', _fresh: true
+        });
+
+        // 每 2 秒定時同步最新評測狀態
+        _intervalTimer = setInterval(() => {
+            if (typeof saveAll === 'function') saveAll();
+            syncToWhiteboardSession(window._wbSessionId, {
+                scores: scores || {},
+                currentScores: currentScores || {},
+                insight: document.getElementById('final-insight')?.value || '',
+                focusType: document.getElementById('stat-focus')?.innerText || ''
+            });
+        }, 2000);
+            // 監聽 session 結束
+            onSnapshot(doc(db, 'whiteboard_active', uid), (snap) => {
+                if (!snap.exists() || snap.data().status === 'ended') {
+                    hideWbBanner();
+                    if (_intervalTimer) clearInterval(_intervalTimer);
+                }
+            });
+        }
+    } catch(e) { console.warn('WB session check failed:', e); }
+}
+
+function showWbBanner(counselorName, sessionId) {
+    const existing = document.getElementById('wb-live-banner');
+    if (existing) return;
+    const banner = document.createElement('div');
+    banner.id = 'wb-live-banner';
+    banner.style.cssText = [
+        'position:fixed;top:0;left:0;right:0;z-index:9999;',
+        'background:white;border-bottom:1px solid #e2e8f0;',
+        'padding:7px 20px;',
+        'display:flex;align-items:center;gap:10px;',
+        'font-family:Noto Sans TC,sans-serif;font-size:12px;',
+        'color:#64748b;'
+    ].join('');
+    banner.innerHTML = [
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2" style="flex-shrink:0;opacity:.8;">',
+        '<path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>',
+        '</svg>',
+        '<span>與諮詢師 <strong style="color:#334155;font-weight:700;">' + counselorName + '</strong> 同步進行中</span>',
+        '<a href="../whiteboard.html?session=' + sessionId + '" target="_blank"',
+        '   style="margin-left:auto;color:#0d9488;font-size:11px;font-weight:700;text-decoration:none;flex-shrink:0;opacity:.8;">',
+        '白板 ↗</a>'
+    ].join('');
+    document.body.prepend(banner);
+    document.body.style.paddingTop = '36px';
+}
+
+function hideWbBanner() {
+    document.getElementById('wb-live-banner')?.remove();
+    document.body.style.paddingTop = '';
+}
 
 async function loadHistoryAsDraft(docId, uid) {
     try {
@@ -1206,6 +1326,8 @@ async function loadHistoryAsDraft(docId, uid) {
 }
 
 async function loadCloudDraft(uid) {
+    // 白板諮詢模式不恢復舊進度
+    if (new URLSearchParams(window.location.search).get('wb') === '1') return;
     if (!localStorage.getItem('LPK_TWA_V2026_ULTIMATE_FINAL')) {
         try {
             const draftSnap = await getDoc(doc(db, "user_progress", `${uid}_TWA`));
@@ -1234,6 +1356,59 @@ async function syncDraftToCloud(uid) {
             }
         } catch(e) { console.error("背景存檔失敗", e); }
     }
+
+    // ⭐ 同時同步到 whiteboard session（這條路不受 user_progress 規則限制）
+    if (window._wbSessionId && payload) {
+        try {
+            const parsed = JSON.parse(payload);
+            await syncToWhiteboardSession(window._wbSessionId, {
+                scores: parsed.scores || {},
+                currentScores: parsed.currentScores || {},
+                insight: parsed.insight || '',
+                focusType: document.getElementById('stat-focus')?.innerText || ''
+            });
+        } catch(e) {}
+    }
+}
+
+// ⭐ 直接把評測狀態寫進 whiteboard_sessions 文件
+let _syncCount = 0;
+let _syncErrorMsg = '';
+
+async function syncToWhiteboardSession(sessionId, data) {
+    if (!sessionId) { _updateSyncBadge('❌ 沒有 sessionId'); return; }
+    try {
+        _updateSyncBadge('⏳ 同步中...');
+        await setDoc(doc(db, 'whiteboard_sessions', sessionId), {
+            liveData: JSON.stringify(data),
+            liveAt: serverTimestamp()
+        }, { merge: true });
+        _syncCount++;
+        _syncErrorMsg = '';
+        _updateSyncBadge(`✅ 已同步 ${_syncCount} 次`);
+    } catch(e) {
+        _syncErrorMsg = e.code || e.message || '未知錯誤';
+        _updateSyncBadge(`❌ ${_syncErrorMsg}`);
+        console.error('whiteboard sync failed:', e);
+    }
+}
+
+function _updateSyncBadge(msg) {
+    let badge = document.getElementById('_wb_sync_badge');
+    if (!badge) {
+        badge = document.createElement('div');
+        badge.id = '_wb_sync_badge';
+        badge.style.cssText = [
+            'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);',
+            'background:#0f172a;color:white;font-size:12px;font-weight:700;',
+            'padding:6px 16px;border-radius:20px;z-index:9999;',
+            'font-family:monospace;white-space:nowrap;pointer-events:none;',
+            'box-shadow:0 4px 12px rgba(0,0,0,.3);'
+        ].join('');
+        document.body.appendChild(badge);
+    }
+    const sid = window._wbSessionId || '無';
+    badge.textContent = `白板同步：${msg}  sid:${sid.slice(-6)}`;
 }
 
 // 🚀 核心 4：清除進度功能

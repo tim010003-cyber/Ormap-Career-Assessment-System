@@ -72,7 +72,7 @@ tailwind.config = {
       <h1 class="text-2xl font-black text-secondary">個案管理</h1>
       <p class="text-slate-500 text-sm mt-1">所有使用過平台的用戶</p>
     </div>
-    <div class="flex gap-3 flex-wrap">
+    <div class="flex gap-3 flex-wrap items-center">
       <div class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 flex items-center gap-2">
         <i data-lucide="users" class="w-4 h-4 text-primary"></i>
         全部 <span id="statTotal" class="text-primary">0</span> 位
@@ -85,6 +85,12 @@ tailwind.config = {
         <i data-lucide="shield-off" class="w-4 h-4"></i>
         未授權 <span id="statUnauthorized">0</span>
       </div>
+      <!-- ⭐ 新增諮詢邀請按鈕：給全新或現有案主都可用 -->
+      <button onclick="openNewConsult(null)"
+        class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-black shadow-sm hover:-translate-y-0.5 active:translate-y-0 transition-all">
+        <i data-lucide="plus" class="w-4 h-4"></i>
+        新增諮詢邀請
+      </button>
     </div>
   </header>
 
@@ -156,7 +162,7 @@ tailwind.config = {
         </div>
         <p id="detailEmail" class="text-sm text-slate-400 mt-0.5"></p>
       </div>
-      <button id="wbBtn" onclick="openWhiteboard()"
+      <button id="wbBtn" onclick="openNewConsult(currentUid)"
         class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:-translate-y-0.5 active:translate-y-0 shadow-sm hover:bg-teal-700 transition-all">
         <i data-lucide="layout" class="w-4 h-4"></i>
         開啟白板
@@ -671,61 +677,224 @@ document.getElementById('addNoteBtn').addEventListener('click', async () => {
   lucide.createIcons();
 });
 
-// ── 白板 ──────────────────────────────────────────────
-window.openWhiteboard = async function() {
-  if (!currentUid) return;
-  const client = clientMap[currentUid];
-  if (!client) return;
+// ══ 諮詢邀請功能（新版）══════════════════════════════════
 
-  const btn = document.getElementById('wbBtn');
-  if (btn) { btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> 建立中...'; btn.disabled = true; }
+let _ncTool = 'TWA';
+let _ncSessionId = null;
+
+// 入口：從列表頁頂部按鈕 或 詳情頁按鈕都走這裡
+// clientUid 傳 null 表示全新案主，傳 uid 表示現有案主
+window.openNewConsult = function(clientUid) {
+  _ncTool = 'TWA';
+  _ncSessionId = null;
+
+  // Pre-fill client name if we have an existing client
+  const nameInput = document.getElementById('nc-client-name');
+  if (clientUid && clientMap[clientUid]) {
+    nameInput.value = clientMap[clientUid].name || '';
+    _ncTool = clientMap[clientUid].assessments?.[0]?.toolType || 'TWA';
+  } else {
+    nameInput.value = '';
+  }
+
+  // Reset to step 1
+  document.getElementById('nc-step1').classList.remove('hidden');
+  document.getElementById('nc-step2').classList.add('hidden');
+  ncPickTool(_ncTool);
+  document.getElementById('newConsultModal').classList.remove('hidden');
+  lucide.createIcons();
+};
+
+// Also keep old openWhiteboard as alias for detail view button (uses currentUid)
+window.openWhiteboard = function() {
+  window.openNewConsult(currentUid);
+};
+
+window.ncPickTool = function(tool) {
+  _ncTool = tool;
+  const twaBtn = document.getElementById('nc-twa');
+  const htiBtn = document.getElementById('nc-hti');
+  if (!twaBtn || !htiBtn) return;
+  // Only toggle container border/bg — don't touch inner SVG (Lucide replaces <i> with <svg>)
+  if (tool === 'TWA') {
+    twaBtn.className = 'flex-1 flex flex-col items-center gap-2.5 p-4 rounded-2xl border-2 border-primary bg-teal-50 transition-all cursor-pointer';
+    htiBtn.className  = 'flex-1 flex flex-col items-center gap-2.5 p-4 rounded-2xl border-2 border-slate-200 transition-all cursor-pointer hover:border-orange-400';
+  } else {
+    htiBtn.className  = 'flex-1 flex flex-col items-center gap-2.5 p-4 rounded-2xl border-2 border-orange-400 bg-orange-50 transition-all cursor-pointer';
+    twaBtn.className  = 'flex-1 flex flex-col items-center gap-2.5 p-4 rounded-2xl border-2 border-slate-200 transition-all cursor-pointer hover:border-primary';
+  }
+};
+
+window.closeNewConsult = function() {
+  document.getElementById('newConsultModal').classList.add('hidden');
+};
+
+window.ncCreate = async function() {
+  const btn = document.getElementById('nc-create-btn');
+  const clientNameRaw = document.getElementById('nc-client-name').value.trim();
+  btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin inline mr-1.5"></i> 建立中...';
+  btn.disabled = true;
+  lucide.createIcons();
 
   try {
-    // Check existing active session
-    const existing = await getDoc(doc(db, 'whiteboard_active', currentUid));
-    if (existing.exists() && existing.data().status === 'waiting') {
-      const url = `whiteboard.html?session=${existing.data().sessionId}`;
-      window.open(url, '_blank');
-      if (btn) { btn.innerHTML = '<i data-lucide="layout" class="w-4 h-4"></i> 開啟白板'; btn.disabled = false; lucide.createIcons(); }
-      return;
-    }
-
-    // Detect latest tool type
-    const latestTool = client.assessments[0]?.toolType || 'TWA';
-
-    // Create new session
     const sessionRef = await addDoc(collection(db, 'whiteboard_sessions'), {
       counselorUid: auth.currentUser.uid,
       counselorName: currentCounselorName,
       counselorEmail: auth.currentUser.email,
-      studentUid: currentUid,
-      studentName: client.name,
-      studentEmail: client.email,
-      toolType: latestTool,
+      studentUid: null,
+      studentName: clientNameRaw || null,
+      studentEmail: null,
+      toolType: _ncTool,
       status: 'waiting',
       createdAt: serverTimestamp()
     });
+    _ncSessionId = sessionRef.id;
 
-    // Save pointer for student lookup
-    await setDoc(doc(db, 'whiteboard_active', currentUid), {
-      sessionId: sessionRef.id,
-      counselorName: currentCounselorName,
-      toolType: latestTool,
-      status: 'waiting',
-      createdAt: serverTimestamp()
-    });
+    const origin = window.location.origin;
+    const wbUrl = `${origin}/whiteboard.html?session=${_ncSessionId}`;
 
-    const url = `whiteboard.html?session=${sessionRef.id}`;
-    window.open(url, '_blank');
+    document.getElementById('nc-wb-url').textContent = wbUrl;
+    document.getElementById('nc-open-wb').href = wbUrl;
+
+    document.getElementById('nc-step1').classList.add('hidden');
+    document.getElementById('nc-step2').classList.remove('hidden');
+    lucide.createIcons();
   } catch(e) {
     console.error(e);
-    alert('白板建立失敗，請稍後再試。');
+    alert('建立失敗：' + e.message);
   }
 
-  if (btn) { btn.innerHTML = '<i data-lucide="layout" class="w-4 h-4"></i> 開啟白板'; btn.disabled = false; lucide.createIcons(); }
+  btn.innerHTML = '建立邀請';
+  btn.disabled = false;
+};
+
+window.ncCopyInvite = function() {
+  const url = document.getElementById('nc-invite-url').textContent;
+  navigator.clipboard.writeText(url).then(() => {
+    const el = document.getElementById('nc-invite-url');
+    const orig = el.textContent;
+    el.textContent = '✓ 已複製！';
+    setTimeout(() => { el.textContent = orig; }, 1500);
+  });
+};
+
+window.ncCopyWb = function() {
+  const url = document.getElementById('nc-wb-url').textContent;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById('nc-copy-btn');
+    if (btn) {
+      const orig = btn.innerHTML;
+      btn.innerHTML = '✓ 已複製！';
+      btn.style.background = '#16a34a';
+      setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; lucide.createIcons(); }, 1800);
+    }
+  });
 };
 
 lucide.createIcons();
 </script>
+
+<!-- ══════════════ 諮詢邀請 Modal（新版）══════════════ -->
+<div id="newConsultModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center px-4">
+  <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8">
+
+    <!-- Step 1: Setup -->
+    <div id="nc-step1">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="send" class="w-5 h-5 text-primary"></i>
+        </div>
+        <div>
+          <h3 class="font-black text-lg text-secondary">新增諮詢邀請</h3>
+          <p class="text-xs text-slate-400">可邀請全新案主，也可給現有個案</p>
+        </div>
+      </div>
+
+      <!-- Optional client name -->
+      <div class="mb-4">
+        <label class="text-xs font-black text-slate-500 uppercase tracking-widest block mb-2">案主姓名（選填）</label>
+        <input id="nc-client-name" type="text" placeholder="例：王小明（留空也可以）"
+          class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary transition-colors font-medium">
+      </div>
+
+      <!-- Tool selector -->
+      <div class="mb-6">
+        <label class="text-xs font-black text-slate-500 uppercase tracking-widest block mb-3">選擇評測工具</label>
+        <div class="flex gap-3">
+          <button onclick="ncPickTool('TWA')" id="nc-twa"
+            class="flex-1 flex flex-col items-center gap-2.5 p-4 rounded-2xl border-2 border-primary bg-teal-50 transition-all cursor-pointer">
+            <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+              <i data-lucide="compass" class="w-5 h-5 text-white"></i>
+            </div>
+            <div class="text-center">
+              <p class="text-sm font-black text-primary">TWA</p>
+              <p class="text-xs text-teal-600 leading-tight mt-0.5">工作價值觀評測</p>
+            </div>
+          </button>
+          <button onclick="ncPickTool('HTI')" id="nc-hti"
+            class="flex-1 flex flex-col items-center gap-2.5 p-4 rounded-2xl border-2 border-slate-200 transition-all cursor-pointer hover:border-orange-400">
+            <div id="nc-hti-icon" class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
+              <i data-lucide="cpu" class="w-5 h-5 text-slate-400"></i>
+            </div>
+            <div class="text-center">
+              <p id="nc-hti-label" class="text-sm font-bold text-slate-500">HTI</p>
+              <p class="text-xs text-slate-400 leading-tight mt-0.5">何倫特質解析</p>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex gap-3">
+        <button onclick="closeNewConsult()"
+          class="flex-1 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-all">
+          取消
+        </button>
+        <button id="nc-create-btn" onclick="ncCreate()"
+          class="flex-1 py-3 bg-primary text-white rounded-2xl font-black shadow-lg hover:-translate-y-0.5 transition-all">
+          建立邀請
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 2: Single whiteboard link -->
+    <div id="nc-step2" class="hidden">
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 bg-teal-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+          <i data-lucide="check-circle-2" class="w-7 h-7 text-primary"></i>
+        </div>
+        <h3 class="font-black text-xl text-secondary mb-1">白板已建立！</h3>
+        <p class="text-slate-400 text-sm leading-relaxed">這個連結傳給案主即可<br>
+        <span class="text-xs text-slate-300">案主點開 → 登入 → 直接開始評測</span></p>
+      </div>
+
+      <!-- Single link for everything -->
+      <div class="mb-6">
+        <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2.5">白板連結（傳給案主）</p>
+        <div class="flex items-center gap-2 bg-teal-50 border-2 border-teal-200 rounded-xl p-4">
+          <span id="nc-wb-url" class="text-sm text-teal-800 flex-1 break-all leading-relaxed font-mono font-bold"></span>
+          <button onclick="ncCopyWb()" id="nc-copy-btn"
+            class="flex-shrink-0 flex items-center gap-1.5 bg-primary text-white rounded-lg px-3 py-1.5 text-xs font-black transition-all hover:bg-teal-700">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            複製
+          </button>
+        </div>
+        <p class="text-xs text-slate-400 mt-2">你和案主打開同一個連結，系統自動分辨角色</p>
+      </div>
+
+      <div class="flex gap-3">
+        <button onclick="closeNewConsult()"
+          class="flex-1 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-all">
+          關閉
+        </button>
+        <a id="nc-open-wb" href="#" target="_blank"
+          class="flex-1 py-3 bg-primary text-white rounded-2xl font-black shadow-lg hover:-translate-y-0.5 transition-all text-center">
+          開啟我的白板 →
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 </body>
 </html>

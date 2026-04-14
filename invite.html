@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>評測邀請 | Ormap</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config = { theme: { extend: { colors: { primary: '#0d9488', secondary: '#0f172a' } } } }</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+*{ font-family:'Noto Sans TC',sans-serif; }
+.fade-in{ animation: fadeIn .5s ease-out both; }
+.fade-in-delay{ animation: fadeIn .5s ease-out .15s both; }
+.fade-in-delay-2{ animation: fadeIn .5s ease-out .3s both; }
+@keyframes fadeIn{ from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
+
+<!-- Loading -->
+<div id="loading" class="text-center">
+  <div class="w-12 h-12 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+  <p class="text-slate-400 text-sm">讀取邀請資訊...</p>
+</div>
+
+<!-- Error -->
+<div id="error-view" class="hidden text-center max-w-sm">
+  <div class="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+    <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+  </div>
+  <h2 class="font-black text-xl text-secondary mb-2">邀請連結無效</h2>
+  <p id="error-msg" class="text-slate-400 text-sm mb-6">此邀請連結已失效或不存在。</p>
+  <a href="index.html" class="inline-block bg-primary text-white rounded-2xl px-6 py-3 font-black text-sm">回到首頁</a>
+</div>
+
+<!-- Invite Card -->
+<div id="invite-view" class="hidden max-w-sm w-full fade-in">
+  <div class="text-center mb-8">
+    <img src="ormap-logo.png" alt="Ormap" class="w-10 h-10 object-contain mx-auto mb-4" onerror="this.style.display='none'">
+    <p class="text-xs font-black text-slate-400 uppercase tracking-widest">職涯諮詢邀請</p>
+  </div>
+
+  <div class="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden fade-in-delay">
+
+    <!-- Counselor info header -->
+    <div class="bg-gradient-to-br from-teal-600 to-teal-500 p-7 text-center relative overflow-hidden">
+      <div class="absolute inset-0 opacity-10" style="background-image:radial-gradient(circle,white 1px,transparent 1px);background-size:20px 20px;"></div>
+      <div class="relative">
+        <div id="counselor-avatar" class="w-14 h-14 rounded-2xl bg-white/20 text-white text-xl font-black flex items-center justify-center mx-auto mb-3 backdrop-blur-sm border border-white/30">？</div>
+        <p class="text-teal-100 text-xs font-bold mb-1">邀請你進行評測</p>
+        <h1 class="text-white font-black text-xl" id="counselor-name">諮詢師</h1>
+      </div>
+    </div>
+
+    <!-- Tool info -->
+    <div class="p-6">
+      <div id="tool-info-twa" class="hidden mb-6">
+        <div class="flex items-center gap-4 p-4 bg-teal-50 rounded-2xl border border-teal-100 mb-4">
+          <div class="w-12 h-12 bg-primary rounded-xl flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          </div>
+          <div>
+            <p class="text-xs font-black text-primary uppercase tracking-widest mb-0.5">評測工具</p>
+            <h2 class="font-black text-secondary text-base">TWA 工作價值觀評測</h2>
+            <p class="text-xs text-slate-500 mt-0.5">了解你最重視的工作條件與價值觀</p>
+          </div>
+        </div>
+        <div class="space-y-2">
+          <div class="flex items-center gap-3 text-sm text-slate-600">
+            <div class="w-6 h-6 bg-teal-50 rounded-full flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+            評測 20 個心理需求，找出你最在乎的前五項
+          </div>
+          <div class="flex items-center gap-3 text-sm text-slate-600">
+            <div class="w-6 h-6 bg-teal-50 rounded-full flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+            預估時間：20–30 分鐘
+          </div>
+          <div class="flex items-center gap-3 text-sm text-slate-600">
+            <div class="w-6 h-6 bg-teal-50 rounded-full flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+            完成後諮詢師將即時與你解讀結果
+          </div>
+        </div>
+      </div>
+
+      <div id="tool-info-hti" class="hidden mb-6">
+        <div class="flex items-center gap-4 p-4 bg-orange-50 rounded-2xl border border-orange-100 mb-4">
+          <div class="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+          </div>
+          <div>
+            <p class="text-xs font-black text-orange-500 uppercase tracking-widest mb-0.5">評測工具</p>
+            <h2 class="font-black text-secondary text-base">HTI 何倫特質解析</h2>
+            <p class="text-xs text-slate-500 mt-0.5">探索你的天賦特質與原動力</p>
+          </div>
+        </div>
+        <div class="space-y-2">
+          <div class="flex items-center gap-3 text-sm text-slate-600">
+            <div class="w-6 h-6 bg-orange-50 rounded-full flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+            從 25 個活動中找出你的天賦代碼
+          </div>
+          <div class="flex items-center gap-3 text-sm text-slate-600">
+            <div class="w-6 h-6 bg-orange-50 rounded-full flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+            預估時間：15–25 分鐘
+          </div>
+          <div class="flex items-center gap-3 text-sm text-slate-600">
+            <div class="w-6 h-6 bg-orange-50 rounded-full flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+            完成後諮詢師將即時與你解讀結果
+          </div>
+        </div>
+      </div>
+
+      <!-- Login button -->
+      <div id="login-section" class="fade-in-delay-2">
+        <button id="google-login-btn"
+          class="w-full flex items-center justify-center gap-3 py-4 bg-secondary text-white rounded-2xl font-black text-sm shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all">
+          <svg width="18" height="18" viewBox="0 0 24 24">
+            <path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          使用 Google 帳號登入並開始評測
+        </button>
+        <p class="text-xs text-slate-400 text-center mt-3">登入後即可直接開始評測，無需其他設定</p>
+      </div>
+
+      <!-- Already logged in -->
+      <div id="logged-in-section" class="hidden">
+        <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-4">
+          <img id="current-user-photo" src="" class="w-9 h-9 rounded-full border border-slate-200" onerror="this.style.display='none'">
+          <div class="flex-1 min-w-0">
+            <p id="current-user-name" class="text-sm font-bold text-secondary truncate"></p>
+            <p id="current-user-email" class="text-xs text-slate-400 truncate"></p>
+          </div>
+          <button id="switch-account-btn" class="text-xs text-slate-400 hover:text-primary transition-colors flex-shrink-0">切換帳號</button>
+        </div>
+        <button id="start-btn"
+          class="w-full py-4 bg-primary text-white rounded-2xl font-black text-sm shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all">
+          開始評測 →
+        </button>
+      </div>
+
+      <p id="login-error" class="hidden text-xs text-red-500 text-center mt-3"></p>
+    </div>
+  </div>
+
+  <p class="text-xs text-slate-400 text-center mt-6">
+    由 <a href="https://careervalue-ormap.web.app" class="text-primary hover:underline">Ormap 職涯評測平台</a> 提供服務
+  </p>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
+  authDomain: "careervalue-ormap.firebaseapp.com",
+  projectId: "careervalue-ormap",
+  storageBucket: "careervalue-ormap.firebasestorage.app",
+  messagingSenderId: "883599167982",
+  appId: "1:883599167982:web:6dee33f8abf03de9b53eff"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+// ── Read URL params ──────────────────────────────────────────────────
+const params = new URLSearchParams(location.search);
+const sessionId = params.get('session');
+// Fallback display hints from URL (shown before auth)
+const hintCounselor = params.get('c') || '您的諮詢師';
+const hintTool = params.get('t') || 'TWA';
+
+let sessionData = null;
+let currentUser = null;
+
+// ── Validate session & pre-render ────────────────────────────────────
+if (!sessionId) {
+  showError('缺少邀請參數，請確認連結是否完整。');
+} else {
+  // Pre-render with URL hints while we verify
+  prefillFromHints(hintCounselor, hintTool);
+
+  // Auth state
+  onAuthStateChanged(auth, user => {
+    currentUser = user;
+    if (user) {
+      showLoggedInState(user);
+    } else {
+      showLoginBtn();
+    }
+  });
+
+  // Load full session data (requires auth for Firestore rules)
+  // We'll load it after login; before that use URL hints
+}
+
+function prefillFromHints(counselorName, toolType) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('invite-view').classList.remove('hidden');
+
+  // Counselor avatar
+  const avatarEl = document.getElementById('counselor-avatar');
+  avatarEl.textContent = counselorName.charAt(0).toUpperCase();
+  document.getElementById('counselor-name').textContent = counselorName;
+
+  // Tool info
+  if (toolType === 'HTI') {
+    document.getElementById('tool-info-hti').classList.remove('hidden');
+  } else {
+    document.getElementById('tool-info-twa').classList.remove('hidden');
+  }
+}
+
+// ── Login ────────────────────────────────────────────────────────────
+document.getElementById('google-login-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('google-login-btn');
+  btn.textContent = '登入中...'; btn.disabled = true;
+  try {
+    await signInWithPopup(auth, provider);
+    // onAuthStateChanged will handle next steps
+  } catch(e) {
+    showLoginError('登入失敗，請再試一次。');
+    btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> 使用 Google 帳號登入並開始評測`;
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('switch-account-btn').addEventListener('click', async () => {
+  await signOut(auth);
+});
+
+document.getElementById('start-btn').addEventListener('click', () => {
+  startAssessment();
+});
+
+// ── After login: load session & route ───────────────────────────────
+function showLoggedInState(user) {
+  document.getElementById('login-section').classList.add('hidden');
+  document.getElementById('logged-in-section').classList.remove('hidden');
+  document.getElementById('current-user-photo').src = user.photoURL || '';
+  document.getElementById('current-user-name').textContent = user.displayName || '用戶';
+  document.getElementById('current-user-email').textContent = user.email;
+
+  // Load session data to get full info
+  loadSessionData();
+}
+
+function showLoginBtn() {
+  document.getElementById('login-section').classList.remove('hidden');
+  document.getElementById('logged-in-section').classList.add('hidden');
+}
+
+async function loadSessionData() {
+  try {
+    const snap = await getDoc(doc(db, 'whiteboard_sessions', sessionId));
+    if (!snap.exists()) { showError('此邀請連結已失效或不存在。'); return; }
+    sessionData = snap.data();
+
+    if (sessionData.status === 'ended') { showError('此諮詢已結束，連結已失效。'); return; }
+
+    // Update display with real data
+    const counselorName = sessionData.counselorName || hintCounselor;
+    document.getElementById('counselor-avatar').textContent = counselorName.charAt(0).toUpperCase();
+    document.getElementById('counselor-name').textContent = counselorName;
+
+    // Update tool info display
+    const tool = sessionData.toolType || hintTool;
+    document.getElementById('tool-info-twa').classList.toggle('hidden', tool !== 'TWA');
+    document.getElementById('tool-info-hti').classList.toggle('hidden', tool !== 'HTI');
+
+  } catch(e) {
+    console.error(e);
+    // Non-fatal: keep URL hints
+  }
+}
+
+async function startAssessment() {
+  if (!currentUser) return;
+  const btn = document.getElementById('start-btn');
+  btn.textContent = '準備中...'; btn.disabled = true;
+
+  try {
+    // Load session if not yet loaded
+    if (!sessionData) {
+      const snap = await getDoc(doc(db, 'whiteboard_sessions', sessionId));
+      if (snap.exists()) sessionData = snap.data();
+    }
+
+    const toolType = sessionData?.toolType || hintTool;
+
+    // Register student in the session
+    if (sessionData && !sessionData.studentUid) {
+      await updateDoc(doc(db, 'whiteboard_sessions', sessionId), {
+        studentUid: currentUser.uid,
+        studentName: currentUser.displayName || '學員',
+        studentEmail: currentUser.email,
+        status: 'active'
+      });
+    }
+
+    // Write whiteboard_active so twa.html detects it
+    const { setDoc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+    await setDoc(doc(db, 'whiteboard_active', currentUser.uid), {
+      sessionId,
+      counselorName: sessionData?.counselorName || hintCounselor,
+      toolType,
+      status: 'active',
+      createdAt: serverTimestamp()
+    });
+
+    // Redirect to the assessment
+    if (toolType === 'HTI') {
+      window.location.href = `tools/hti.html`;
+    } else {
+      window.location.href = `tools/twa.html`;
+    }
+
+  } catch(e) {
+    console.error(e);
+    showLoginError('發生錯誤，請重新整理再試。');
+    btn.textContent = '開始評測 →'; btn.disabled = false;
+  }
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────
+function showError(msg) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('invite-view').classList.add('hidden');
+  document.getElementById('error-view').classList.remove('hidden');
+  document.getElementById('error-msg').textContent = msg;
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+</script>
+</body>
+</html>

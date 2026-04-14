@@ -101,10 +101,10 @@ html,body{ height:100%; overflow:hidden; }
   <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-7 text-center">
     <div class="w-14 h-14 bg-teal-50 rounded-2xl flex items-center justify-center mx-auto mb-4"><i data-lucide="check-circle-2" class="w-7 h-7 text-primary"></i></div>
     <h3 class="font-black text-xl text-secondary mb-1">白板已建立！</h3>
-    <p class="text-slate-400 text-sm mb-5">傳連結給學員 → 學員去做評測 → 你在這裡即時看到</p>
-    <div class="bg-slate-50 rounded-xl p-3.5 mb-4 flex items-start gap-3 text-left">
-      <span id="invite-url" class="text-xs text-slate-600 flex-1 break-all leading-relaxed"></span>
-      <button onclick="copyInvite()" class="flex-shrink-0 text-primary mt-0.5"><i data-lucide="copy" class="w-4 h-4"></i></button>
+    <p class="text-slate-400 text-sm mb-5">複製連結傳給學員 → 學員點擊進入 → 你在這裡即時看到</p>
+    <div class="bg-slate-50 rounded-xl p-3.5 mb-5 flex items-start gap-3 text-left">
+      <span id="invite-url" class="text-xs text-slate-600 flex-1 break-all leading-relaxed font-mono"></span>
+      <button onclick="copyInvite()" class="flex-shrink-0 text-primary mt-0.5" title="複製連結"><i data-lucide="copy" class="w-4 h-4"></i></button>
     </div>
     <button onclick="enterBoard()" class="w-full bg-primary text-white rounded-2xl py-3 font-black text-sm shadow-lg hover:-translate-y-0.5 transition-all">進入白板</button>
   </div>
@@ -136,38 +136,23 @@ html,body{ height:100%; overflow:hidden; }
   <!-- Body -->
   <div class="flex flex-1 overflow-hidden">
 
-    <!-- Left Toolbar -->
-    <div class="w-12 bg-white border-r border-slate-200 flex flex-col items-center py-2 gap-0.5 flex-shrink-0 z-30 overflow-y-auto">
-      <div title="瀏覽（可滾動）" id="tool-pointer" class="tool-btn active" onclick="setTool('pointer')"><i data-lucide="mouse-pointer-2" class="w-4 h-4"></i></div>
-      <div class="tool-sep"></div>
-      <div title="畫筆" id="tool-pen" class="tool-btn" onclick="setTool('pen')"><i data-lucide="pen-line" class="w-4 h-4"></i></div>
-      <div title="螢光筆" id="tool-highlight" class="tool-btn" onclick="setTool('highlight')"><i data-lucide="highlighter" class="w-4 h-4"></i></div>
-      <div title="橡皮擦" id="tool-eraser" class="tool-btn" onclick="setTool('eraser')"><i data-lucide="eraser" class="w-4 h-4"></i></div>
-      <div class="tool-sep"></div>
-      <div title="便利貼" id="tool-sticky" class="tool-btn" onclick="setTool('sticky')"><i data-lucide="sticky-note" class="w-4 h-4"></i></div>
-      <div class="tool-sep"></div>
-      <div class="flex flex-col items-center gap-1 py-1">
-        <button class="w-btn active" id="w-2" onclick="setWidth(2)"><div style="width:12px;height:2px;background:#475569;border-radius:2px"></div></button>
-        <button class="w-btn" id="w-4" onclick="setWidth(4)"><div style="width:12px;height:4px;background:#475569;border-radius:2px"></div></button>
-        <button class="w-btn" id="w-8" onclick="setWidth(8)"><div style="width:12px;height:7px;background:#475569;border-radius:3px"></div></button>
-      </div>
-      <div class="tool-sep"></div>
-      <div class="flex flex-col items-center gap-1.5 py-1">
-        <button class="c-dot active" id="cd-ef4444" style="background:#ef4444" onclick="setColor('#ef4444')" title="紅"></button>
-        <button class="c-dot" id="cd-f97316" style="background:#f97316" onclick="setColor('#f97316')" title="橘"></button>
-        <button class="c-dot" id="cd-eab308" style="background:#eab308" onclick="setColor('#eab308')" title="黃"></button>
-        <button class="c-dot" id="cd-0d9488" style="background:#0d9488" onclick="setColor('#0d9488')" title="青"></button>
-        <button class="c-dot" id="cd-3b82f6" style="background:#3b82f6" onclick="setColor('#3b82f6')" title="藍"></button>
-        <button class="c-dot" id="cd-8b5cf6" style="background:#8b5cf6" onclick="setColor('#8b5cf6')" title="紫"></button>
-        <button class="c-dot" id="cd-0f172a" style="background:#0f172a" onclick="setColor('#0f172a')" title="黑"></button>
-      </div>
-      <div class="flex-1"></div>
-      <div class="tool-sep"></div>
-      <div class="tool-btn text-red-400 hover:bg-red-50" onclick="clearAnno()" title="清除標注"><i data-lucide="trash-2" class="w-4 h-4"></i></div>
-    </div>
-
     <!-- Mirror + Canvas -->
-    <div class="flex-1 relative overflow-hidden">
+    <div class="flex-1 relative overflow-hidden flex flex-col">
+
+      <!-- ⭐ 即時洞察列（諮詢師專用，學員看不到）-->
+      <div id="insights-bar" class="hidden flex-shrink-0 bg-white border-b border-slate-200 px-4 py-2 flex items-center gap-3 flex-wrap z-20">
+        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">即時洞察</span>
+        <div class="flex items-center gap-1.5">
+          <div class="h-1.5 w-16 bg-slate-100 rounded-full overflow-hidden">
+            <div id="ib-budget-bar" class="h-full bg-primary rounded-full transition-all duration-500" style="width:0%"></div>
+          </div>
+          <span id="ib-budget" class="text-xs font-black text-primary whitespace-nowrap">0/115</span>
+        </div>
+        <span id="ib-focus" class="hidden text-xs font-black px-2 py-0.5 bg-teal-50 text-teal-700 rounded-lg"></span>
+        <span id="ib-top3" class="text-xs text-slate-500 font-medium truncate flex-1 min-w-0">等待學員開始...</span>
+      </div>
+
+      <div class="flex-1 relative overflow-hidden">
       <div id="mirror-scroll">
 
         <!-- Waiting -->
@@ -184,7 +169,7 @@ html,body{ height:100%; overflow:hidden; }
           <p class="text-xs text-slate-400 mt-3">傳連結給學員 → 學員去 twa.html / hti.html 做評測</p>
         </div>
 
-        <!-- TWA Mirror -->
+        <!-- TWA Mirror（保留，作為 iframe 不可用時的降級方案）-->
         <div id="mirror-twa" class="hidden">
           <!-- Sticky header -->
           <div class="m-section" style="position:sticky;top:0;background:white;z-index:5;border-bottom:2px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,.04);">
@@ -213,7 +198,7 @@ html,body{ height:100%; overflow:hidden; }
           <div class="h-16"></div>
         </div>
 
-        <!-- HTI Mirror -->
+        <!-- HTI Mirror（保留，作為降級方案）-->
         <div id="mirror-hti" class="hidden">
           <div class="m-section" style="position:sticky;top:0;background:white;z-index:5;border-bottom:2px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,.04);">
             <div class="flex items-center gap-4 flex-wrap">
@@ -230,7 +215,15 @@ html,body{ height:100%; overflow:hidden; }
         </div>
 
       </div><!-- mirror-scroll -->
+
+      <!-- ⭐ 即時鏡像 iframe：顯示與學員完全相同的 twa/hti 畫面 -->
+      <iframe id="mirror-iframe"
+        style="position:absolute;inset:0;width:100%;height:100%;border:none;z-index:2;display:none;"
+        allow="same-origin">
+      </iframe>
+
       <canvas id="anno-canvas"></canvas>
+      </div><!-- inner relative wrapper -->
     </div>
 
     <!-- Right Panel -->
@@ -256,12 +249,12 @@ html,body{ height:100%; overflow:hidden; }
           </div>
         </div>
         <div id="invite-section">
-          <p class="text-xs font-black text-slate-300 uppercase tracking-widest mb-2">邀請連結</p>
-          <div class="bg-slate-50 rounded-xl p-3">
-            <p class="text-xs text-slate-400 mb-2">傳給學員後，學員去做評測</p>
-            <div class="flex gap-2 items-start">
-              <span id="invite-url-panel" class="text-xs text-slate-600 flex-1 break-all leading-relaxed"></span>
-              <button onclick="copyInvitePanel()" class="flex-shrink-0 text-primary mt-0.5"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
+          <p class="text-xs font-black text-slate-300 uppercase tracking-widest mb-2">邀請學員</p>
+          <div class="bg-slate-50 rounded-xl p-3 space-y-2">
+            <p class="text-xs text-slate-400">複製連結後傳給學員</p>
+            <div class="flex gap-2 items-center">
+              <span id="invite-url-panel" class="text-xs text-slate-500 flex-1 break-all leading-relaxed font-mono truncate"></span>
+              <button onclick="copyInvitePanel()" class="flex-shrink-0 text-primary" title="複製連結"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
             </div>
           </div>
         </div>
@@ -283,7 +276,7 @@ html,body{ height:100%; overflow:hidden; }
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, addDoc, getDoc, updateDoc, collection, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, addDoc, getDoc, updateDoc, deleteDoc, collection, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
@@ -499,25 +492,81 @@ function subSession(){
     }
     updateStatus();
 
-    // ⭐ 核心：即時鏡像 — 收到 liveData 就直接渲染，不需要額外訂閱
+    // ⭐ 核心：即時鏡像 — 收到 liveData 就載入 iframe（只載入一次，iframe 自己訂閱更新）
     if(userRole==='counselor' && sessionData.liveData){
       try{
-        const data = typeof sessionData.liveData === 'string'
-          ? JSON.parse(sessionData.liveData)
-          : sessionData.liveData;
         document.getElementById('mirror-waiting').classList.add('hidden');
-        const tool = sessionData.toolType;
-        if(tool==='TWA') renderTWA(data);
-        else if(tool==='HTI') renderHTI(data);
+        const tool   = sessionData.toolType;
+        const iframe = document.getElementById('mirror-iframe');
+
+        // iframe 只設定一次 src，之後由 twa/hti 的 mirror 模式自行訂閱 Firestore
+        if(iframe.style.display === 'none'){
+          const src = tool === 'HTI'
+            ? `tools/hti.html?mirror=1&sid=${sessionId}`
+            : `tools/twa.html?mirror=1&sid=${sessionId}`;
+          iframe.src = src;
+          iframe.style.display = 'block';
+        }
+
+        // ⭐ 更新即時洞察列
+        const ld = typeof sessionData.liveData === 'string'
+          ? JSON.parse(sessionData.liveData) : sessionData.liveData;
+        updateInsightsBar(ld, tool);
+
         const now=new Date();
         const el=document.getElementById('last-update');
         if(el){ el.textContent=`${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')} 更新`; el.classList.remove('hidden'); }
-      }catch(e){ console.warn('liveData parse error',e); }
+      }catch(e){ console.warn('mirror iframe error',e); }
     }
 
     if(sessionData.status==='ended'&&prev?.status!=='ended'){ toast('白板階段已結束'); setTimeout(()=>{location.href='dashboard.html';},2000); }
   });
   unsubs.push(u);
+}
+
+/** 更新頂部即時洞察列 */
+function updateInsightsBar(ld, tool) {
+  const bar = document.getElementById('insights-bar');
+  if (!bar) return;
+  bar.classList.remove('hidden');
+
+  if (tool === 'TWA') {
+    const scores = ld.scores || {};
+    const total  = Object.values(scores).reduce((s, v) => s + (Number(v) || 0), 0);
+    const pct    = Math.min(100, (total / 115) * 100);
+
+    const budgetBar = document.getElementById('ib-budget-bar');
+    const budgetNum = document.getElementById('ib-budget');
+    if (budgetBar) { budgetBar.style.width = pct + '%'; budgetBar.style.background = pct > 95 ? '#ef4444' : '#0d9488'; }
+    if (budgetNum) budgetNum.textContent = `${total}/115`;
+
+    const focusBadge = document.getElementById('ib-focus');
+    if (focusBadge && ld.focusType) { focusBadge.textContent = ld.focusType; focusBadge.classList.remove('hidden'); }
+
+    const top3El = document.getElementById('ib-top3');
+    if (top3El && twaMatrix) {
+      const ranked = twaMatrix
+        .map((item, i) => ({ name: item.need, score: Number(scores['n' + i]) || 0 }))
+        .filter(x => x.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3);
+      top3El.textContent = ranked.length
+        ? '前三：' + ranked.map(x => `${x.name} ${x.score}`).join('　')
+        : '尚未開始填答';
+    }
+  } else if (tool === 'HTI') {
+    const scores = ld.scores || {};
+    const codes  = ['R','I','A','S','E','C'];
+    const top    = codes.filter(c => scores[c] > 0).sort((a, b) => Number(scores[b]) - Number(scores[a])).slice(0, 3);
+    const top3El = document.getElementById('ib-top3');
+    const focusBadge = document.getElementById('ib-focus');
+    const budgetNum  = document.getElementById('ib-budget');
+    if (budgetNum) budgetNum.textContent = '';
+    if (focusBadge && top.length) { focusBadge.textContent = top.join(' › '); focusBadge.classList.remove('hidden'); }
+    if (top3El) top3El.textContent = top.length
+      ? '前三代碼：' + top.map(c => `${c}(${RIASEC_L[c]} ${scores[c]})`).join('　')
+      : '尚未開始填答';
+  }
 }
 
 function updateStatus(){
@@ -657,7 +706,13 @@ function renderHTI(data){
 
 window.confirmEnd=function(){
   if(confirm('確定結束此白板階段？')){
-    updateDoc(doc(db,'whiteboard_sessions',sessionId),{status:'ended',endedAt:serverTimestamp()})
+    const studentUid = sessionData?.studentUid;
+    const ops = [
+      updateDoc(doc(db,'whiteboard_sessions',sessionId),{status:'ended',endedAt:serverTimestamp()})
+    ];
+    // ⭐ 同步清除學員的 whiteboard_active，讓 Dashboard 橫幅消失
+    if (studentUid) ops.push(deleteDoc(doc(db,'whiteboard_active',studentUid)));
+    Promise.all(ops)
       .then(()=>{toast('已結束');setTimeout(()=>{location.href='admin.html';},1500);})
       .catch(console.error);
   }

@@ -46,6 +46,35 @@
         .report-block::before { content: ''; position: absolute; left: 0; top: 0.5rem; bottom: 0.5rem; width: 4px; background-color: #0d9488; border-radius: 4px; }
         #toast-save { transition: opacity 0.3s, transform 0.3s; transform: translateY(-10px); opacity: 0; pointer-events: none; }
         #toast-save.show { transform: translateY(0); opacity: 1; }
+
+        /* ===== ⭐ HTI 白板鏡像模式 ===== */
+        body.hti-mirror-mode #view-landing,
+        body.hti-mirror-mode footer,
+        body.hti-mirror-mode #toast-save,
+        body.hti-mirror-mode #restore-modal { display: none !important; }
+        body.hti-mirror-mode header { display: none !important; }
+        body.hti-mirror-mode main { padding-top: 8px !important; }
+        body.hti-mirror-mode * { pointer-events: none !important; cursor: default !important; }
+        #hti-mirror-banner {
+            position: sticky; top: 0; z-index: 99;
+            background: #f97316; color: white;
+            text-align: center; padding: 5px 16px;
+            font-size: 11px; font-weight: 900; letter-spacing: .08em;
+        }
+        /* ⭐ 作答高亮 */
+        .wb-highlight-active {
+            outline: 2.5px solid #f97316 !important;
+            outline-offset: 5px;
+            border-radius: 14px;
+            background: rgba(249,115,22,.04) !important;
+            animation: hti-highlight-pop .35s ease;
+        }
+        @keyframes hti-highlight-pop {
+            0%   { outline-color: transparent; box-shadow: 0 0 0 0 rgba(249,115,22,.35); }
+            40%  { box-shadow: 0 0 0 8px rgba(249,115,22,.08); }
+            100% { outline-color: #f97316; box-shadow: 0 0 0 4px rgba(249,115,22,.06); }
+        }
+        /* ===== END 白板鏡像模式 ===== */
     </style>
 </head>
 <body class="antialiased overflow-x-hidden">
@@ -525,8 +554,8 @@
                 });
 
                 // 組裝模組二（供 generateReport 使用）
-                window.htiModule2A = htiData.module2A || {};
-                window.htiModule2B = htiData.module2B || {};
+                window.htiModule2A = activitiesData.module2A || {};
+                window.htiModule2B = activitiesData.module2B || {};
 
                 // ===== 渲染 Landing Page 文案 =====
                 const L = landingData;
@@ -599,11 +628,12 @@
             } catch (error) {
                 console.error('資料載入失敗:', error);
                 document.body.innerHTML = `
-                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;color:#64748b;">
+                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;color:#64748b;padding:32px;text-align:center;">
                         <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
-                        <h2 style="font-size:20px;font-weight:bold;margin-bottom:8px;">資料載入失敗</h2>
-                        <p style="font-size:14px;">請確認網路連線後重新整理頁面</p>
-                        <button onclick="location.reload()" style="margin-top:16px;padding:10px 24px;background:#0d9488;color:white;border:none;border-radius:12px;cursor:pointer;font-weight:bold;">重新整理</button>
+                        <h2 style="font-size:20px;font-weight:bold;margin-bottom:8px;color:#0f172a;">資料載入失敗</h2>
+                        <p style="font-size:13px;background:#f1f5f9;padding:8px 16px;border-radius:8px;margin-bottom:16px;font-family:monospace;color:#ef4444;max-width:500px;word-break:break-all;">${error?.message || String(error)}</p>
+                        <p style="font-size:14px;margin-bottom:20px;">請確認網路連線後重新整理頁面</p>
+                        <button onclick="location.reload()" style="padding:10px 24px;background:#0d9488;color:white;border:none;border-radius:12px;cursor:pointer;font-weight:bold;">重新整理</button>
                     </div>`;
                 return false;
             }
@@ -619,18 +649,27 @@
         let state = { stage: 1, selectedIds: [], userMotives: {} };
         let saveTimeout;
 
+        // ⭐ WB / Mirror 模式偵測
+        const _isWbMode     = new URLSearchParams(window.location.search).get('wb')     === '1';
+        const _isMirrorMode = new URLSearchParams(window.location.search).get('mirror') === '1';
+        const _mirrorSid    = _isMirrorMode ? new URLSearchParams(window.location.search).get('sid') : null;
+        window._wbActiveId  = null;
+        if (_isWbMode || _isMirrorMode) localStorage.removeItem('hti_progress_v4');
+
         function saveProgress() {
+            if (_isMirrorMode) return; // 鏡像模式：只讀，不存進度
             localStorage.setItem('hti_progress_v4', JSON.stringify(state));
             const toast = document.getElementById('toast-save');
-            // 🌟 加上 if(toast) 保護機制，避免系統找不到元素而當機
             if (toast) {
                 toast.classList.add('show');
                 clearTimeout(saveTimeout);
                 saveTimeout = setTimeout(() => { toast.classList.remove('show'); }, 2000);
             }
+            window._wbDebouncedSync?.(); // ⭐ 白板廣播
         }
 
         function restoreProgress() {
+            if (_isWbMode || _isMirrorMode) { renderMarket(); return; } // WB/鏡像：不恢復舊進度
             const saved = localStorage.getItem('hti_progress_v4');
             if (saved) {
                 const parsed = JSON.parse(saved);
@@ -696,6 +735,7 @@
                 state.selectedIds.push(id);
                 card.classList.add('selected');
             }
+            window._wbActiveId = 'act-' + id; // ⭐ 高亮追蹤
             updateUI();
             saveProgress();
         }
@@ -799,11 +839,9 @@
                 state.userMotives[actId].push(index);
                 el.classList.add('active');
             }
+            window._wbActiveId = 'motive-' + actId; // ⭐ 高亮追蹤
             saveProgress();
         }
-
-        // ==========================================
-        // 📊 結算與報告生成
         // ==========================================
         let finalScores = { R:0, I:0, A:0, S:0, E:0, C:0 };
         window.getHTIScores = () => finalScores; // 🌟 新增這行：讓雲端模組能讀取分數
@@ -1006,7 +1044,72 @@
             });
         }
         window.generateReport = generateReport;
-        
+
+        // ===== ⭐ HTI 鏡像模式函數 =====
+        function applyMirrorUI() {
+            document.body.classList.add('hti-mirror-mode');
+            document.getElementById('view-landing').style.display  = 'none';
+            document.getElementById('view-assessment').style.display = 'block';
+            // 加入橙色鏡像橫幅
+            if (!document.getElementById('hti-mirror-banner')) {
+                const banner = document.createElement('div');
+                banner.id = 'hti-mirror-banner';
+                banner.textContent = '▶  諮詢師即時鏡像 — 正在同步學員評測進度';
+                document.getElementById('view-assessment').prepend(banner);
+            }
+        }
+
+        window.applyMirrorLiveData = function(liveData) {
+            if (!liveData || typeof activities === 'undefined' || !activities.length) return;
+
+            // 更新 state
+            if (liveData.selectedIds !== undefined) state.selectedIds = [...liveData.selectedIds];
+            if (liveData.userMotives  !== undefined) state.userMotives  = { ...liveData.userMotives };
+            const newStage = liveData.stage || 1;
+            state.stage = newStage;
+
+            // 切換並渲染對應 stage
+            ['stage-1','stage-2','stage-3'].forEach(id => {
+                document.getElementById(id)?.classList.add('hidden-stage');
+            });
+            if (newStage === 1) {
+                document.getElementById('stage-1').classList.remove('hidden-stage');
+                renderMarket();
+            } else if (newStage === 2) {
+                document.getElementById('stage-2').classList.remove('hidden-stage');
+                renderMotives();
+            } else if (newStage === 3 && liveData.finalScores) {
+                generateReport(liveData.finalScores);
+            }
+
+            // ⭐ 作答高亮
+            const activeId = liveData.activeId;
+            if (activeId) {
+                document.querySelectorAll('.wb-highlight-active')
+                    .forEach(el => el.classList.remove('wb-highlight-active'));
+
+                let targetEl = null;
+                if (activeId.startsWith('act-')) {
+                    targetEl = document.getElementById(activeId);
+                } else if (activeId.startsWith('motive-')) {
+                    const actId = parseInt(activeId.replace('motive-', ''));
+                    const pos   = state.selectedIds.indexOf(actId);
+                    if (pos >= 0) {
+                        targetEl = document.querySelectorAll('#motive-container > div')[pos];
+                    }
+                }
+                if (targetEl) {
+                    targetEl.classList.add('wb-highlight-active');
+                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    clearTimeout(window._htiHighlightTimer);
+                    window._htiHighlightTimer = setTimeout(() => {
+                        targetEl.classList.remove('wb-highlight-active');
+                    }, 3000);
+                }
+            }
+        };
+        // ===== END HTI 鏡像模式函數 =====
+
         window.onload = async function() {
             const ok = await loadData();
             if (ok) restoreProgress();
@@ -1015,7 +1118,7 @@
 <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         // 你的 Ormap Firebase 專屬金鑰
         const firebaseConfig = {
@@ -1030,20 +1133,48 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+
+        // ===== ⭐ HTI 白板同步模組 =====
+        const _sidFromUrl   = new URLSearchParams(window.location.search).get('sid');
+        let _wbDebounceTimer = null;
+        let _wbIntervalTimer = null;
+
+        /** 把目前評測狀態寫入 whiteboard_sessions/{sid}.liveData */
+        async function _wbDoSync() {
+            if (!window._wbSessionId) return;
+            try {
+                await setDoc(doc(db, 'whiteboard_sessions', window._wbSessionId), {
+                    liveData: {
+                        stage:       (typeof state       !== 'undefined') ? state.stage              : 1,
+                        selectedIds: (typeof state       !== 'undefined') ? [...state.selectedIds]   : [],
+                        userMotives: (typeof state       !== 'undefined') ? { ...state.userMotives } : {},
+                        finalScores: (typeof finalScores !== 'undefined') ? { ...finalScores }       : {},
+                        activeId:    window._wbActiveId || null
+                    },
+                    liveAt: serverTimestamp()
+                }, { merge: true });
+            } catch(e) { console.error('[HTI WB sync]', e); }
+        }
+
+        /** saveProgress() 呼叫的 debounce 入口（500ms），不回呼 saveProgress */
+        window._wbDebouncedSync = function() {
+            if (!window._wbSessionId) return;
+            clearTimeout(_wbDebounceTimer);
+            _wbDebounceTimer = setTimeout(_wbDoSync, 500);
+        };
+        // ===== END 白板同步模組 =====
         // 🌟 新增：監聽登入狀態並顯示大頭照
         // 監聽登入狀態並顯示大頭照與資訊
         // 🌟 1. 統一登入狀態監聽：曝光信箱與姓名變數
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // 將變數存入全域，方便後續儲存報告時使用
                 window.currentUserEmail = user.email || "未提供信箱";
                 window.currentUserName = user.displayName || "Ormap 探索者";
 
-                // 載入大頭貼與姓名 (測驗區與首頁區)
                 const avatar = document.getElementById('nav-user-avatar');
                 const avatarLanding = document.getElementById('nav-user-avatar-landing');
-                if (avatar) { avatar.src = user.photoURL || 'https://via.placeholder.com/150'; avatar.classList.remove('hidden'); }
-                if (avatarLanding) { avatarLanding.src = user.photoURL || 'https://via.placeholder.com/150'; avatarLanding.classList.remove('hidden'); }
+                if (avatar) { avatar.src = user.photoURL || ''; avatar.classList.remove('hidden'); }
+                if (avatarLanding) { avatarLanding.src = user.photoURL || ''; avatarLanding.classList.remove('hidden'); }
                 
                 const nameEl = document.getElementById('nav-user-name');
                 const nameElLanding = document.getElementById('nav-user-name-landing');
@@ -1055,10 +1186,91 @@
                 const dateElLanding = document.getElementById('nav-test-date-landing');
                 if (dateEl) dateEl.innerText = today;
                 if (dateElLanding) dateElLanding.innerText = today;
+
+                // ⭐ WB / Mirror 模式路由
+                if (_isMirrorMode && _mirrorSid) {
+                    setupMirrorSubscription(_mirrorSid);
+                } else if (_isWbMode && _sidFromUrl) {
+                    await setupWbBroadcast(user.uid, _sidFromUrl);
+                }
             } else {
                 window.location.href = '../index.html';
             }
         });
+
+        // ===== ⭐ WB 廣播 & Mirror 訂閱函數 =====
+
+        async function setupWbBroadcast(uid, sid) {
+            try {
+                window._wbSessionId = sid;
+                let counselorName = '諮詢師';
+                try {
+                    const sSnap = await getDoc(doc(db, 'whiteboard_sessions', sid));
+                    if (sSnap.exists()) counselorName = sSnap.data().counselorName || '諮詢師';
+                } catch(e) {}
+
+                showWbBannerHTI(counselorName);
+
+                // 立即寫入空白初始狀態
+                await _wbDoSync();
+
+                // 每 3 秒強制同步
+                _wbIntervalTimer = setInterval(_wbDoSync, 3000);
+
+                // 監聽 session 結束
+                onSnapshot(doc(db, 'whiteboard_active', uid), (snap) => {
+                    if (!snap.exists() || snap.data().status === 'ended') {
+                        hideWbBannerHTI();
+                        if (_wbIntervalTimer) clearInterval(_wbIntervalTimer);
+                        if (snap.exists()) deleteDoc(doc(db, 'whiteboard_active', uid)).catch(() => {});
+                    }
+                });
+            } catch(e) { console.warn('[HTI WB setup]', e); }
+        }
+
+        function setupMirrorSubscription(sid) {
+            // 等 activities 載入完成再 apply UI
+            const tryApply = () => {
+                if (typeof activities !== 'undefined' && activities.length > 0) {
+                    if (typeof applyMirrorUI === 'function') applyMirrorUI();
+                } else { setTimeout(tryApply, 200); }
+            };
+            tryApply();
+
+            onSnapshot(doc(db, 'whiteboard_sessions', sid), (snap) => {
+                if (!snap.exists()) return;
+                const d = snap.data();
+                if (!d.liveData) return;
+                const liveData = typeof d.liveData === 'string' ? JSON.parse(d.liveData) : d.liveData;
+                if (typeof window.applyMirrorLiveData === 'function') window.applyMirrorLiveData(liveData);
+            });
+        }
+
+        function showWbBannerHTI(counselorName) {
+            if (document.getElementById('wb-live-banner-hti')) return;
+            const banner = document.createElement('div');
+            banner.id = 'wb-live-banner-hti';
+            banner.style.cssText = [
+                'position:fixed;top:0;left:0;right:0;z-index:9999;',
+                'background:white;border-bottom:1px solid #e2e8f0;',
+                'padding:7px 20px;display:flex;align-items:center;gap:10px;',
+                'font-family:Noto Sans TC,sans-serif;font-size:12px;color:#64748b;'
+            ].join('');
+            banner.innerHTML = [
+                '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2" style="flex-shrink:0;opacity:.8;">',
+                '<path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>',
+                '</svg>',
+                '<span>與諮詢師 <strong style="color:#334155;font-weight:700;">' + counselorName + '</strong> 同步進行中</span>'
+            ].join('');
+            document.body.prepend(banner);
+            document.body.style.paddingTop = '36px';
+        }
+
+        function hideWbBannerHTI() {
+            document.getElementById('wb-live-banner-hti')?.remove();
+            document.body.style.paddingTop = '';
+        }
+        // ===== END WB / Mirror 函數 =====
 
         // 🌟 2. 統一儲存邏輯：加入提示框與完整資料包裹
         const saveBtn = document.getElementById('saveToDbBtn');
@@ -1098,6 +1310,9 @@
                     // 提示成功，並清除暫存紀錄
                     alert("✨ 恭喜！測驗已完成，您的專屬特質報告已成功儲存至個人儀表板！");
                     localStorage.removeItem('hti_progress_v4');
+
+                    // ⭐ 白板模式完課：清除 whiteboard_active，讓 Dashboard 橫幅消失
+                    try { await deleteDoc(doc(db, 'whiteboard_active', userUid)); } catch(e) {}
                     
                     // 跳轉回 Dashboard
                     window.location.href = '../dashboard.html';

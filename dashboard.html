@@ -164,7 +164,7 @@ tailwind.config = {
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { getFirestore, collection, query, where, orderBy, getDocs, deleteDoc, updateDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, query, where, orderBy, getDocs, getDoc, deleteDoc, updateDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const COUNSELOR_WHITELIST = ["tim010003@gmail.com"];
 
@@ -382,14 +382,31 @@ document.getElementById('logoutBtn').addEventListener('click', () => signOut(aut
 
 // ── 白板邀請通知 ────────────────────────────────────────
 function checkActiveWhiteboards(uid) {
-  onSnapshot(doc(db, 'whiteboard_active', uid), (snap) => {
+  onSnapshot(doc(db, 'whiteboard_active', uid), async (snap) => {
     const notice = document.getElementById('wbNotice');
     if (!snap.exists()) { notice.classList.add('hidden'); return; }
     const data = snap.data();
+
+    // 狀態不是 waiting/active → 清除殘留文件並隱藏
     if (data.status !== 'waiting' && data.status !== 'active') {
-      notice.classList.add('hidden'); return;
+      notice.classList.add('hidden');
+      try { await deleteDoc(doc(db, 'whiteboard_active', uid)); } catch(e) {}
+      return;
     }
-    // Show notification
+
+    // ⭐ 確認對應 session 是否仍有效（防止孤立文件一直顯示）
+    if (data.sessionId) {
+      try {
+        const sSnap = await getDoc(doc(db, 'whiteboard_sessions', data.sessionId));
+        if (!sSnap.exists() || sSnap.data().status === 'ended') {
+          notice.classList.add('hidden');
+          await deleteDoc(doc(db, 'whiteboard_active', uid));
+          return;
+        }
+      } catch(e) { console.warn('whiteboard session check failed', e); }
+    }
+
+    // 顯示橫幅
     notice.classList.remove('hidden');
     document.getElementById('wbNoticeTitle').textContent =
       `${data.counselorName || '諮詢師'} 邀請你進行即時白板諮詢`;

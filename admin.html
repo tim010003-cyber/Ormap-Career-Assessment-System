@@ -44,6 +44,11 @@ tailwind.config = {
         <span class="px-2 py-0.5 bg-primary text-white text-[10px] font-black rounded tracking-widest uppercase">CRM</span>
       </div>
       <div id="navUserInfo" class="hidden flex items-center gap-3">
+        <a href="dashboard.html" class="flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-primary transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-50">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">儀表板</span>
+        </a>
+        <div class="w-px h-4 bg-slate-200"></div>
         <img id="navUserPhoto" src="" alt="Avatar" class="w-8 h-8 rounded-full border border-slate-200">
         <span id="navUserName" class="text-sm font-medium text-slate-700 hidden md:block"></span>
         <button id="logoutBtn" class="text-slate-500 hover:text-red-600 transition-colors">
@@ -688,13 +693,9 @@ window.openNewConsult = function(clientUid) {
   _ncTool = 'TWA';
   _ncSessionId = null;
 
-  // Pre-fill client name if we have an existing client
-  const nameInput = document.getElementById('nc-client-name');
+  // Pre-select tool based on existing client's history
   if (clientUid && clientMap[clientUid]) {
-    nameInput.value = clientMap[clientUid].name || '';
     _ncTool = clientMap[clientUid].assessments?.[0]?.toolType || 'TWA';
-  } else {
-    nameInput.value = '';
   }
 
   // Reset to step 1
@@ -731,7 +732,6 @@ window.closeNewConsult = function() {
 
 window.ncCreate = async function() {
   const btn = document.getElementById('nc-create-btn');
-  const clientNameRaw = document.getElementById('nc-client-name').value.trim();
   btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin inline mr-1.5"></i> 建立中...';
   btn.disabled = true;
   lucide.createIcons();
@@ -742,7 +742,7 @@ window.ncCreate = async function() {
       counselorName: currentCounselorName,
       counselorEmail: auth.currentUser.email,
       studentUid: null,
-      studentName: clientNameRaw || null,
+      studentName: null,
       studentEmail: null,
       toolType: _ncTool,
       status: 'waiting',
@@ -808,13 +808,6 @@ lucide.createIcons();
           <h3 class="font-black text-lg text-secondary">新增諮詢邀請</h3>
           <p class="text-xs text-slate-400">可邀請全新案主，也可給現有個案</p>
         </div>
-      </div>
-
-      <!-- Optional client name -->
-      <div class="mb-4">
-        <label class="text-xs font-black text-slate-500 uppercase tracking-widest block mb-2">案主姓名（選填）</label>
-        <input id="nc-client-name" type="text" placeholder="例：王小明（留空也可以）"
-          class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary transition-colors font-medium">
       </div>
 
       <!-- Tool selector -->

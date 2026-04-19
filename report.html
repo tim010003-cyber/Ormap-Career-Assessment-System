@@ -176,12 +176,27 @@ async function fetchReport(currentUid) {
 
     const data = docSnap.data();
 
-    // ✅ Bug 4 修正：驗證報告的 uid 是否與目前登入者相符
-    // 允許報告擁有者本人查看；如日後要開放諮詢師查看，可在此加入 role 判斷
+    // ⭐ 權限判斷：本人 / Super Admin / 綁定諮詢師
     if (data.uid && data.uid !== currentUid) {
-      document.getElementById('loading-screen').classList.add('hidden');
-      document.getElementById('error-screen').classList.remove('hidden');
-      return;
+      let canView = false;
+      try {
+        const cSnap = await getDoc(doc(db, 'counselors', currentUid));
+        if (cSnap.exists() && cSnap.data().isActive !== false) {
+          const isAdmin = cSnap.data().isSuperAdmin === true;
+          if (isAdmin) {
+            // Super Admin 可看所有報告
+            canView = true;
+          } else if (data.assignedCounselorUid === currentUid) {
+            // 一般諮詢師只能看自己綁定的學員報告
+            canView = true;
+          }
+        }
+      } catch(e) {}
+      if (!canView) {
+        document.getElementById('loading-screen').classList.add('hidden');
+        document.getElementById('error-screen').classList.remove('hidden');
+        return;
+      }
     }
 
     if (data.toolType === "HTI") {

@@ -381,6 +381,8 @@ async function deleteReport(docId) {
 document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
 
 // ── 白板邀請通知 ────────────────────────────────────────
+const WB_TTL_MS = 24 * 60 * 60 * 1000; // ⭐ Fix: 24 小時 TTL
+
 function checkActiveWhiteboards(uid) {
   onSnapshot(doc(db, 'whiteboard_active', uid), async (snap) => {
     const notice = document.getElementById('wbNotice');
@@ -392,6 +394,18 @@ function checkActiveWhiteboards(uid) {
       notice.classList.add('hidden');
       try { await deleteDoc(doc(db, 'whiteboard_active', uid)); } catch(e) {}
       return;
+    }
+
+    // ⭐ Fix: TTL 保護 — 超過 24 小時的文件視為孤立，自動清除
+    if (data.createdAt) {
+      const createdMs = data.createdAt.toMillis
+        ? data.createdAt.toMillis()
+        : data.createdAt.seconds * 1000;
+      if (Date.now() - createdMs > WB_TTL_MS) {
+        notice.classList.add('hidden');
+        try { await deleteDoc(doc(db, 'whiteboard_active', uid)); } catch(e) {}
+        return;
+      }
     }
 
     // ⭐ 確認對應 session 是否仍有效（防止孤立文件一直顯示）

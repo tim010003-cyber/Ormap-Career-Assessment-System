@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>諮詢師管理 | Ormap CRM</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: { colors: { primary: '#0d9488' } } } }
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  body { font-family: 'Noto Sans TC', sans-serif; background: #f8fafc; }
+  .card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,.04); }
+  .badge-active   { background:#dcfce7; color:#16a34a; }
+  .badge-inactive { background:#fee2e2; color:#dc2626; }
+  .badge-pending  { background:#fef9c3; color:#ca8a04; }
+  .badge-admin    { background:#e0f2fe; color:#0369a1; }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- Navbar -->
+<header class="bg-white border-b border-slate-200 sticky top-0 z-40">
+  <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <a href="admin.html" class="flex items-center gap-2">
+        <img src="ormap-logo.png" class="h-7 w-auto" alt="Ormap">
+        <span class="font-black text-slate-800 text-sm">CRM</span>
+      </a>
+      <span class="text-slate-300">/</span>
+      <span class="text-sm font-bold text-primary">諮詢師管理</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <a href="admin.html" class="flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-primary transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-50">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+        <span class="hidden sm:inline">後台</span>
+      </a>
+      <div id="navUserInfo" class="hidden flex items-center gap-2 ml-2">
+        <img id="navUserPhoto" src="" class="w-7 h-7 rounded-full border border-slate-200" alt="">
+        <span id="navUserName" class="text-xs font-bold text-slate-600 hidden sm:block"></span>
+      </div>
+      <button id="logoutBtn" class="text-slate-400 hover:text-red-500 transition-colors ml-1">
+        <i data-lucide="log-out" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- Loading -->
+<div id="initLoading" class="flex items-center justify-center min-h-[60vh]">
+  <div class="text-center">
+    <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+    <p class="text-sm text-slate-400">驗證身份中...</p>
+  </div>
+</div>
+
+<!-- 無權限 -->
+<div id="accessDenied" class="hidden max-w-md mx-auto mt-20 text-center px-4">
+  <div class="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+    <i data-lucide="shield-x" class="w-8 h-8 text-red-400"></i>
+  </div>
+  <h2 class="font-black text-xl text-slate-800 mb-2">無存取權限</h2>
+  <p class="text-slate-500 text-sm mb-6">此頁面僅限 Super Admin 使用。</p>
+  <a href="admin.html" class="inline-block px-6 py-2.5 bg-slate-800 text-white rounded-2xl font-bold text-sm">回到後台</a>
+</div>
+
+<!-- 主內容 -->
+<main id="mainContent" class="hidden max-w-5xl mx-auto px-4 py-8">
+
+  <!-- 頁頭 -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-black text-slate-800">諮詢師管理</h1>
+      <p class="text-sm text-slate-400 mt-0.5">新增、停用或邀請諮詢師加入 Ormap 團隊</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="toggleTrash()" id="trashBtn"
+        class="flex items-center gap-1.5 px-3 py-2.5 text-sm font-bold text-slate-400 border border-slate-200 rounded-2xl hover:bg-slate-50 transition-colors">
+        <i data-lucide="trash-2" class="w-4 h-4"></i>
+        <span class="hidden sm:inline">垃圾桶</span>
+        <span id="trashCount" class="hidden bg-red-100 text-red-500 text-xs font-black px-1.5 py-0.5 rounded-full"></span>
+      </button>
+      <button onclick="openAddModal()" class="flex items-center gap-2 bg-primary text-white rounded-2xl px-4 py-2.5 text-sm font-bold shadow-sm hover:bg-teal-700 transition-colors">
+        <i data-lucide="user-plus" class="w-4 h-4"></i>新增諮詢師
+      </button>
+    </div>
+  </div>
+
+  <!-- 統計列 -->
+  <div class="grid grid-cols-3 gap-4 mb-6">
+    <div class="card p-4 text-center">
+      <p class="text-2xl font-black text-primary" id="stat-total">-</p>
+      <p class="text-xs text-slate-400 mt-1">總諮詢師數</p>
+    </div>
+    <div class="card p-4 text-center">
+      <p class="text-2xl font-black text-green-600" id="stat-active">-</p>
+      <p class="text-xs text-slate-400 mt-1">啟用中</p>
+    </div>
+    <div class="card p-4 text-center">
+      <p class="text-2xl font-black text-amber-500" id="stat-pending">-</p>
+      <p class="text-xs text-slate-400 mt-1">待首次登入</p>
+    </div>
+  </div>
+
+  <!-- 諮詢師名單 -->
+  <div class="card overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+      <h2 class="font-bold text-slate-700 text-sm">諮詢師名單</h2>
+      <button onclick="loadCounselors()" class="text-slate-400 hover:text-primary transition-colors">
+        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+      </button>
+    </div>
+    <div id="counselorList" class="divide-y divide-slate-50">
+      <div class="px-6 py-8 text-center text-sm text-slate-400">載入中...</div>
+    </div>
+  </div>
+
+  <!-- 垃圾桶區塊 -->
+  <div id="trashSection" class="hidden mt-6">
+    <div class="card overflow-hidden border-red-100">
+      <div class="px-6 py-4 border-b border-red-50 flex items-center justify-between bg-red-50">
+        <div class="flex items-center gap-2">
+          <i data-lucide="trash-2" class="w-4 h-4 text-red-400"></i>
+          <h2 class="font-bold text-red-400 text-sm">已刪除的諮詢師</h2>
+        </div>
+        <p class="text-xs text-red-300">永久刪除後無法復原</p>
+      </div>
+      <div id="trashList" class="divide-y divide-red-50">
+        <div class="px-6 py-8 text-center text-sm text-slate-400">載入中...</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- 新增諮詢師 Modal -->
+<div id="addModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center px-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-7">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="font-black text-lg text-slate-800">新增諮詢師</h3>
+      <button onclick="closeAddModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+
+    <div class="space-y-4">
+      <div>
+        <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Email（必填）</label>
+        <input id="add-email" type="email" placeholder="example@gmail.com"
+          class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10">
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">顯示名稱（選填）</label>
+        <input id="add-name" type="text" placeholder="姓名或暱稱，留空則用 Email 前綴"
+          class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10">
+      </div>
+
+      <!-- 寄送邀請信選項 -->
+      <div class="bg-teal-50 rounded-xl p-4">
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input id="add-send-email" type="checkbox" checked class="mt-0.5 w-4 h-4 accent-primary">
+          <div>
+            <p class="text-sm font-bold text-slate-700">同時寄送邀請信</p>
+            <p class="text-xs text-slate-500 mt-0.5">透過你的 Gmail 自動寄送含登入連結的邀請信</p>
+          </div>
+        </label>
+      </div>
+
+      <!-- 邀請連結（可直接複製傳送） -->
+      <div>
+        <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">邀請連結（可複製傳 LINE）</label>
+        <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5">
+          <span id="add-invite-url" class="text-xs text-slate-500 font-mono flex-1 break-all leading-relaxed"></span>
+          <button onclick="copyInviteUrl()" class="flex-shrink-0 text-primary hover:text-teal-700 transition-colors" title="複製連結">
+            <i data-lucide="copy" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <p class="text-xs text-slate-400 mt-1.5">不管是否寄信，對方都可以用此連結登入啟用</p>
+      </div>
+    </div>
+
+    <div class="flex gap-3 mt-6">
+      <button onclick="closeAddModal()" class="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50">取消</button>
+      <button onclick="submitAddCounselor()" id="add-submit-btn"
+        class="flex-1 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-teal-700 transition-colors">
+        新增並送出邀請
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-sm font-bold px-5 py-3 rounded-2xl shadow-lg z-50 transition-all"></div>
+
+<script type="module">
+import { initializeApp }    from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import {
+  getFirestore, collection, getDocs, doc, getDoc, setDoc,
+  updateDoc, deleteDoc, serverTimestamp, query, orderBy
+} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
+  authDomain: "careervalue-ormap.firebaseapp.com",
+  projectId: "careervalue-ormap",
+  storageBucket: "careervalue-ormap.firebasestorage.app",
+  messagingSenderId: "883599167982",
+  appId: "1:883599167982:web:6dee33f8abf03de9b53eff"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+// ── GAS Mailer ──────────────────────────────────────────
+const GAS_MAILER_URL = "https://script.google.com/macros/s/AKfycbzyTam8pCWA9GPAfvr9HeKg5tUHANRKefjGN5FXFzWdaZlkudnqhFfmUfKY_smIWQyRMg/exec"; // 部署後替換
+async function callGasMailer(type, data) {
+  if (!GAS_MAILER_URL || GAS_MAILER_URL.includes("__")) {
+    console.warn("[GAS Mailer] URL 尚未設定"); return false;
+  }
+  return new Promise((resolve) => {
+    // 用 Image() 觸發 GET，天然跟著 redirect、完全沒有 CORS 問題
+    const params = new URLSearchParams({ type, payload: JSON.stringify(data) });
+    const img = new Image();
+    img.onload  = () => resolve(true);
+    img.onerror = () => resolve(true); // GAS 回傳 JSON 非圖片，onerror 是正常的
+    img.src = `${GAS_MAILER_URL}?${params.toString()}`;
+    // 3 秒 timeout 保護
+    setTimeout(() => resolve(true), 3000);
+  });
+}
+
+// ── Auth ────────────────────────────────────────────────
+onAuthStateChanged(auth, async (user) => {
+  document.getElementById('initLoading').style.display = 'none';
+  if (!user) { location.href = 'index.html'; return; }
+
+  document.getElementById('navUserInfo').classList.remove('hidden');
+  document.getElementById('navUserPhoto').src = user.photoURL || '';
+  document.getElementById('navUserName').innerText = user.displayName || user.email;
+
+  // 確認是 Super Admin
+  const snap = await getDoc(doc(db, 'counselors', user.uid)).catch(() => null);
+  const isAdmin = snap?.exists() && snap.data().isSuperAdmin === true;
+  if (!isAdmin) {
+    document.getElementById('accessDenied').classList.remove('hidden');
+    lucide.createIcons(); return;
+  }
+  document.getElementById('mainContent').classList.remove('hidden');
+  lucide.createIcons();
+  loadCounselors();
+});
+
+document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+
+// ── 載入名單 ─────────────────────────────────────────────
+window.loadCounselors = async function() {
+  const listEl = document.getElementById('counselorList');
+  listEl.innerHTML = '<div class="px-6 py-8 text-center text-sm text-slate-400">載入中...</div>';
+  try {
+    const snap = await getDocs(collection(db, 'counselors'));
+    if (snap.empty) {
+      listEl.innerHTML = '<div class="px-6 py-8 text-center text-sm text-slate-400">尚無諮詢師</div>';
+      return;
+    }
+    const docs = [];
+    snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+    docs.sort((a, b) => {
+      if (a.isSuperAdmin && !b.isSuperAdmin) return -1;
+      if (!a.isSuperAdmin && b.isSuperAdmin) return 1;
+      return (a.name || '').localeCompare(b.name || '');
+    });
+
+    // 去重：相同 email 只保留非 pending 的 uid 文件
+    const emailSeen = {};
+    docs.forEach(d => {
+      const em = (d.email || '').toLowerCase();
+      if (!em) return;
+      if (!emailSeen[em]) {
+        emailSeen[em] = d;
+      } else {
+        // 優先保留 pending:false 的（正式文件）
+        if (emailSeen[em].pending && !d.pending) emailSeen[em] = d;
+      }
+    });
+    const dedupedDocs = Object.values(emailSeen);
+    // 補回沒有 email 的文件
+    docs.forEach(d => { if (!d.email) dedupedDocs.push(d); });
+
+    // 分類：正常 / 已刪除
+    const activeDocs  = dedupedDocs.filter(d => d.isDeleted !== true);
+    const deletedDocs = dedupedDocs.filter(d => d.isDeleted === true);
+
+    const total   = activeDocs.length;
+    const active  = activeDocs.filter(d => d.isActive !== false && !d.pending).length;
+    const pending = activeDocs.filter(d => d.pending).length;
+    document.getElementById('stat-total').textContent   = total;
+    document.getElementById('stat-active').textContent  = active;
+    document.getElementById('stat-pending').textContent = pending;
+
+    // 垃圾桶計數
+    const trashCountEl = document.getElementById('trashCount');
+    if (deletedDocs.length > 0) {
+      trashCountEl.textContent = deletedDocs.length;
+      trashCountEl.classList.remove('hidden');
+    } else {
+      trashCountEl.classList.add('hidden');
+    }
+
+    // ── 正常名單 ──
+    listEl.innerHTML = activeDocs.map(d => {
+      const isActive  = d.isActive !== false;
+      const isPending = d.pending === true;
+      const statusBadge = isPending
+        ? '<span class="badge-pending text-xs font-bold px-2.5 py-1 rounded-full">待登入</span>'
+        : isActive
+          ? '<span class="badge-active text-xs font-bold px-2.5 py-1 rounded-full">啟用</span>'
+          : '<span class="badge-inactive text-xs font-bold px-2.5 py-1 rounded-full">停用</span>';
+      const adminBadge = d.isSuperAdmin
+        ? '<span class="badge-admin text-xs font-bold px-2 py-0.5 rounded-full ml-1.5">👑 管理員</span>' : '';
+      const addedAt = d.addedAt?.toDate
+        ? d.addedAt.toDate().toLocaleDateString('zh-TW') : '—';
+      const lastLogin = d.lastLoginAt?.toDate
+        ? d.lastLoginAt.toDate().toLocaleDateString('zh-TW') + ' ' +
+          d.lastLoginAt.toDate().toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'})
+        : '尚未登入';
+
+      return `<div class="px-6 py-4 flex items-center gap-4 hover:bg-slate-50 transition-colors">
+        <div class="w-9 h-9 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
+          <span class="text-sm font-black text-primary">${(d.name||'?')[0]}</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1 flex-wrap">
+            <span class="font-bold text-slate-800 text-sm">${d.name || '未命名'}</span>
+            ${adminBadge}
+            <button onclick="editName('${d.id}', \`${(d.name||'').replace(/`/g,'')}\`)"
+              title="編輯名稱" class="text-slate-300 hover:text-primary transition-colors ml-0.5">
+              <i data-lucide="pencil" class="w-3 h-3"></i>
+            </button>
+          </div>
+          <div class="text-xs text-slate-400 mt-0.5">${d.email || d.id} · 最後登入：${lastLogin}</div>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          ${statusBadge}
+          ${!d.isSuperAdmin ? `
+          <button onclick="toggleCounselor('${d.id}', ${isActive})"
+            class="text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors ${isActive
+              ? 'border-red-200 text-red-500 hover:bg-red-50'
+              : 'border-green-200 text-green-600 hover:bg-green-50'}">
+            ${isActive ? '停用' : '啟用'}
+          </button>
+          <button onclick="upgradeAdmin('${d.id}', ${!!d.isSuperAdmin})"
+            title="${d.isSuperAdmin ? '移除管理員權限' : '升級為管理員'}"
+            class="text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors border-slate-200 text-slate-500 hover:bg-slate-50">
+            ${d.isSuperAdmin ? '降級' : '升管理員'}
+          </button>
+          <button onclick="softDelete('${d.id}')"
+            title="移至垃圾桶"
+            class="text-slate-300 hover:text-red-400 transition-colors p-1">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>` : ''}
+          ${isPending ? `
+          <button onclick="resendInvite('${d.id}', '${d.email}')"
+            title="重寄邀請信"
+            class="text-xs font-bold px-3 py-1.5 rounded-lg border border-teal-200 text-primary hover:bg-teal-50 transition-colors">
+            重寄邀請
+          </button>` : ''}
+        </div>
+      </div>`;
+    }).join('') || '<div class="px-6 py-8 text-center text-sm text-slate-400">尚無諮詢師</div>';
+
+    // ── 垃圾桶名單 ──
+    const trashListEl = document.getElementById('trashList');
+    if (trashListEl) {
+      trashListEl.innerHTML = deletedDocs.map(d => {
+        const deletedAt = d.deletedAt?.toDate
+          ? d.deletedAt.toDate().toLocaleDateString('zh-TW') : '—';
+        return `<div class="px-6 py-4 flex items-center gap-4">
+          <div class="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+            <span class="text-sm font-black text-red-300">${(d.name||'?')[0]}</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-bold text-slate-400 text-sm">${d.name || '未命名'}</div>
+            <div class="text-xs text-slate-300 mt-0.5">${d.email || d.id} · 刪除於 ${deletedAt}</div>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <button onclick="restoreCounselor('${d.id}')"
+              class="text-xs font-bold px-3 py-1.5 rounded-lg border border-green-200 text-green-600 hover:bg-green-50">
+              還原
+            </button>
+            <button onclick="permanentDelete('${d.id}', '${d.name||''}')"
+              class="text-xs font-bold px-3 py-1.5 rounded-xl border border-red-200 text-red-500 hover:bg-red-50">
+              永久刪除
+            </button>
+          </div>
+        </div>`;
+      }).join('') || '<div class="px-6 py-8 text-center text-sm text-slate-400">垃圾桶是空的</div>';
+    }
+
+    lucide.createIcons();
+  } catch(e) {
+    listEl.innerHTML = `<div class="px-6 py-8 text-center text-sm text-red-400">載入失敗：${e.message}</div>`;
+  }
+};
+
+// ── 新增諮詢師 ──────────────────────────────────────────
+window.openAddModal = function() {
+  // 填入邀請連結
+  const inviteUrl = location.origin + '/admin.html';
+  document.getElementById('add-invite-url').textContent = inviteUrl;
+  document.getElementById('addModal').classList.remove('hidden');
+  lucide.createIcons();
+};
+
+window.copyInviteUrl = function() {
+  const url = document.getElementById('add-invite-url').textContent;
+  navigator.clipboard.writeText(url).then(() => showToast('連結已複製 ✓'));
+};
+window.closeAddModal = function() {
+  document.getElementById('addModal').classList.add('hidden');
+  document.getElementById('add-email').value = '';
+  document.getElementById('add-name').value  = '';
+  document.getElementById('add-invite-url').textContent = '';
+};
+
+window.submitAddCounselor = async function() {
+  const email   = document.getElementById('add-email').value.trim();
+  const name    = document.getElementById('add-name').value.trim();
+  const sendMail= document.getElementById('add-send-email').checked;
+  if (!email || !email.includes('@')) { showToast('請輸入有效的 Email'); return; }
+
+  const btn = document.getElementById('add-submit-btn');
+  btn.textContent = '檢查中...'; btn.disabled = true;
+
+  try {
+    // ⭐ 重複檢查：掃描現有諮詢師是否已有相同 email
+    const existingSnap = await getDocs(collection(db, 'counselors'));
+    const emailLower = email.toLowerCase();
+    let alreadyExists = false;
+    existingSnap.forEach(d => {
+      if ((d.data().email || '').toLowerCase() === emailLower) alreadyExists = true;
+    });
+    if (alreadyExists) {
+      showToast(`${email} 已在名單中，請勿重複新增`);
+      btn.textContent = '新增並送出邀請'; btn.disabled = false;
+      return;
+    }
+    btn.textContent = '新增中...';
+
+    const pendingKey = email.replace(/[.#$/\\[\]]/g, '_');
+    await setDoc(doc(db, 'counselors', pendingKey), {
+      email,
+      name   : name || email.split('@')[0],
+      addedAt: serverTimestamp(),
+      isActive: true,
+      pending : true
+    });
+
+    const inviteUrl = `${location.origin}/admin.html`;
+
+    // 寄邀請信
+    if (sendMail) {
+      await callGasMailer('invite_counselor', {
+        to           : email,
+        counselorName: name || email.split('@')[0],
+        inviteUrl
+      });
+    }
+
+    // 成功：切換 modal 為「成功畫面」，保留連結可複製
+    document.getElementById('addModal').innerHTML = `
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-7 text-center">
+        <div class="w-14 h-14 bg-teal-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <i data-lucide="check-circle-2" class="w-7 h-7 text-primary"></i>
+        </div>
+        <h3 class="font-black text-lg text-slate-800 mb-1">諮詢師已新增！</h3>
+        <p class="text-sm text-slate-400 mb-5">${sendMail ? '邀請信已寄送，同時可複製以下連結傳給對方' : '請複製以下連結傳給對方'}</p>
+        <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 mb-5 text-left">
+          <span class="text-xs text-slate-500 font-mono flex-1 break-all leading-relaxed">${inviteUrl}</span>
+          <button onclick="navigator.clipboard.writeText('${inviteUrl}').then(()=>showToast('連結已複製 ✓'))"
+            class="flex-shrink-0 text-primary hover:text-teal-700" title="複製">
+            <i data-lucide="copy" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <button onclick="location.reload()" class="w-full py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-teal-700 transition-colors">完成</button>
+      </div>`;
+    lucide.createIcons();
+    await loadCounselors();
+  } catch(e) {
+    showToast('新增失敗：' + e.message);
+  } finally {
+    btn.textContent = '新增'; btn.disabled = false;
+  }
+};
+
+// ── 編輯名稱 ────────────────────────────────────────────
+window.editName = async function(uid, currentName) {
+  const newName = prompt('請輸入新的顯示名稱：', currentName);
+  if (newName === null) return; // 取消
+  if (!newName.trim()) { showToast('名稱不能為空'); return; }
+  try {
+    await updateDoc(doc(db, 'counselors', uid), { name: newName.trim() });
+    showToast('名稱已更新 ✓');
+    await loadCounselors();
+  } catch(e) { showToast('更新失敗：' + e.message); }
+};
+
+// ── 垃圾桶切換 ──────────────────────────────────────────
+let trashVisible = false;
+window.toggleTrash = function() {
+  trashVisible = !trashVisible;
+  const sec = document.getElementById('trashSection');
+  const btn = document.getElementById('trashBtn');
+  sec.classList.toggle('hidden', !trashVisible);
+  btn.classList.toggle('text-red-500', trashVisible);
+  btn.classList.toggle('border-red-200', trashVisible);
+};
+
+// ── 軟刪除（移至垃圾桶） ─────────────────────────────────
+window.softDelete = async function(uid) {
+  if (!confirm('將此諮詢師移至垃圾桶？對方將立即無法登入，可隨時還原。')) return;
+  try {
+    await updateDoc(doc(db, 'counselors', uid), {
+      isDeleted: true,
+      isActive: false,
+      deletedAt: serverTimestamp()
+    });
+    showToast('已移至垃圾桶');
+    await loadCounselors();
+  } catch(e) { showToast('操作失敗：' + e.message); }
+};
+
+// ── 還原 ────────────────────────────────────────────────
+window.restoreCounselor = async function(uid) {
+  try {
+    await updateDoc(doc(db, 'counselors', uid), {
+      isDeleted: false,
+      isActive: true,
+      deletedAt: null
+    });
+    showToast('已還原 ✓');
+    await loadCounselors();
+  } catch(e) { showToast('操作失敗：' + e.message); }
+};
+
+// ── 永久刪除 ─────────────────────────────────────────────
+window.permanentDelete = async function(uid, name) {
+  if (!confirm(`永久刪除「${name}」？此操作無法復原，所有資料將消失。`)) return;
+  if (!confirm('再次確認：確定要永久刪除嗎？')) return;
+  try {
+    await deleteDoc(doc(db, 'counselors', uid));
+    showToast('已永久刪除');
+    await loadCounselors();
+  } catch(e) { showToast('操作失敗：' + e.message); }
+};
+
+// ── 升級 / 降級管理員 ────────────────────────────────────
+window.upgradeAdmin = async function(uid, currentIsAdmin) {
+  const action = currentIsAdmin ? '移除管理員權限' : '升級為管理員';
+  if (!confirm(`確定要${action}嗎？`)) return;
+  try {
+    await updateDoc(doc(db, 'counselors', uid), { isSuperAdmin: !currentIsAdmin });
+    showToast(`已${action} ✓`);
+    await loadCounselors();
+  } catch(e) { showToast('操作失敗：' + e.message); }
+};
+
+// ── 停用 / 啟用 ─────────────────────────────────────────
+window.toggleCounselor = async function(uid, currentActive) {
+  try {
+    await updateDoc(doc(db, 'counselors', uid), { isActive: !currentActive });
+    showToast(currentActive ? '已停用' : '已啟用');
+    await loadCounselors();
+  } catch(e) { showToast('操作失敗：' + e.message); }
+};
+
+// ── 重寄邀請信 ──────────────────────────────────────────
+window.resendInvite = async function(uid, email) {
+  const inviteUrl = `${location.origin}/admin.html`;
+  const ok = await callGasMailer('invite_counselor', {
+    to: email, counselorName: '', inviteUrl
+  });
+  showToast(ok ? '邀請信已重新寄出 ✓' : 'GAS URL 未設定，請手動傳送連結');
+};
+
+// ── Toast ────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.remove('hidden');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => t.classList.add('hidden'), 3000);
+}
+</script>
+</body>
+</html>

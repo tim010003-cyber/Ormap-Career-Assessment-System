@@ -1011,7 +1011,9 @@
             
             const ctx = document.getElementById('reportChart').getContext('2d');
             Chart.defaults.font.family = "'Noto Sans TC', sans-serif";
-            new Chart(ctx, {
+            // ⭐ Fix: 先銷毀舊圖，避免在同一 canvas 上疊加多張圖表
+            if (_htiMirrorChart) { _htiMirrorChart.destroy(); _htiMirrorChart = null; }
+            _htiMirrorChart = new Chart(ctx, {
                 type: 'radar',
                 data: {
                     labels: ['R 實踐者', 'I 思考者', 'A 創造者', 'S 支持者', 'E 推進者', 'C 常規者'],
@@ -1043,6 +1045,8 @@
                 }
             });
         }
+        // ⭐ Fix: 保存 Chart 實例，避免重複建立
+        let _htiMirrorChart = null;
         window.generateReport = generateReport;
 
         // ===== ⭐ HTI 鏡像模式函數 =====
@@ -1079,8 +1083,13 @@
                 document.getElementById('stage-2').classList.remove('hidden-stage');
                 renderMotives();
             } else if (newStage === 3 && liveData.finalScores) {
-                generateReport(liveData.finalScores);
+                // ⭐ Fix: stage 沒變就不重繪，避免重複呼叫 generateReport
+                if (window._mirrorLastStage !== 3) {
+                    generateReport(liveData.finalScores);
+                }
             }
+            // ⭐ Fix: 記錄上次 stage，供下次比對
+            window._mirrorLastStage = newStage;
 
             // ⭐ 作答高亮
             const activeId = liveData.activeId;
@@ -1302,8 +1311,20 @@
                     };
 
                     // 寫入 Firestore
-                    await addDoc(collection(db, "assessments"), payload);
+                    const docRef = await addDoc(collection(db, "assessments"), payload);
                     
+                    // ⭐ GAS 封三：通知諮詢師學員完成測驗
+                    try {
+                        const reportUrl = `${location.origin.replace('/tools','')}/report.html?id=${docRef.id}`;
+                        await callGasMailer("assessment_done", {
+                            studentName : window.currentUserName  || "學員",
+                            studentEmail: window.currentUserEmail || "",
+                            toolType    : "HTI",
+                            reportUrl,
+                            completedAt : new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" })
+                        });
+                    } catch(e) { console.warn("[GAS assessment_done]", e); }
+
                     // 等待一下下，讓使用者感覺系統在運作
                     await new Promise(resolve => setTimeout(resolve, 600));
 
@@ -1326,50 +1347,21 @@
             });
         }
 
-        // ==========================================
-        // 🌟 讀取雲端歷史報告邏輯
-        // ==========================================
-        const urlParams = new URLSearchParams(window.location.search);
-        const reportId = urlParams.get('reportId');
+        // ⭐ Fix: ?reportId 殘留邏輯已移除（歷史報告統一由 report.html 負責）
 
-        if (reportId) {
-            // 切換畫面，顯示載入中
-            document.getElementById('view-landing').style.display = 'none';
-            document.getElementById('view-assessment').style.display = 'block';
-            document.getElementById('stage-1').innerHTML = '<div class="py-32 text-center text-xl font-black text-primary animate-pulse">正在從雲端載入您的完整報告...</div>';
-            
-            // 去 Firebase 抓取分數
-            getDoc(doc(db, "assessments", reportId)).then(docSnap => {
-                if(docSnap.exists()) {
-                    const data = docSnap.data();
-                    
-                    // 呼叫你原本寫好的完美函數，讓精美的報告原地重生！
-                    if(typeof window.generateReport === 'function') {
-                        window.generateReport(data.scores);
-                    } else {
-                        generateReport(data.scores);
-                    }
-                    
-                    // 把報告最下方的「儲存按鈕」換成「返回儀表板與諮詢按鈕」
-                    const btnContainer = document.querySelector('#stage-3 .bg-slate-50');
-                    if(btnContainer) {
-                        btnContainer.innerHTML = `
-                            <div class="flex flex-col sm:flex-row justify-center items-center gap-4 w-full">
-                                <a href="https://line.me/R/ti/p/@900gjsny" target="_blank" class="px-8 py-4 bg-white border-2 border-primary text-primary rounded-2xl font-bold text-sm shadow-sm hover:bg-teal-50 transition-all text-center">
-                                    與諮詢師深度對談
-                                </a>
-                                <button onclick="window.location.href='../dashboard.html'" class="px-8 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold text-sm hover:bg-slate-50 transition-all text-center">
-                                    返回儀表板
-                                </button>
-                            </div>
-                        `;
-                    }
-                } else {
-                    alert("找不到這份報告！");
-                    window.location.href = '../dashboard.html';
-                }
-            }).catch(e => {
-                console.error("讀取失敗：", e);
+        // ── GAS Mailer 共用函數 ──────────────────────────────
+        const GAS_MAILER_URL = "https://script.google.com/macros/s/AKfycbzyTam8pCWA9GPAfvr9HeKg5tUHANRKefjGN5FXFzWdaZlkudnqhFfmUfKY_smIWQyRMg/exec"; // 部署後替換此 URL
+        async function callGasMailer(type, data) {
+            if (!GAS_MAILER_URL || GAS_MAILER_URL.includes("__")) {
+                console.warn("[GAS Mailer] URL 尚未設定"); return false;
+            }
+            return new Promise((resolve) => {
+                const params = new URLSearchParams({ type, payload: JSON.stringify(data) });
+                const img = new Image();
+                img.onload  = () => resolve(true);
+                img.onerror = () => resolve(true); // GAS 回傳 JSON 非圖片，onerror 是正常的
+                img.src = `${GAS_MAILER_URL}?${params.toString()}`;
+                setTimeout(() => resolve(true), 3000);
             });
         }
     </script>

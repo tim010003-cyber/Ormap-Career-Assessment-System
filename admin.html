@@ -44,6 +44,10 @@ tailwind.config = {
         <span class="px-2 py-0.5 bg-primary text-white text-[10px] font-black rounded tracking-widest uppercase">CRM</span>
       </div>
       <div id="navUserInfo" class="hidden flex items-center gap-3">
+        <a id="navCounselorsLink" href="counselors.html" class="hidden items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-primary transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-50" title="諮詢師管理">
+          <i data-lucide="users" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">諮詢師</span>
+        </a>
         <a href="dashboard.html" class="flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-primary transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-50">
           <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
           <span class="hidden sm:inline">儀表板</span>
@@ -219,11 +223,51 @@ tailwind.config = {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import {
-  getFirestore, collection, query, orderBy, getDocs,
-  doc, getDoc, setDoc, addDoc, serverTimestamp
+  getFirestore, collection, query, orderBy, where, getDocs,
+  doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-const COUNSELOR_WHITELIST = ["tim010003@gmail.com"];
+// ⭐ Fix: 諮詢師權限改為 Firestore 動態查詢，移除硬編碼白名單
+// Firestore: counselors/{uid} → { email, name, addedAt, isActive, isSuperAdmin? }
+const SUPER_ADMIN_UID = "PmLJEKMc8tYRPGNaSUMf5EO5kJp2"; // tim010003@gmail.com 的 uid
+
+async function isCounselor(uid, email) {
+  // 1. 先查正式 uid 文件
+  try {
+    const snap = await getDoc(doc(db, "counselors", uid));
+    if (snap.exists() && snap.data().isActive !== false) return true;
+  } catch(e) {}
+  // 2. 查 pending email 文件
+  if (email) {
+    const pendingKey = email.replace(/[.#$\/\[\]]/g, "_");
+    try {
+      const pSnap = await getDoc(doc(db, "counselors", pendingKey));
+      if (pSnap.exists() && pSnap.data().isActive !== false) {
+        // ⭐ Fix: 先確認有存取權，再嘗試遷移（遷移失敗不影響登入）
+        const data = pSnap.data();
+        // 背景遷移：寫入正式 uid 文件，失敗不阻斷登入
+        setDoc(doc(db, "counselors", uid), {
+          ...data, uid, name: data.name, pending: false
+        }).then(() =>
+          deleteDoc(doc(db, "counselors", pendingKey))
+        ).catch(() => {
+          // 權限不足時遷移失敗，下次登入再試，不影響本次存取
+          console.warn("[isCounselor] pending 遷移失敗，將於下次登入重試");
+        });
+        return true; // ⭐ 無論遷移是否成功，都放行
+      }
+    } catch(e) {}
+  }
+  return false;
+}
+
+async function isSuperAdmin(uid) {
+  if (uid === SUPER_ADMIN_UID) return true;
+  try {
+    const snap = await getDoc(doc(db, "counselors", uid));
+    return snap.exists() && snap.data().isSuperAdmin === true;
+  } catch(e) { return false; }
+}
 
 const firebaseConfig = {
   apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
@@ -242,24 +286,43 @@ const STATUS_LIST = ['未測驗', '已完成', '已諮詢', '待追蹤'];
 let clientMap = {};
 let currentUid = null;
 let currentCounselorName = '';
+let currentUserIsAdmin = false; // ⭐ Super Admin 標記
 let twaChart = null;
 
 // ── 驗證 ──────────────────────────────────────────────
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   document.getElementById('initLoading').style.display = 'none';
   if (!user) { window.location.href = 'index.html'; return; }
-  if (!COUNSELOR_WHITELIST.includes(user.email)) {
+  // ⭐ Fix: 改從 Firestore counselors/{uid} 動態查詢，不再硬編碼白名單
+  const allowed = await isCounselor(user.uid, user.email); // ⭐ 傳入 email 供 pending 查詢
+  if (!allowed) {
     document.getElementById('navUserInfo').classList.remove('hidden');
     document.getElementById('navUserPhoto').src = user.photoURL || '';
     document.getElementById('navUserName').innerText = user.displayName || user.email;
     document.getElementById('accessDenied').classList.remove('hidden');
     lucide.createIcons(); return;
   }
+  currentUid = user.uid;
   currentCounselorName = user.displayName || user.email;
   document.getElementById('navUserInfo').classList.remove('hidden');
   document.getElementById('navUserPhoto').src = user.photoURL || '';
   document.getElementById('navUserName').innerText = currentCounselorName;
   lucide.createIcons();
+
+  // ⭐ 記錄最後登入時間
+  try {
+    await updateDoc(doc(db, 'counselors', user.uid), {
+      lastLoginAt: serverTimestamp(),
+      name: user.displayName || currentCounselorName
+    });
+  } catch(e) {}
+
+  // ⭐ 設定 Super Admin 旗標 + 顯示諮詢師連結
+  currentUserIsAdmin = await isSuperAdmin(user.uid);
+  if (currentUserIsAdmin) {
+    document.getElementById('navCounselorsLink')?.classList.replace('hidden', 'flex');
+    // ⭐ 浮動面板已移除，改用 counselors.html 專頁管理
+  }
   loadData();
 });
 
@@ -268,22 +331,51 @@ document.getElementById('logoutBtn').addEventListener('click', () => signOut(aut
 // ── 載入全部資料 ──────────────────────────────────────
 async function loadData() {
   try {
-    const q = query(collection(db, "assessments"), orderBy("createdAt", "desc"));
+    // ⭐ Super Admin 看全部；一般諮詢師只看自己綁定的學員
+    // 注意：一般諮詢師的查詢不加 orderBy，避免需要複合索引，改為前端排序
+    const q = currentUserIsAdmin
+      ? query(collection(db, "assessments"), orderBy("createdAt", "desc"))
+      : query(collection(db, "assessments"),
+              where("assignedCounselorUid", "==", currentUid));
     const snapshot = await getDocs(q);
     document.getElementById('listLoading').classList.add('hidden');
 
     if (snapshot.empty) {
-      document.getElementById('listEmpty').classList.remove('hidden');
+      // 一般諮詢師尚無綁定個案時，顯示提示
+      if (!currentUserIsAdmin) {
+        document.getElementById('listEmpty').classList.remove('hidden');
+        const emptyEl = document.getElementById('listEmpty');
+        if (emptyEl) emptyEl.innerHTML = `
+          <div class="py-16 text-center">
+            <div class="w-14 h-14 bg-teal-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <i data-lucide="users" class="w-7 h-7 text-primary"></i>
+            </div>
+            <p class="font-bold text-slate-600 mb-1">尚無綁定個案</p>
+            <p class="text-sm text-slate-400">完成白板諮詢後，學員會自動出現在這裡</p>
+          </div>`;
+        lucide.createIcons();
+      } else {
+        document.getElementById('listEmpty').classList.remove('hidden');
+      }
       document.getElementById('viewList').classList.remove('hidden');
       return;
     }
 
-    const uids = [...new Set(snapshot.docs.map(d => d.data().uid).filter(Boolean))];
+    // 一般諮詢師：前端按 createdAt 排序（避免複合索引需求）
+    const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (!currentUserIsAdmin) {
+      docs.sort((a, b) => {
+        const ta = a.createdAt?.seconds || 0;
+        const tb = b.createdAt?.seconds || 0;
+        return tb - ta;
+      });
+    }
+
+    const uids = [...new Set(docs.map(d => d.uid).filter(Boolean))];
     const notesMap = await fetchNotesByUid(uids);
 
     clientMap = {};
-    snapshot.docs.forEach(docSnap => {
-      const data = { id: docSnap.id, ...docSnap.data() };
+    docs.forEach(data => {
       const uid = data.uid || data.id;
       const name = data.clientInfo?.name || data.name || '（未留名）';
       const email = data.clientInfo?.email || data.email || '';
@@ -308,8 +400,19 @@ async function loadData() {
     renderClientList(allClients);
     document.getElementById('viewList').classList.remove('hidden');
   } catch (err) {
-    console.error(err);
+    console.error('[loadData error]', err);
     document.getElementById('listLoading').classList.add('hidden');
+    // ⭐ 錯誤時也要顯示頁面框架，不要留空白
+    document.getElementById('viewList').classList.remove('hidden');
+    document.getElementById('listEmpty').classList.remove('hidden');
+    const emptyEl = document.getElementById('listEmpty');
+    if (emptyEl) emptyEl.innerHTML = `
+      <div class="py-16 text-center">
+        <p class="font-bold text-red-400 mb-1">載入失敗</p>
+        <p class="text-sm text-slate-400">${err.message}</p>
+        <button onclick="loadData()" class="mt-4 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold">重新載入</button>
+      </div>`;
+    lucide.createIcons();
   }
 }
 
@@ -792,6 +895,9 @@ window.ncCopyWb = function() {
 };
 
 lucide.createIcons();
+
+// ══════════════════════════════════════════════
+// ⭐ 浮動面板已移除，諮詢師管理請前往 counselors.html
 </script>
 
 <!-- ══════════════ 諮詢邀請 Modal（新版）══════════════ -->

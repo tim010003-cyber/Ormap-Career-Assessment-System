@@ -106,7 +106,15 @@ html,body{ height:100%; overflow:hidden; }
       <span id="invite-url" class="text-xs text-slate-600 flex-1 break-all leading-relaxed font-mono"></span>
       <button onclick="copyInvite()" class="flex-shrink-0 text-primary mt-0.5" title="複製連結"><i data-lucide="copy" class="w-4 h-4"></i></button>
     </div>
-    <button onclick="enterBoard()" class="w-full bg-primary text-white rounded-2xl py-3 font-black text-sm shadow-lg hover:-translate-y-0.5 transition-all">進入白板</button>
+    <!-- ⭐ 寄送邀請信（需學員 email） -->
+    <div class="mt-3 flex gap-2 items-center">
+      <input id="student-email-input" type="email" placeholder="學員 Email（選填，寄信用）"
+        class="flex-1 text-xs px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-primary">
+      <button onclick="sendInviteEmail()" class="flex-shrink-0 bg-teal-50 border border-primary text-primary rounded-xl px-3 py-2 text-xs font-bold hover:bg-teal-100 flex items-center gap-1.5">
+        <i data-lucide="mail" class="w-3.5 h-3.5"></i>寄信
+      </button>
+    </div>
+    <button onclick="enterBoard()" class="w-full bg-primary text-white rounded-2xl py-3 font-black text-sm shadow-lg hover:-translate-y-0.5 transition-all mt-3">進入白板</button>
   </div>
 </div>
 
@@ -276,7 +284,7 @@ html,body{ height:100%; overflow:hidden; }
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, addDoc, getDoc, updateDoc, deleteDoc, collection, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, addDoc, getDoc, updateDoc, deleteDoc, collection, onSnapshot, serverTimestamp, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
@@ -287,7 +295,33 @@ const firebaseConfig = {
   appId: "1:883599167982:web:6dee33f8abf03de9b53eff"
 };
 
-const COUNSELOR_WHITELIST = ["tim010003@gmail.com"];
+// ⭐ Fix: 移除硬編碼白名單，改用 Firestore counselors/{uid} 動態查詢
+const SUPER_ADMIN_UID = "PmLJEKMc8tYRPGNaSUMf5EO5kJp2";
+
+async function isCounselor(uid, email) {
+  // 先查 uid（正式文件）
+  try {
+    const snap = await getDoc(doc(db, "counselors", uid));
+    if (snap.exists() && snap.data().isActive !== false) return true;
+  } catch(e) {}
+  // 再查 pending email 文件（由 admin 以 email 新增、尚未登入過）
+  if (email) {
+    const pendingKey = email.replace(/[.#$\/\[\]]/g, "_");
+    try {
+      const pSnap = await getDoc(doc(db, "counselors", pendingKey));
+      if (pSnap.exists() && pSnap.data().isActive !== false) {
+        // ⭐ Fix: 先放行，再背景遷移
+        const data = pSnap.data();
+        setDoc(doc(db, "counselors", uid), { ...data, uid, pending: false })
+          .then(() => deleteDoc(doc(db, "counselors", pendingKey)))
+          .catch(() => console.warn("[isCounselor] pending 遷移失敗"));
+        return true; // 遷移失敗不影響登入
+      }
+    } catch(e) {}
+  }
+  // Super admin 永遠允許
+  return uid === SUPER_ADMIN_UID;
+}
 const RIASEC_C = { R:"#ef4444",I:"#3b82f6",A:"#8b5cf6",S:"#22c55e",E:"#f97316",C:"#eab308" };
 const RIASEC_L = { R:"實作",I:"研究",A:"藝術",S:"社交",E:"領導",C:"系統" };
 
@@ -315,7 +349,9 @@ onAuthStateChanged(auth, async user => {
   // 已登入 + 有 session + 可能是學員 → 先確認角色再決定畫面
   if (!sessionId) {
     hideLoading();
-    if (!COUNSELOR_WHITELIST.includes(user.email)) document.getElementById('create-section').style.display='none';
+    // ⭐ Fix: 改為 Firestore 動態查詢
+    const canCreate = await isCounselor(user.uid, user.email);
+    if (!canCreate) document.getElementById('create-section').style.display='none';
     showSetup(); return;
   }
   setMsg('讀取白板...');
@@ -390,7 +426,7 @@ async function initSession(){
     hideLoading();
     document.getElementById('wb-app').classList.remove('hidden');
     initCanvas(); setupUI(); subSession();
-    if(userRole==='counselor') subAssessment();
+    // ⭐ Fix: 移除 subAssessment() — 舊架構遺留，已由 iframe mirror 模式取代
     if(!location.search.includes('session=')) history.replaceState({},'',`${location.pathname}?session=${sessionId}`);
     lucide.createIcons();
   }catch(e){ hideLoading(); console.error(e); fatalError('連線失敗，請重新整理。'); }
@@ -576,146 +612,79 @@ function updateStatus(){
   else{ d.style.background='#94a3b8'; a.className='s-badge bg-slate-100 text-slate-500'; t.textContent='已結束'; }
 }
 
-function subAssessment(){
-  if(!sessionData.studentUid)return;
-  const tool=sessionData.toolType;
-  if(!tool||tool==='FREE'){ document.getElementById('mirror-waiting').classList.add('hidden'); return; }
-  const key=`${sessionData.studentUid}_${tool}`;
-  const u=onSnapshot(doc(db,'user_progress',key),snap=>{
-    if(!snap.exists())return;
-    try{
-      const raw=snap.data();
-      const payload=typeof raw.data==='string'?JSON.parse(raw.data):raw;
-      document.getElementById('mirror-waiting').classList.add('hidden');
-      if(tool==='TWA') renderTWA(payload);
-      else if(tool==='HTI') renderHTI(payload);
-      const now=new Date();
-      const el=document.getElementById('last-update');
-      el.textContent=`${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')} 更新`;
-      el.classList.remove('hidden');
-    }catch(e){ console.error(e); }
-  });
-  unsubs.push(u);
-}
+// ⭐ Fix: subAssessment() 已移除 — 舊架構遺留函數（訂閱 user_progress/{key}）
+// 新架構改由 iframe mirror 模式自行訂閱 whiteboard_sessions/{sid}.liveData
+// renderTWA / renderHTI 同步移除，洞察列資料由 updateInsightsBar() 負責
 
-// ── TWA Mirror ──
-const CAT_ICON={ 成就:'🏆', 舒適:'🌿', 地位:'⭐', 利他:'🤝', 安全:'🛡️', 自主:'🚀' };
-function renderTWA(data){
-  document.getElementById('mirror-twa').classList.remove('hidden');
-  document.getElementById('mirror-hti').classList.add('hidden');
-  const scores=data.scores||data.rawScores||{};
-  const curr=data.currentScores||data.rawCurrentScores||{};
-  const insight=data.insight||'';
-  const focusType=data.focusType||'';
-  const total=Object.values(scores).reduce((s,v)=>s+(Number(v)||0),0);
-  const pct=Math.min(100,(total/115)*100);
-  document.getElementById('twa-budget-num').textContent=`${total}/115`;
-  const bar=document.getElementById('twa-budget-bar');
-  bar.style.width=`${pct}%`; bar.style.background=pct>95?'#ef4444':'#0d9488';
-  if(focusType){ const fb=document.getElementById('twa-focus-badge'); fb.textContent=focusType; fb.classList.remove('hidden'); }
-
-  if(!twaMatrix){ document.getElementById('twa-needs-container').innerHTML='<p class="text-xs text-slate-400">載入評測資料中...</p>'; return; }
-  const cats={};
-  twaMatrix.forEach((item,i)=>{ const c=item.value; if(!cats[c])cats[c]=[]; cats[c].push({...item,id:`n${i}`}); });
-
-  let html='';
-  for(const [cat,needs] of Object.entries(cats)){
-    html+=`<div><div class="m-cat-header">${CAT_ICON[cat]||''} ${cat}</div>`;
-    for(const need of needs){
-      const ideal=Number(scores[need.id])||0;
-      const cv=Number(curr[need.id])||0;
-      const delta=cv-ideal;
-      const isTop=ideal>=7;
-      let dc='', dt='';
-      if(delta>0){dc='color:#22c55e';dt=`+${delta}`;}
-      else if(delta<0){dc='color:#ef4444';dt=`${delta}`;}
-      else{dc='color:#e2e8f0';dt='—';}
-      html+=`<div class="m-need-row${isTop?' top':''}">
-        <span class="m-need-name">${need.need}</span>
-        <div class="m-bars">
-          <div class="m-bar-row">
-            <span class="m-bar-label" style="color:#0d9488">理</span>
-            <div class="m-bar-track"><div class="m-bar-ideal" style="width:${ideal*10}%"></div></div>
-            <span class="m-bar-val" style="color:#0d9488">${ideal}</span>
-          </div>
-          <div class="m-bar-row">
-            <span class="m-bar-label" style="color:#94a3b8">現</span>
-            <div class="m-bar-track"><div class="m-bar-curr" style="width:${cv*10}%"></div></div>
-            <span class="m-bar-val" style="color:#94a3b8">${cv>0?cv:''}</span>
-          </div>
-        </div>
-        <span class="m-delta" style="${dc}">${cv>0||ideal>0?dt:''}</span>
-      </div>`;
-    }
-    html+='</div>';
-  }
-  document.getElementById('twa-needs-container').innerHTML=html;
-
-  if(insight){ document.getElementById('twa-insight-section').classList.remove('hidden'); document.getElementById('twa-insight-text').textContent=insight; }
-}
-
-// ── HTI Mirror ──
-function renderHTI(data){
-  document.getElementById('mirror-hti').classList.remove('hidden');
-  document.getElementById('mirror-twa').classList.add('hidden');
-  const scores=data.scores||{};
-  const selected=data.selected||data.step1Selected||[];
-  const motives=data.motives||data.step2Motives||{};
-  const codes=['R','I','A','S','E','C'];
-  const max=Math.max(...codes.map(c=>Number(scores[c])||0),1);
-
-  document.getElementById('hti-bars-header').innerHTML=codes.map(c=>{
-    const v=Number(scores[c])||0; const pct=(v/max)*100;
-    return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
-      <div style="width:26px;height:36px;background:#f1f5f9;border-radius:5px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;">
-        <div style="width:100%;height:${pct}%;background:${RIASEC_C[c]};border-radius:5px;transition:height .4s;"></div>
-      </div>
-      <span style="font-size:9px;font-weight:900;color:${RIASEC_C[c]}">${c}</span>
-      <span style="font-size:9px;font-weight:900;color:#0f172a">${v}</span>
-    </div>`;
-  }).join('');
-
-  const top=codes.filter(c=>scores[c]>0).sort((a,b)=>Number(scores[b])-Number(scores[a])).slice(0,3);
-  const tb=document.getElementById('hti-top-badge');
-  tb.innerHTML=top.map(c=>`<span style="background:${RIASEC_C[c]}20;color:${RIASEC_C[c]};font-size:10px;font-weight:900;padding:2px 9px;border-radius:20px;">${c} ${RIASEC_L[c]}</span>`).join('');
-
-  const container=document.getElementById('hti-acts-container');
-  if(!htiActivities||!htiActivities.activities){ container.innerHTML='<p class="text-xs text-slate-400">載入活動資料中...</p>'; return; }
-
-  let html='<div class="grid grid-cols-1 gap-2">';
-  for(const act of htiActivities.activities){
-    const sel=selected.includes(act.id)||selected.includes(String(act.id));
-    const am=motives[act.id]||motives[String(act.id)]||[];
-    const code=act.riasec||act.code||'';
-    html+=`<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid ${sel?'#b2dfdb':'#e2e8f0'};background:${sel?'#f0fdf4':'white'};">
-      <div style="width:18px;height:18px;border-radius:5px;background:${sel?'#0d9488':'#e2e8f0'};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
-        ${sel?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>':''}
-      </div>
-      <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-          <span style="font-size:13px;font-weight:700;color:${sel?'#065f46':'#475569'}">${act.name||act.title||act.id}</span>
-          ${code?`<span style="font-size:9px;font-weight:900;padding:1px 6px;border-radius:10px;background:${RIASEC_C[code[0]]||'#94a3b8'}20;color:${RIASEC_C[code[0]]||'#94a3b8'}">${code}</span>`:''}
-        </div>
-        ${am.length>0?`<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;">${am.map(m=>`<span style="font-size:10px;padding:1px 7px;border-radius:10px;background:#f0fdf4;color:#16a34a;font-weight:700;">${m}</span>`).join('')}</div>`:''}
-      </div>
-    </div>`;
-  }
-  html+='</div>';
-  container.innerHTML=html;
-}
+// ── TWA / HTI 舊側欄渲染函數已移除（配合 subAssessment 一起清除）──
 
 window.confirmEnd=function(){
-  if(confirm('確定結束此白板階段？')){
-    const studentUid = sessionData?.studentUid;
-    const ops = [
-      updateDoc(doc(db,'whiteboard_sessions',sessionId),{status:'ended',endedAt:serverTimestamp()})
-    ];
-    // ⭐ 同步清除學員的 whiteboard_active，讓 Dashboard 橫幅消失
-    if (studentUid) ops.push(deleteDoc(doc(db,'whiteboard_active',studentUid)));
-    Promise.all(ops)
-      .then(()=>{toast('已結束');setTimeout(()=>{location.href='admin.html';},1500);})
-      .catch(console.error);
-  }
+  const hasStudent = !!(sessionData?.studentEmail);
+  const sendReport = hasStudent && confirm(
+    '結束前是否同時寄送報告連結給學員？\n\n' +
+    '學員：' + (sessionData?.studentName || '未知') + '\n' +
+    '信箱：' + (sessionData?.studentEmail || '未知') + '\n\n' +
+    '按「確定」＝結束並寄信\n按「取消」＝僅結束，不寄信'
+  );
+  if (!confirm('確定結束此白板階段？')) return;
+  const studentUid = sessionData?.studentUid;
+  const ops = [
+    updateDoc(doc(db,'whiteboard_sessions',sessionId),{status:'ended',endedAt:serverTimestamp()})
+  ];
+  if (studentUid) ops.push(deleteDoc(doc(db,'whiteboard_active',studentUid)));
+  Promise.all(ops)
+    .then(async () => {
+      // ⭐ 綁定學員：把 assignedCounselorUid 寫入該學員所有未綁定的 assessments
+      if (sessionData?.studentUid) {
+        try {
+          const q = query(
+            collection(db, 'assessments'),
+            where('uid', '==', sessionData.studentUid)
+          );
+          const snap = await getDocs(q);
+          const bindOps = [];
+          snap.forEach(d => {
+            // 只綁定還沒有指定諮詢師的報告
+            if (!d.data().assignedCounselorUid) {
+              bindOps.push(updateDoc(doc(db, 'assessments', d.id), {
+                assignedCounselorUid  : currentUser.uid,
+                assignedCounselorName : currentUser.displayName || '諮詢師'
+              }));
+            }
+          });
+          if (bindOps.length > 0) await Promise.all(bindOps);
+          console.log(`[綁定] 已將 ${bindOps.length} 份報告綁定至 ${currentUser.displayName}`);
+        } catch(e) { console.warn('[綁定學員]', e); }
+      }
+
+      // ⭐ 若選擇寄信，查最新報告寄送
+      if (sendReport && sessionData?.studentUid) {
+        try {
+          const q = query(
+            collection(db, 'assessments'),
+            where('uid', '==', sessionData.studentUid),
+            orderBy('createdAt', 'desc'),
+            limit(1)
+          );
+          const snap = await getDocs(q);
+          if (!snap.empty) {
+            const reportDocId = snap.docs[0].id;
+            const reportUrl = `${location.origin}/report.html?id=${reportDocId}`;
+            await callGasMailer('report_ready', {
+              to           : sessionData.studentEmail,
+              studentName  : sessionData.studentName || '學員',
+              counselorName: currentUser.displayName || CONFIG_COUNSELOR_NAME,
+              toolType     : sessionData.toolType,
+              reportUrl,
+            });
+            toast('報告信已寄出 ✓');
+          }
+        } catch(e) { console.warn('[report_ready]', e); }
+      }
+      toast('已結束');
+      setTimeout(() => { location.href='admin.html'; }, 1800);
+    })
+    .catch(console.error);
 };
 
 function hexA(hex,a){ const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return `rgba(${r},${g},${b},${a})`; }
@@ -868,6 +837,44 @@ window.studentStartAssessment = async function() {
 function fatalError(msg){ document.body.innerHTML=`<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f8fafc;padding:32px;text-align:center;font-family:'Noto Sans TC',sans-serif;"><h2 style="font-weight:900;font-size:20px;color:#0f172a;margin-bottom:8px">發生錯誤</h2><p style="color:#94a3b8;font-size:14px;margin-bottom:24px">${msg}</p><a href="dashboard.html" style="background:#0d9488;color:white;border-radius:16px;padding:12px 28px;font-weight:900;font-size:14px;text-decoration:none;">返回後臺</a></div>`; }
 window.addEventListener('beforeunload',()=>{ unsubs.forEach(u=>u?.()); });
 lucide.createIcons();
+
+// ══════════════════════════════════════════════
+// ⭐ GAS Mailer 整合
+// ══════════════════════════════════════════════
+const GAS_MAILER_URL = "https://script.google.com/macros/s/AKfycbzyTam8pCWA9GPAfvr9HeKg5tUHANRKefjGN5FXFzWdaZlkudnqhFfmUfKY_smIWQyRMg/exec"; // 部署後替換此 URL
+const CONFIG_COUNSELOR_NAME = "何昆陽";
+
+async function callGasMailer(type, data) {
+  if (!GAS_MAILER_URL || GAS_MAILER_URL.includes("__")) {
+    console.warn("[GAS Mailer] URL 尚未設定"); return false;
+  }
+  return new Promise((resolve) => {
+    // 用 Image() 觸發 GET，天然跟著 redirect、完全沒有 CORS 問題
+    const params = new URLSearchParams({ type, payload: JSON.stringify(data) });
+    const img = new Image();
+    img.onload  = () => resolve(true);
+    img.onerror = () => resolve(true); // GAS 回傳 JSON 非圖片，onerror 是正常的
+    img.src = `${GAS_MAILER_URL}?${params.toString()}`;
+    // 3 秒 timeout 保護
+    setTimeout(() => resolve(true), 3000);
+  });
+}
+
+window.sendInviteEmail = async function() {
+  const emailInput = document.getElementById("student-email-input");
+  const email = emailInput?.value?.trim();
+  if (!email || !email.includes("@")) { toast("請輸入有效的學員 Email"); return; }
+  const btn = emailInput.nextElementSibling;
+  const orig = btn.innerHTML; btn.innerHTML = "寄送中..."; btn.disabled = true;
+  const ok = await callGasMailer("invite_student", {
+    to: email, studentName: "",
+    counselorName: currentUser?.displayName || CONFIG_COUNSELOR_NAME,
+    toolType: sessionData?.toolType || selectedTool || "TWA",
+    whiteboardUrl: buildUrl()
+  });
+  btn.innerHTML = orig; btn.disabled = false;
+  toast(ok ? "邀請信已寄出 ✓" : "GAS URL 未設定，請複製連結手動傳送");
+};
 </script>
 </body>
 </html>

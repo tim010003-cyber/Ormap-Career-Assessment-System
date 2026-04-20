@@ -154,73 +154,33 @@
             border-radius: 20px;
         }
 
-        /* ── Hero-style full-width card (Motivation / Reflection) ── */
-        .hero-card {
-            display: grid; grid-template-columns: 1fr;
-            gap: 24px; padding: 28px;
+        /* ── Text card (Motivation / Reflection) ── */
+        .text-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            border-radius: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-            transition: border-color .2s ease, box-shadow .2s ease;
+            border-left: 4px solid #94a3b8;
+            border-radius: 0 16px 16px 0;
+            padding: 26px 32px;
+            transition: border-left-color .2s ease, box-shadow .2s ease;
         }
-        .hero-card:hover {
-            border-color: #cbd5e1;
+        .text-card:hover {
             box-shadow: 0 4px 16px rgba(15,23,42,0.04);
         }
         @media (min-width: 768px) {
-            .hero-card {
-                grid-template-columns: 180px 1fr;
-                gap: 44px;
-                padding: 36px 44px;
-                align-items: center;
-            }
-            .hero-card.reverse { grid-template-columns: 1fr 180px; }
-            .hero-card.reverse .hero-card-media { order: 2; }
-            .hero-card.reverse .hero-card-body  { order: 1; text-align: right; }
-            .hero-card.reverse .hero-card-body .hero-tagline { justify-content: flex-end; }
+            .text-card { padding: 32px 40px; }
         }
-        .hero-card-media {
-            display: flex; align-items: center; justify-content: center;
-            aspect-ratio: 1 / 1;
-            border-radius: 18px;
-            position: relative;
-            overflow: hidden;
-            max-width: 180px; width: 100%;
-            margin: 0 auto;
+        .text-card h3 {
+            font-size: 22px; font-weight: 900; color: #0f172a;
+            letter-spacing: -0.02em; line-height: 1.35;
+            margin-bottom: 14px;
         }
-        /* 舊版單色漸層（保留向後相容） */
-        .hero-card-media.teal  { background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%); }
-        .hero-card-media.amber { background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); }
-        /* 方案 α 新版漸層：每張卡片容器配合 emoji 本色 */
-        .hero-card-media.alpha-1 { background: linear-gradient(135deg, #fffbeb 0%, #fef9c3 50%, #ffedd5 100%); } /* 🧭 金黃：amber→yellow→orange */
-        .hero-card-media.alpha-2 { background: linear-gradient(135deg, #ecfdf5 0%, #dcfce7 50%, #ecfccb 100%); } /* 🌳 綠：emerald→green→lime */
-        .hero-card-media.alpha-3 { background: linear-gradient(135deg, #f0f9ff 0%, #dbeafe 50%, #e0e7ff 100%); } /* 🧩 藍：sky→blue→indigo */
-        /* Reflection 兩張卡片（植物延續） */
-        .hero-card-media.alpha-r1 { background: linear-gradient(135deg, #f7fee7 0%, #dcfce7 50%, #ecfdf5 100%); } /* 🍃 黃綠：lime→green→emerald */
-        .hero-card-media.alpha-r2 { background: linear-gradient(135deg, #f0fdf4 0%, #d1fae5 50%, #f0fdfa 100%); } /* 🌱 鮮綠：green→emerald→teal */
-        .hero-card-media::after {
-            content: ''; position: absolute; inset: 0;
-            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.55), transparent 60%);
-            pointer-events: none;
+        @media (min-width: 768px) {
+            .text-card h3 { font-size: 24px; }
         }
-        .hero-card-media svg.lucide {
-            width: 72px; height: 72px; stroke-width: 1.35;
-            position: relative; z-index: 1;
+        .text-card p {
+            font-size: 16px; color: #334155; line-height: 1.85;
         }
-        .hero-card-media.teal     svg.lucide { color: #0d9488; }
-        .hero-card-media.amber    svg.lucide { color: #d97706; }
-        .hero-card-media.alpha-1  svg.lucide { color: #b45309; }  /* 深琥珀，對應 amber 系漸層 */
-        .hero-card-media.alpha-2  svg.lucide { color: #047857; }  /* 深綠，對應 emerald 系漸層 */
-        .hero-card-media.alpha-3  svg.lucide { color: #1d4ed8; }  /* 深藍，對應 blue 系漸層 */
-        .hero-card-media.alpha-r1 svg.lucide { color: #4d7c0f; }  /* 深橄欖綠，對應 lime 系漸層 */
-        .hero-card-media.alpha-r2 svg.lucide { color: #047857; }  /* 深綠，對應 emerald 系漸層 */
-        /* Emoji icon 顯示：跟 SVG icon 同樣尺寸與層級 */
-        .hero-card-media .media-emoji {
-            font-size: 76px; line-height: 1;
-            position: relative; z-index: 1;
-            font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
-        }
+        /* Tagline pill (shared by motivation / reflection / future sections) */
         .hero-tagline {
             display: inline-flex; align-items: center; gap: 6px;
             font-size: 10px; font-weight: 900; letter-spacing: .12em;
@@ -235,16 +195,38 @@
         .hero-tagline.emerald { background: #d1fae5; color: #065f46; }
         .hero-tagline.blue    { background: #dbeafe; color: #1e40af; }
         .hero-tagline.lime    { background: #ecfccb; color: #3f6212; }
-        .hero-card-body h3 {
-            font-size: 22px; font-weight: 900; color: #0f172a;
-            letter-spacing: -0.02em; line-height: 1.35;
-            margin-bottom: 12px;
+        /* ── Rich text paragraphs (A+B): first paragraph lead, rest body, **bold** emphasis ── */
+        .text-card p.hero-p-lead {
+            font-size: 16px; color: #1e293b; line-height: 1.8;
+            margin-bottom: 14px;
         }
-        @media (min-width: 768px) {
-            .hero-card-body h3 { font-size: 24px; }
+        .text-card p.hero-p-body {
+            font-size: 15px; color: #475569; line-height: 1.85;
+            margin-bottom: 20px;
         }
-        .hero-card-body p {
-            font-size: 16px; color: #334155; line-height: 1.85;
+        .text-card p.hero-p-body:last-child { margin-bottom: 0; }
+        .text-card p strong {
+            font-weight: 900; color: #0f172a;
+        }
+        /* ── Inline callouts (例子 / 引用) ── */
+        .hero-callout-group {
+            display: flex; flex-direction: column; gap: 10px;
+            margin-top: 4px;
+        }
+        .hero-callout {
+            background: #f0fdfa;
+            border-left: 3px solid #0d9488;
+            border-radius: 0 12px 12px 0;
+            padding: 14px 18px;
+        }
+        .hero-callout-label {
+            font-size: 11px; font-weight: 900; color: #0f766e;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .hero-callout-text {
+            font-size: 14px; color: #134e4a; line-height: 1.7;
+            font-style: italic; margin: 0;
         }
 
         /* ── SOP Timeline ── */
@@ -344,6 +326,110 @@
         .limit-reached { animation: pulse-red .4s ease; }
 
         .mesh-gradient { background: radial-gradient(at 100% 0%, rgba(13,148,136,.1) 0,transparent 50%), radial-gradient(at 0% 100%, rgba(13,148,136,.05) 0,transparent 50%); }
+
+        /* ── Hero (redesigned) ── */
+        .hero-grid {
+            display: grid; grid-template-columns: 1fr;
+            gap: 48px; align-items: center;
+        }
+        @media (min-width: 1024px) {
+            .hero-grid { grid-template-columns: 1.35fr 1fr; gap: 72px; }
+        }
+        .hero-title {
+            font-size: 34px; font-weight: 900; color: #0f172a;
+            letter-spacing: -0.03em; line-height: 1.25;
+            margin: 0 0 28px;
+        }
+        @media (min-width: 768px) {
+            .hero-title { font-size: 46px; line-height: 1.22; margin-bottom: 32px; }
+        }
+        @media (min-width: 1024px) {
+            .hero-title { font-size: 54px; line-height: 1.2; margin-bottom: 36px; }
+        }
+        .hero-subtitle {
+            font-size: 16px; color: #334155; line-height: 1.95;
+            margin: 0 0 36px; max-width: 680px;
+        }
+        @media (min-width: 768px) {
+            .hero-subtitle { font-size: 18px; line-height: 2; margin-bottom: 40px; }
+        }
+        .hero-subtitle strong {
+            font-weight: 900; color: #0f172a;
+        }
+        .hero-cta-row {
+            display: flex; gap: 12px; align-items: center;
+            flex-wrap: wrap;
+        }
+        .hero-cta {
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 15px 30px;
+            background: #0d9488; color: #ffffff;
+            border: none; border-radius: 14px;
+            font-size: 16px; font-weight: 900;
+            cursor: pointer; text-decoration: none;
+            box-shadow: 0 4px 14px rgba(13,148,136,.28);
+            letter-spacing: 0.01em;
+            transition: background-color .2s ease, transform .2s ease, box-shadow .2s ease;
+        }
+        @media (min-width: 768px) {
+            .hero-cta { padding: 16px 34px; font-size: 17px; }
+        }
+        .hero-cta:hover {
+            background: #0f766e; transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(13,148,136,.35);
+        }
+        .hero-cta-arrow { font-size: 19px; line-height: 1; }
+        .hero-quote-small {
+            font-size: 11px; color: #94a3b8;
+            font-weight: 700; font-style: italic;
+            margin: 4px 0 0;
+        }
+        /* Hero stats */
+        .hero-stats-group {
+            display: flex; flex-direction: column; gap: 18px;
+        }
+        .hero-stat-card {
+            background: rgba(255,255,255,0.8); backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid #e2e8f0;
+            border-radius: 18px; padding: 26px 28px;
+            display: grid; grid-template-columns: 108px 1fr;
+            gap: 20px; align-items: center;
+        }
+        @media (min-width: 768px) {
+            .hero-stat-card { padding: 28px 30px; grid-template-columns: 116px 1fr; }
+        }
+        .hero-stat-value {
+            font-size: 42px; font-weight: 900; color: #0d9488;
+            letter-spacing: -0.04em; line-height: 1;
+            display: flex; align-items: baseline; gap: 2px;
+        }
+        @media (min-width: 768px) {
+            .hero-stat-value { font-size: 48px; }
+        }
+        .hero-stat-value-small {
+            font-size: 22px; font-weight: 900;
+        }
+        @media (min-width: 768px) {
+            .hero-stat-value-small { font-size: 24px; }
+        }
+        .hero-stat-card.compact .hero-stat-value {
+            font-size: 36px;
+        }
+        @media (min-width: 768px) {
+            .hero-stat-card.compact .hero-stat-value { font-size: 40px; }
+        }
+        .hero-stat-label {
+            font-size: 14px; font-weight: 900; color: #0f172a;
+            margin: 0 0 5px;
+        }
+        .hero-stat-hint {
+            font-size: 12.5px; color: #64748b; line-height: 1.7;
+            margin: 0;
+        }
+        .hero-stat-card.compact .hero-stat-hint {
+            font-size: 11.5px; font-style: italic;
+        }
 
         /* ── Mobile drawer ── */
         .drawer-open { transform: translateY(0) !important; }
@@ -588,21 +674,31 @@
 <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16">
 
     <!-- Landing Hero -->
-    <section class="mb-10 no-print" id="hero-section">
-        <div class="bg-white p-8 lg:p-12 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden mesh-gradient">
-            <div class="relative z-10 max-w-3xl">
-                <h2 id="hero-title" class="text-3xl lg:text-5xl font-black text-slate-800 mb-5 leading-tight tracking-tight">&nbsp;</h2>
-                <p id="hero-quote" class="text-lg font-bold text-slate-400 border-l-4 border-teal-500 pl-5 leading-relaxed mb-5">&nbsp;</p>
-                <p id="hero-intro" class="text-sm text-slate-500 leading-relaxed">&nbsp;</p>
+    <section class="-mx-4 sm:-mx-6 lg:-mx-8 mb-16 lg:mb-20 no-print" id="hero-section">
+        <div class="mesh-gradient relative overflow-hidden px-8 sm:px-10 lg:px-16 xl:px-20 py-20 lg:py-28 xl:py-32">
+            <div class="relative z-10 hero-grid">
+                <div class="hero-main">
+                    <p id="hero-eyebrow" class="text-[11px] font-black text-teal-600 uppercase tracking-[0.22em] mb-4 hidden"></p>
+                    <h2 id="hero-title" class="hero-title">&nbsp;</h2>
+                    <p id="hero-subtitle" class="hero-subtitle hidden"></p>
+                    <div id="hero-cta-row" class="hero-cta-row hidden">
+                        <a id="hero-cta" href="#motivation-section" class="hero-cta">
+                            <span id="hero-cta-text">先了解這份評測</span>
+                            <span class="hero-cta-arrow">↓</span>
+                        </a>
+                    </div>
+                    <p id="hero-quote" class="hero-quote-small hidden">&nbsp;</p>
+                </div>
+                <div id="hero-stats" class="hero-stats-group hidden"></div>
             </div>
         </div>
     </section>
 
     <!-- Value Intro (optional; rendered only when valueIntro.enabled === true) -->
-    <!-- 方向 A: 純文字、頁面水平居中、無卡片容器、lead 用左側細引線 -->
+    <!-- 方向 A: 純文字、頁面靠左對齊、無卡片容器、lead 用左側細引線 -->
     <section class="mb-12 no-print hidden" id="value-intro-section">
-        <div class="max-w-2xl mx-auto py-8 lg:py-10 px-4">
-            <p id="vi-eyebrow" class="text-[10px] font-black text-teal-600 uppercase tracking-[0.25em] mb-3"></p>
+        <div class="max-w-2xl py-8 lg:py-10 px-1">
+            <p id="vi-eyebrow" class="text-[11px] font-black text-teal-600 uppercase tracking-[0.22em] mb-2"></p>
             <h3 id="vi-title" class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tight mb-6 leading-tight"></h3>
             <p id="vi-lead" class="text-xl font-bold text-slate-700 border-l-2 border-teal-500 pl-5 leading-relaxed mb-6"></p>
             <div id="vi-paragraphs" class="space-y-4 text-base text-slate-600 leading-[1.9]"></div>
@@ -611,15 +707,9 @@
     </section>
 
     <!-- Motivation — why this assessment helps you -->
-    <section class="mb-10 no-print" id="motivation-section">
-        <div class="flex items-center justify-between mb-5 px-1">
-            <div class="flex items-center gap-2">
-                <div class="w-1 h-5 bg-teal-600 rounded-full"></div>
-                <h2 id="mo-title" class="text-[11px] font-black text-slate-500 uppercase tracking-[0.15em]">&nbsp;</h2>
-            </div>
-            <span id="mo-eyebrow" class="text-[10px] text-slate-300 font-bold hidden sm:block"></span>
-        </div>
-        <div id="mo-cards" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+    <!-- Heading 已移除：由上方 valueIntro 的 lead「在開始之前，讓我們先釐清三件事：」直接帶入下方三張卡片 -->
+    <section class="mb-12 no-print" id="motivation-section">
+        <div id="mo-cards"></div>
     </section>
 
     <!-- SOP — 7-step vertical timeline, rendered from JSON -->
@@ -1030,72 +1120,143 @@ function escHtml(s) {
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+// Render rich text: split by blank line → <p>, convert **x** → <strong>x</strong>.
+// First paragraph uses firstClass, rest use restClass.
+function renderRichText(text, firstClass, restClass) {
+    if (!text) return '';
+    var paras = String(text).split(/\n\s*\n/);
+    return paras.map(function(para, idx) {
+        var esc = escHtml(para.trim());
+        var withBold = esc.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        var cls = idx === 0 ? firstClass : restClass;
+        return '<p class="' + cls + '">' + withBold + '</p>';
+    }).join('');
+}
+
 window.renderLanding = function() {
     if (!landing) return;
 
     // ── Hero ──
     if (landing.hero) {
+        const h = landing.hero;
+        const he = document.getElementById('hero-eyebrow');
+        if (he) { he.textContent = h.eyebrow || ''; he.classList.toggle('hidden', !h.eyebrow); }
         const h1 = document.getElementById('hero-title');
+        if (h1) {
+            // 支援 \n → <br> 控制斷行
+            h1.innerHTML = escHtml(h.title || '').replace(/\n/g, '<br>');
+        }
+        const hs = document.getElementById('hero-subtitle');
+        if (hs) {
+            if (h.subtitle) {
+                var subEsc = escHtml(h.subtitle);
+                hs.innerHTML = subEsc.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+                hs.classList.remove('hidden');
+            } else {
+                hs.classList.add('hidden');
+            }
+        }
+        const hctaRow = document.getElementById('hero-cta-row');
+        const hctaBtn = document.getElementById('hero-cta');
+        const hctaText = document.getElementById('hero-cta-text');
+        if (hctaRow && hctaBtn && hctaText) {
+            if (h.ctaText) {
+                hctaText.textContent = h.ctaText;
+                if (h.ctaTarget) hctaBtn.setAttribute('href', h.ctaTarget);
+                hctaRow.classList.remove('hidden');
+            } else {
+                hctaRow.classList.add('hidden');
+            }
+        }
         const hq = document.getElementById('hero-quote');
-        const hi = document.getElementById('hero-intro');
-        if (h1) h1.textContent = landing.hero.title || '';
-        if (hq) hq.textContent = landing.hero.quote || '';
-        if (hi) hi.textContent = landing.hero.intro || '';
+        if (hq) { hq.textContent = h.quote || ''; hq.classList.toggle('hidden', !h.quote); }
+        // Stats
+        const hStats = document.getElementById('hero-stats');
+        if (hStats) {
+            var stats = Array.isArray(h.stats) ? h.stats : [];
+            if (stats.length) {
+                hStats.innerHTML = stats.map(function(s) {
+                    var variantClass = s.variant ? ' ' + escHtml(s.variant) : '';
+                    var valMain = escHtml(s.value || '');
+                    var valSmall = s.valueSmall
+                        ? '<span class="hero-stat-value-small">' + escHtml(s.valueSmall) + '</span>'
+                        : '';
+                    return '' +
+                    '<div class="hero-stat-card' + variantClass + '">' +
+                        '<div class="hero-stat-value">' + valMain + valSmall + '</div>' +
+                        '<div>' +
+                            '<p class="hero-stat-label">' + escHtml(s.label || '') + '</p>' +
+                            '<p class="hero-stat-hint">' + escHtml(s.hint || '') + '</p>' +
+                        '</div>' +
+                    '</div>';
+                }).join('');
+                hStats.classList.remove('hidden');
+            } else {
+                hStats.classList.add('hidden');
+            }
+        }
     }
 
     // ── Value Intro (optional) ──
     const viSec = document.getElementById('value-intro-section');
     if (viSec) {
         const vi = landing.valueIntro || {};
-        const show = !!(vi.enabled && (vi.sectionTitle || (vi.paragraphs && vi.paragraphs.length)));
+        const hasParas = Array.isArray(vi.paragraphs) && vi.paragraphs.length > 0;
+        const show = !!(vi.enabled && (vi.sectionTitle || vi.lead || hasParas));
         viSec.classList.toggle('hidden', !show);
         if (show) {
-            const eb = document.getElementById('vi-eyebrow');      if (eb) eb.textContent = vi.eyebrow || '';
+            const eb = document.getElementById('vi-eyebrow');
+            if (eb) { eb.textContent = vi.eyebrow || ''; eb.classList.toggle('hidden', !vi.eyebrow); }
             const tt = document.getElementById('vi-title');        if (tt) tt.textContent = vi.sectionTitle || '';
             const ld = document.getElementById('vi-lead');         if (ld) { ld.textContent = vi.lead || ''; ld.classList.toggle('hidden', !vi.lead); }
             const pw = document.getElementById('vi-paragraphs');
             if (pw) {
-                pw.innerHTML = (vi.paragraphs || []).map(function(p) {
-                    return '<p>' + escHtml(p) + '</p>';
-                }).join('');
+                pw.innerHTML = hasParas
+                    ? vi.paragraphs.map(function(p) { return '<p>' + escHtml(p) + '</p>'; }).join('')
+                    : '';
+                pw.classList.toggle('hidden', !hasParas);
             }
             const fn = document.getElementById('vi-footnote');     if (fn) { fn.textContent = vi.footnote || ''; fn.classList.toggle('hidden', !vi.footnote); }
         }
     }
 
-    // ── Motivation (hero-style alternating cards) ──
-    // Motivation 3 張卡片各自的多色漸層 + tagline 色票（跟 emoji 本色系對齊）
+    // ── Motivation (text cards with left accent bar) ──
+    // Motivation 3 張卡片：左側 4px accent bar 顏色 + tagline pill 色票（跟原 emoji 本色系對齊）
     const MOTIVATION_THEMES = [
-        { media: 'alpha-1', tagline: 'amber'   },  // card 1 🧭 金黃系
-        { media: 'alpha-2', tagline: 'emerald' },  // card 2 🌳 綠系
-        { media: 'alpha-3', tagline: 'blue'    }   // card 3 🧩 藍系
+        { accent: '#d97706', tagline: 'amber'   },  // card 1 金黃系
+        { accent: '#059669', tagline: 'emerald' },  // card 2 綠系
+        { accent: '#2563eb', tagline: 'blue'    }   // card 3 藍系
     ];
     if (landing.motivation) {
         const m = landing.motivation;
         const mt = document.getElementById('mo-title');    if (mt) mt.textContent = m.sectionTitle || '';
         const me = document.getElementById('mo-eyebrow');  if (me) me.textContent = m.eyebrow || '';
+        const ms = document.getElementById('mo-subtitle');
+        if (ms) { ms.textContent = m.subtitle || ''; ms.classList.toggle('hidden', !m.subtitle); }
         const mc = document.getElementById('mo-cards');
         if (mc) {
-            mc.className = 'space-y-4'; // override old grid
+            mc.className = 'space-y-3.5';
             mc.innerHTML = (m.cards || []).map(function(card, idx) {
-                const reverse = idx % 2 === 1;
                 const theme = MOTIVATION_THEMES[idx] || MOTIVATION_THEMES[0];
-                // 優先用 emoji，沒 emoji 才 fallback 到 Lucide icon
-                const mediaInner = card.emoji
-                    ? '<span class="media-emoji">' + escHtml(card.emoji) + '</span>'
-                    : '<i data-lucide="' + escHtml(card.icon || 'sparkles') + '"></i>';
+                // body: description(rich text) + optional callouts
+                var bodyHtml = renderRichText(card.description || '', 'hero-p-lead', 'hero-p-body');
+                if (Array.isArray(card.callouts) && card.callouts.length) {
+                    bodyHtml += '<div class="hero-callout-group">' +
+                        card.callouts.map(function(co) {
+                            return '<div class="hero-callout">' +
+                                '<p class="hero-callout-label">' + escHtml(co.label || '') + '</p>' +
+                                '<p class="hero-callout-text">' + escHtml(co.text || '') + '</p>' +
+                            '</div>';
+                        }).join('') +
+                    '</div>';
+                }
                 return '' +
-                '<div class="hero-card' + (reverse ? ' reverse' : '') + '">' +
-                    '<div class="hero-card-media ' + theme.media + '">' +
-                        mediaInner +
-                    '</div>' +
-                    '<div class="hero-card-body">' +
-                        (card.tagline
-                            ? '<div class="hero-tagline ' + theme.tagline + '"><i data-lucide="sparkle" style="width:10px;height:10px"></i>' + escHtml(card.tagline) + '</div>'
-                            : '') +
-                        '<h3>' + escHtml(card.title || '') + '</h3>' +
-                        '<p>' + escHtml(card.description || '') + '</p>' +
-                    '</div>' +
+                '<div class="text-card" style="border-left-color:' + theme.accent + ';">' +
+                    (card.tagline
+                        ? '<div class="hero-tagline ' + theme.tagline + '"><i data-lucide="sparkle" style="width:10px;height:10px"></i>' + escHtml(card.tagline) + '</div>'
+                        : '') +
+                    '<h3>' + escHtml(card.title || '') + '</h3>' +
+                    bodyHtml +
                 '</div>';
             }).join('');
         }
@@ -1167,30 +1328,32 @@ window.renderLanding = function() {
             const rt = document.getElementById('rf-title-text'); if (rt) rt.textContent = r.sectionTitle || '';
             const re = document.getElementById('rf-eyebrow');    if (re) re.textContent = r.eyebrow || '';
             const rc = document.getElementById('rf-cards');
-            // Reflection 兩張卡片的漸層主題（跟 emoji 本色系對齊）
+            // Reflection 兩張卡片的 accent + tagline 主題
             const REFLECTION_THEMES = [
-                { media: 'alpha-r1', tagline: 'lime'    },  // card 1 🍃 黃綠系
-                { media: 'alpha-r2', tagline: 'emerald' }   // card 2 🌱 鮮綠系
+                { accent: '#65a30d', tagline: 'lime'    },  // card 1 黃綠系
+                { accent: '#059669', tagline: 'emerald' }   // card 2 鮮綠系
             ];
             if (rc) {
                 rc.innerHTML = r.cards.map(function(card, idx) {
-                    const reverse = idx % 2 === 1;
                     const theme = REFLECTION_THEMES[idx] || REFLECTION_THEMES[0];
-                    const mediaInner = card.emoji
-                        ? '<span class="media-emoji">' + escHtml(card.emoji) + '</span>'
-                        : '<i data-lucide="' + escHtml(card.icon || 'sparkles') + '"></i>';
+                    var bodyHtml = renderRichText(card.description || '', 'hero-p-lead', 'hero-p-body');
+                    if (Array.isArray(card.callouts) && card.callouts.length) {
+                        bodyHtml += '<div class="hero-callout-group">' +
+                            card.callouts.map(function(co) {
+                                return '<div class="hero-callout">' +
+                                    '<p class="hero-callout-label">' + escHtml(co.label || '') + '</p>' +
+                                    '<p class="hero-callout-text">' + escHtml(co.text || '') + '</p>' +
+                                '</div>';
+                            }).join('') +
+                        '</div>';
+                    }
                     return '' +
-                    '<div class="hero-card' + (reverse ? ' reverse' : '') + '">' +
-                        '<div class="hero-card-media ' + theme.media + '">' +
-                            mediaInner +
-                        '</div>' +
-                        '<div class="hero-card-body">' +
-                            (card.tagline
-                                ? '<div class="hero-tagline ' + theme.tagline + '"><i data-lucide="sparkle" style="width:10px;height:10px"></i>' + escHtml(card.tagline) + '</div>'
-                                : '') +
-                            '<h3>' + escHtml(card.title || '') + '</h3>' +
-                            '<p>' + escHtml(card.description || '') + '</p>' +
-                        '</div>' +
+                    '<div class="text-card" style="border-left-color:' + theme.accent + ';">' +
+                        (card.tagline
+                            ? '<div class="hero-tagline ' + theme.tagline + '"><i data-lucide="sparkle" style="width:10px;height:10px"></i>' + escHtml(card.tagline) + '</div>'
+                            : '') +
+                        '<h3>' + escHtml(card.title || '') + '</h3>' +
+                        bodyHtml +
                     '</div>';
                 }).join('');
             }

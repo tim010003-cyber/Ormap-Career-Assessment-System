@@ -273,6 +273,38 @@
             color: #ffffff !important;
         }
 
+        /* ── Prepare Checklist (Identity 之前的輕量提示) ── */
+        .prepare-item {
+            display: grid; grid-template-columns: 44px 1fr;
+            gap: 14px; align-items: start;
+            padding: 16px 18px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            transition: border-color .2s ease, box-shadow .2s ease;
+        }
+        .prepare-item:hover {
+            border-color: #99f6e4;
+            box-shadow: 0 2px 10px rgba(13,148,136,.06);
+        }
+        .prepare-item-icon {
+            width: 44px; height: 44px;
+            border-radius: 12px;
+            background: #f0fdfa;
+            color: #0d9488;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .prepare-item-title {
+            font-size: 15px; font-weight: 900;
+            color: #0f172a; letter-spacing: -0.01em;
+            line-height: 1.35; margin: 0 0 4px;
+        }
+        .prepare-item-desc {
+            font-size: 13px; color: #64748b;
+            line-height: 1.7; margin: 0;
+        }
+
         /* ── Score bar ── */
         .score-bar-wrap { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
         .score-bar-fill { height: 100%; border-radius: 3px; transition: width .4s ease; }
@@ -712,32 +744,64 @@
         <div id="mo-cards"></div>
     </section>
 
-    <!-- SOP — 7-step vertical timeline, rendered from JSON -->
-    <section class="mb-10 no-print" id="sop-section">
-        <div class="flex items-center justify-between mb-5 px-1">
-            <div class="flex items-center gap-2">
-                <div class="w-1 h-5 bg-teal-600 rounded-full"></div>
-                <h2 id="sop-title" class="text-[11px] font-black text-slate-500 uppercase tracking-[0.15em]">&nbsp;</h2>
-            </div>
-            <span id="sop-eyebrow" class="text-[10px] text-slate-300 font-bold hidden sm:block"></span>
+    <!-- SOP — core 3 steps -->
+    <section class="mb-14 no-print" id="sop-section">
+        <div class="mb-8 px-1 max-w-2xl">
+            <p id="sop-eyebrow" class="text-[11px] font-black text-teal-600 uppercase tracking-[0.22em] mb-2 hidden"></p>
+            <h2 id="sop-title" class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tight leading-tight mb-2">&nbsp;</h2>
+            <p id="sop-lead" class="text-sm lg:text-base text-slate-500 leading-relaxed hidden"></p>
         </div>
-        <p id="sop-lead" class="text-sm text-slate-500 leading-relaxed mb-6 px-1"></p>
         <div id="sop-groups" class="space-y-6"></div>
     </section>
 
+    <!-- Prepare Checklist — 從 SOP「準備」融入，放在 Identity 之上 -->
+    <section class="mb-10 no-print hidden" id="prepare-section">
+        <div class="mb-6 px-1 max-w-2xl">
+            <p id="pc-eyebrow" class="text-[11px] font-black text-teal-600 uppercase tracking-[0.22em] mb-2 hidden"></p>
+            <h2 id="pc-title" class="text-2xl lg:text-3xl font-black text-slate-800 tracking-tight leading-tight mb-2">&nbsp;</h2>
+        </div>
+        <div id="pc-items" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+    </section>
+
     <!-- Identity -->
-    <section class="mb-8 space-y-4" id="identity-section">
-        <div class="flex items-center gap-2 mb-4 px-1">
-            <div class="w-1 h-5 bg-teal-600 rounded-full"></div>
-            <h2 class="text-[11px] font-black text-slate-500 uppercase tracking-[0.15em]">填寫你的背景資料</h2>
+    <!-- Identity: 合併 SOP「準備」步驟 — 評測前兩件小事 -->
+    <section class="mb-10 space-y-5" id="identity-section">
+        <div class="mb-6 px-1 max-w-2xl">
+            <p class="text-[11px] font-black text-teal-600 uppercase tracking-[0.22em] mb-2">BEFORE YOU START</p>
+            <h2 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tight leading-tight mb-2">進入評測前，兩件小事</h2>
+            <p class="text-sm text-slate-500 leading-relaxed">為自己空下半小時平靜時光，讓思考能被文字接住。</p>
         </div>
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">目前職業 / 背景</label>
-            <input type="text" id="user-job" placeholder="例如：行銷企劃、軟體工程師、應屆畢業生..." class="w-full font-black text-slate-700 focus:outline-none bg-transparent text-lg" onchange="saveAll()">
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex items-start gap-3 mb-3">
+                <div class="w-8 h-8 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center shrink-0 mt-0.5">
+                    <i data-lucide="wind" class="w-4 h-4 text-teal-600"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">STEP 1 · 回到中心</label>
+                    <p class="text-sm text-slate-600 leading-relaxed mb-0">先深呼吸三次，讓自己放下手邊的雜訊，回到內在的穩定狀態。</p>
+                </div>
+            </div>
         </div>
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">長期職涯目標</label>
-            <textarea id="user-goal" placeholder="請自由書寫心中理想的職涯願景..." class="w-full bg-slate-50 p-4 rounded-xl text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 leading-relaxed text-base resize-none" rows="3" onchange="saveAll()"></textarea>
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex items-start gap-3 mb-4">
+                <div class="w-8 h-8 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center shrink-0 mt-0.5">
+                    <i data-lucide="user-pen" class="w-4 h-4 text-teal-600"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">STEP 2 · 描繪你的背景</label>
+                    <p class="text-sm text-slate-600 leading-relaxed mb-0">幫助系統了解你現在站在什麼位置、期望前往哪裡。</p>
+                </div>
+            </div>
+            <div class="space-y-4 pl-0 sm:pl-11">
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">目前職業 / 背景</label>
+                    <input type="text" id="user-job" placeholder="例如：行銷企劃、軟體工程師、應屆畢業生..." class="w-full font-black text-slate-700 focus:outline-none bg-slate-50 px-4 py-3 rounded-xl text-base border border-slate-100 focus:ring-2 focus:ring-teal-500/20" onchange="saveAll()">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">長期職涯目標</label>
+                    <textarea id="user-goal" placeholder="請自由書寫心中理想的職涯願景..." class="w-full bg-slate-50 p-4 rounded-xl text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 leading-relaxed text-base resize-none border border-slate-100" rows="3" onchange="saveAll()"></textarea>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -808,9 +872,21 @@
 
         <!-- LEFT: Assessment -->
         <div>
-            <div class="flex items-center justify-between mb-5">
-                <h2 class="text-lg font-black text-slate-800">需求評測</h2>
-                <span class="text-xs text-slate-400"><span id="assessed-count" class="font-black text-teal-600">0</span> / 20 項已評分</span>
+            <div class="mb-8 px-1">
+                <div class="flex items-start justify-between gap-4 flex-wrap">
+                    <div class="min-w-0 flex-1">
+                        <p class="text-[11px] font-black text-teal-600 uppercase tracking-[0.22em] mb-2">THE ASSESSMENT</p>
+                        <h2 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tight leading-tight mb-2">開始你的需求評測</h2>
+                        <p class="text-sm text-slate-500 leading-relaxed">跟著你的節奏，一個需求一個需求來。隨時可以暫停，系統會幫你存檔。</p>
+                    </div>
+                    <div class="text-right shrink-0 pt-1">
+                        <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">已完成</div>
+                        <div class="flex items-baseline gap-1">
+                            <span id="assessed-count" class="text-2xl font-black text-teal-600 leading-none">0</span>
+                            <span class="text-sm font-black text-slate-400">/ 20 項</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div id="assessment-container" class="space-y-5"></div>
         </div>
@@ -908,11 +984,12 @@
 
     <!-- Bottom Report Section -->
     <section id="final-report" class="mb-12">
+        <div class="mb-6 px-1 max-w-2xl">
+            <p class="text-[11px] font-black text-teal-600 uppercase tracking-[0.22em] mb-2">YOUR CAREER PROFILE</p>
+            <h2 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tight leading-tight mb-2">職涯輪廓摘要</h2>
+            <p class="text-sm text-slate-500 leading-relaxed">以下是你剛才完成的評測結果。在最底下寫下此刻的體悟，然後送出。</p>
+        </div>
         <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-            <div class="px-8 py-6 bg-slate-900 text-white">
-                <h2 class="text-2xl font-black tracking-tight">職涯輪廓摘要</h2>
-                <p class="text-slate-400 text-sm mt-1">完成所有評分後，在下方寫下洞察，然後送出報告。</p>
-            </div>
             <div class="p-8 space-y-8">
                 <!-- Focus type -->
                 <div class="flex items-center gap-4 p-5 bg-teal-50 rounded-2xl border border-teal-100">
@@ -923,6 +1000,50 @@
                         <div class="text-[10px] font-black text-teal-600/70 uppercase tracking-widest mb-0.5">決策狀態</div>
                         <div id="final-stat-focus" class="text-xl font-black text-teal-700">—</div>
                         <div id="focus-explanation" class="text-sm text-teal-600/70 italic"></div>
+                    </div>
+                </div>
+                <!-- Personal debrief summary (新增 · 個人化摘要) -->
+                <div id="debrief-summary">
+                    <h3 class="font-black text-slate-700 mb-4 flex items-center gap-2 text-sm">
+                        <i data-lucide="footprints" class="w-4 h-4 text-teal-500"></i>你剛走過的這段旅程
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="bg-slate-50 border border-slate-100 rounded-2xl p-5">
+                            <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">評估需求</div>
+                            <div class="flex items-baseline gap-1">
+                                <span id="debrief-assessed-count" class="text-3xl font-black text-teal-600 leading-none">0</span>
+                                <span class="text-base font-black text-slate-400">/ 20</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-2 leading-relaxed">你給了 0 分以上的需求數</p>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-100 rounded-2xl p-5">
+                            <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">能量投注</div>
+                            <div class="flex items-baseline gap-1">
+                                <span id="debrief-used-budget" class="text-3xl font-black text-teal-600 leading-none">0</span>
+                                <span class="text-base font-black text-slate-400">/ 115 pt</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-2 leading-relaxed">你總共投注的理想期待值</p>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-100 rounded-2xl p-5">
+                            <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">已選指標</div>
+                            <div class="flex items-baseline gap-1">
+                                <span id="debrief-selected-count" class="text-3xl font-black text-teal-600 leading-none">0</span>
+                                <span class="text-base font-black text-slate-400">項</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-2 leading-relaxed">你已勾選的環境指標總數</p>
+                        </div>
+                    </div>
+                    <div id="debrief-gap-card" class="mt-3 bg-gradient-to-br from-amber-50 to-white border border-amber-100 rounded-2xl p-5 hidden">
+                        <div class="flex items-start gap-3">
+                            <div class="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                                <i data-lucide="triangle-alert" class="w-4 h-4 text-amber-700"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1">你最大的落差在這裡</div>
+                                <div id="debrief-gap-name" class="text-base font-black text-slate-800 leading-tight mb-1">—</div>
+                                <p id="debrief-gap-text" class="text-xs text-slate-600 leading-relaxed">—</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <!-- Radar -->
@@ -1262,16 +1383,19 @@ window.renderLanding = function() {
         }
     }
 
-    // ── SOP — vertical timeline: 3 group blocks, each stacking uniform step cards ──
+    // ── SOP — core 3 steps ──
     if (landing.sop) {
         const s = landing.sop;
         const st = document.getElementById('sop-title');    if (st) st.textContent = s.sectionTitle || '';
-        const se = document.getElementById('sop-eyebrow');  if (se) se.textContent = s.eyebrow || '';
+        const se = document.getElementById('sop-eyebrow');
+        if (se) { se.textContent = s.eyebrow || ''; se.classList.toggle('hidden', !s.eyebrow); }
         const sl = document.getElementById('sop-lead');     if (sl) { sl.textContent = s.leadText || ''; sl.classList.toggle('hidden', !s.leadText); }
         const sg = document.getElementById('sop-groups');
         if (sg) {
+            const groups = s.groups || [];
+            const hideGroupHeader = groups.length <= 1;
             let stepCounter = 0;
-            sg.innerHTML = (s.groups || []).map(function(group) {
+            sg.innerHTML = groups.map(function(group) {
                 const col = SOP_GROUP_COLORS[group.color] || SOP_GROUP_COLORS.slate;
                 const stepsHtml = (group.steps || []).map(function(step) {
                     stepCounter++;
@@ -1286,11 +1410,16 @@ window.renderLanding = function() {
                         '</div>' +
                         '<div class="flex-1 min-w-0">' +
                             '<div class="flex items-center gap-2 mb-1.5">' + stepBadge + '</div>' +
-                            '<h4 class="text-[15px] font-black text-slate-800 mb-1 leading-tight tracking-tight">' + escHtml(step.title || '') + '</h4>' +
-                            '<p class="text-[13px] text-slate-500 leading-[1.75]">' + escHtml(step.description || '') + '</p>' +
+                            '<h4 class="text-[16px] font-black text-slate-800 mb-1 leading-tight tracking-tight">' + escHtml(step.title || '') + '</h4>' +
+                            '<p class="text-[14px] text-slate-500 leading-[1.75]">' + escHtml(step.description || '') + '</p>' +
                         '</div>' +
                     '</div>';
                 }).join('');
+                if (hideGroupHeader) {
+                    return '<div class="sop-group">' +
+                        '<div class="space-y-3">' + stepsHtml + '</div>' +
+                    '</div>';
+                }
                 return '' +
                 '<div class="sop-group">' +
                     '<div class="sop-group-header">' +
@@ -1305,6 +1434,34 @@ window.renderLanding = function() {
                     '<div class="space-y-3">' + stepsHtml + '</div>' +
                 '</div>';
             }).join('');
+        }
+    }
+
+    // ── Prepare Checklist (before Identity) ──
+    const pcSec = document.getElementById('prepare-section');
+    if (pcSec && landing.prepareChecklist) {
+        const pc = landing.prepareChecklist;
+        const items = Array.isArray(pc.items) ? pc.items : [];
+        pcSec.classList.toggle('hidden', items.length === 0);
+        if (items.length > 0) {
+            const pce = document.getElementById('pc-eyebrow');
+            if (pce) { pce.textContent = pc.eyebrow || ''; pce.classList.toggle('hidden', !pc.eyebrow); }
+            const pct = document.getElementById('pc-title'); if (pct) pct.textContent = pc.sectionTitle || '';
+            const pci = document.getElementById('pc-items');
+            if (pci) {
+                pci.innerHTML = items.map(function(it) {
+                    return '' +
+                    '<div class="prepare-item">' +
+                        '<div class="prepare-item-icon">' +
+                            '<i data-lucide="' + escHtml(it.icon || 'circle-check') + '" class="w-5 h-5"></i>' +
+                        '</div>' +
+                        '<div class="flex-1 min-w-0">' +
+                            '<h4 class="prepare-item-title">' + escHtml(it.title || '') + '</h4>' +
+                            '<p class="prepare-item-desc">' + escHtml(it.description || '') + '</p>' +
+                        '</div>' +
+                    '</div>';
+                }).join('');
+            }
         }
     }
 
@@ -1467,7 +1624,7 @@ function buildNeedCard(m) {
     const dotCls = (state) => 'step-dot' + (state === 'active' ? ' active' : (state === 'done' ? ' done' : ''));
 
     return '<div class="need-wrap" id="wrap-' + id + '" data-need-id="' + id + '">' +
-        '<div id="block-' + id + '" class="px-8 py-10 lg:px-10 lg:py-12 scroll-mt-40" onmouseenter="ctxFocusNeed(\'' + id + '\')">' +
+        '<div id="block-' + id + '" class="px-8 py-7 lg:px-10 lg:py-8 scroll-mt-40" onmouseenter="ctxFocusNeed(\'' + id + '\')">' +
         // Header：標題 + 分類 tag + 步驟指示點
         '<div class="flex items-start justify-between gap-3 mb-3">' +
             '<div>' +
@@ -1486,12 +1643,7 @@ function buildNeedCard(m) {
         // ── 階段 1：現況滿意度 ──
         '<div class="stage ' + stageState.s1 + ' relative py-5 -mx-3 px-5 mb-3 rounded-2xl" id="stage-' + id + '-1">' +
             '<span class="stage-active-bar"></span>' +
-            '<div class="flex items-center gap-2 mb-2">' +
-                '<span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">步驟 1</span>' +
-                '<div class="w-1 h-1 rounded-full bg-slate-300"></div>' +
-                '<span class="text-[10px] font-black text-slate-600 uppercase tracking-wider">現況滿意度</span>' +
-            '</div>' +
-            '<h5 class="text-lg font-black text-slate-800 mb-1 tracking-tight">你目前在這項需求上有多滿意？</h5>' +
+            '<h5 class="text-lg font-black text-slate-800 mb-1 tracking-tight">現況滿意度：你目前有多滿意？</h5>' +
             '<p class="text-sm text-slate-500 leading-relaxed mb-5">回想目前（或上一份）工作，這項條件被滿足到什麼程度。這個分數不影響報告結論，只是讓你看見現實與理想的落差。</p>' +
             '<div class="bg-slate-50 rounded-2xl p-5 border border-slate-100">' +
                 '<div class="flex items-center gap-4 mb-3">' +
@@ -1508,12 +1660,7 @@ function buildNeedCard(m) {
         // ── 階段 2：理想期待值 ──
         '<div class="stage ' + stageState.s2 + ' relative py-5 -mx-3 px-5 mb-3 rounded-2xl" id="stage-' + id + '-2">' +
             '<span class="stage-active-bar"></span>' +
-            '<div class="flex items-center gap-2 mb-2">' +
-                '<span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">步驟 2</span>' +
-                '<div class="w-1 h-1 rounded-full bg-slate-300"></div>' +
-                '<span class="text-[10px] font-black text-teal-600 uppercase tracking-wider">理想期待值</span>' +
-            '</div>' +
-            '<h5 class="text-lg font-black text-slate-800 mb-1 tracking-tight">你希望這項需求在理想職涯中有多被滿足？</h5>' +
+            '<h5 class="text-lg font-black text-slate-800 mb-1 tracking-tight">理想期待值：你希望被滿足到什麼程度？</h5>' +
             '<p class="text-sm text-slate-500 leading-relaxed mb-5">這個分數代表你的「期待強度」，會決定你待會能選的環境指標預算：5 分 = 6 點、8 分 = 13 點。越期待、能投注的注意力越多。</p>' +
             '<div class="bg-teal-50 rounded-2xl p-5 border border-teal-100">' +
                 '<div class="flex items-center gap-4 mb-3">' +
@@ -1530,19 +1677,14 @@ function buildNeedCard(m) {
         // ── 階段 3：環境指標（padding 加大） ──
         '<div class="stage ' + stageState.s3 + ' relative py-6 lg:py-8 -mx-3 px-5 rounded-2xl" id="stage-' + id + '-3">' +
             '<span class="stage-active-bar"></span>' +
-            '<div class="flex items-center justify-between mb-2">' +
-                '<div class="flex items-center gap-2">' +
-                    '<span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">步驟 3</span>' +
-                    '<div class="w-1 h-1 rounded-full bg-slate-300"></div>' +
-                    '<span class="text-[10px] font-black text-teal-600 uppercase tracking-wider">環境指標</span>' +
-                '</div>' +
-                '<span class="text-xs font-black px-2.5 py-1 rounded-full ' +
+            '<div class="flex items-center justify-between gap-3 mb-1">' +
+                '<h5 class="text-lg font-black text-slate-800 tracking-tight">環境指標：選出你最重視的條件</h5>' +
+                '<span class="text-xs font-black px-2.5 py-1 rounded-full shrink-0 ' +
                     (isIndLocked ? 'bg-slate-100 text-slate-400 border border-slate-200' : 'bg-teal-50 border border-teal-100 text-teal-600') +
                     '" id="budget-badge-' + id + '">' +
                     (isIndLocked ? '先設定理想分數' : '已用 ' + used + ' / ' + budget + ' 點') +
                 '</span>' +
             '</div>' +
-            '<h5 class="text-lg font-black text-slate-800 mb-1 tracking-tight">選出你最重視的環境條件</h5>' +
             '<p class="text-sm text-slate-500 leading-relaxed mb-5">預算依你在步驟 2 給的理想分數決定。每點代表一份注意力。Hover 任一指標可查看完整職場情境說明。</p>' +
             '<div class="flex flex-wrap gap-3 ' + (isIndLocked ? 'opacity-40' : '') + '" id="chips-' + id + '">' +
                 allInds.map(ind => buildIndItem(id, ind, m.n)).join('') +
@@ -1678,9 +1820,16 @@ function renderCatalog() {
             const idx = matrix.indexOf(m);
             const id = 'n' + idx;
             const st = getNeedStatus(id);
+            const cur = currentScores[id] || 0;
+            const ide = scores[id] || 0;
+            const indCount = (selected[id] || []).length;
+            const curTxt = cur > 0 ? cur : '—';
+            const ideTxt = ide > 0 ? ide : '—';
+            const scoreSummary = '現況' + curTxt + ' · 理想' + ideTxt + ' · 指標' + indCount;
             block += '<div class="catalog-item ' + st + '" onclick="jumpTo(\'' + id + '\')">' +
                 '<span class="status-dot"></span>' +
                 '<span>' + escHtml(m.n) + '</span>' +
+                '<span class="item-scores text-[10px] font-bold text-slate-400 ml-auto mr-2 whitespace-nowrap">' + scoreSummary + '</span>' +
                 '<span class="item-meta">' + CATALOG_STATUS_META[st] + '</span>' +
             '</div>';
         });
@@ -2127,7 +2276,49 @@ function syncEverything() {
     updateTopList();
     updateRadar();
     updateNavList();
+    updateDebrief();
     window._wbDebouncedSync?.();
+}
+
+function updateDebrief() {
+    // 3 stats
+    const assessedCount = Object.values(scores).filter(s => s > 0).length;
+    const usedBudget = Object.values(scores).reduce((a, b) => a + b, 0);
+    var selectedCount = 0;
+    Object.keys(selected || {}).forEach(function(k) {
+        if (Array.isArray(selected[k])) selectedCount += selected[k].length;
+    });
+    const assessedEl = document.getElementById('debrief-assessed-count');
+    if (assessedEl) assessedEl.innerText = assessedCount;
+    const usedEl = document.getElementById('debrief-used-budget');
+    if (usedEl) usedEl.innerText = usedBudget;
+    const selEl = document.getElementById('debrief-selected-count');
+    if (selEl) selEl.innerText = selectedCount;
+
+    // 最大落差（理想 - 現況）
+    var maxGap = 0, maxGapIdx = -1;
+    matrix.forEach(function(m, idx) {
+        const id = 'n' + idx;
+        const ideal = scores[id] || 0;
+        const cur = currentScores[id] || 0;
+        if (ideal > 0) {
+            const gap = ideal - cur;
+            if (gap > maxGap) { maxGap = gap; maxGapIdx = idx; }
+        }
+    });
+    const gapCard = document.getElementById('debrief-gap-card');
+    const gapName = document.getElementById('debrief-gap-name');
+    const gapText = document.getElementById('debrief-gap-text');
+    if (gapCard && gapName && gapText) {
+        if (maxGapIdx >= 0 && maxGap >= 3) {
+            const m = matrix[maxGapIdx];
+            gapName.innerText = m.n + '（' + m.v + '）';
+            gapText.innerText = '現況 ' + (currentScores['n' + maxGapIdx] || 0) + ' → 理想 ' + (scores['n' + maxGapIdx] || 0) + '，相差 ' + maxGap + ' 分。這或許是你最渴望改變、也最值得在下方寫下感受的地方。';
+            gapCard.classList.remove('hidden');
+        } else {
+            gapCard.classList.add('hidden');
+        }
+    }
 }
 
 function updateTopList() {
@@ -2456,7 +2647,7 @@ onAuthStateChanged(auth, async (user) => {
 
 // ── Load History from URL ──
 async function loadHistoryFromUrl(uid) {
-    const docId = new URLSearchParams(window.location.search).get('load');
+    const docId = new URLSearchParams(window.location.search).get('loadId');
     if (!docId) return;
     try {
         const snap = await getDoc(doc(db, 'assessments', docId));

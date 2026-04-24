@@ -75,32 +75,14 @@
   },
   "sop": {
     "eyebrow": "HOW TO USE",
-    "sectionTitle": "評測流程說明",
-    "leadText": "從準備、行動到收斂，陪你完整走過一次向內覺察的旅程。",
+    "sectionTitle": "評測怎麼進行？",
+    "leadText": "評測區內所有操作，圍繞以下三個核心動作。",
     "groups": [
       {
-        "label": "準備",
-        "icon": "sprout",
-        "color": "slate",
-        "subtitle": "進入評測前的調整",
-        "steps": [
-          {
-            "icon": "wind",
-            "title": "回到中心",
-            "description": "為自己空下半小時平靜時光，回到內在中心。"
-          },
-          {
-            "icon": "user-pen",
-            "title": "填寫背景",
-            "description": "填寫目前職業與長期職涯目標，幫助系統描繪你的情境。"
-          }
-        ]
-      },
-      {
-        "label": "行動",
+        "label": "核心操作",
         "icon": "zap",
         "color": "teal",
-        "subtitle": "核心評測操作",
+        "subtitle": "在評測區裡，你會做這三件事",
         "steps": [
           {
             "icon": "sliders-horizontal",
@@ -119,24 +101,22 @@
             "description": "全站有限的 115 分預算，逼你對最在乎的項目做有意識的選擇。"
           }
         ]
+      }
+    ]
+  },
+  "prepareChecklist": {
+    "eyebrow": "BEFORE YOU BEGIN",
+    "sectionTitle": "開始之前，先為自己做好準備",
+    "items": [
+      {
+        "icon": "wind",
+        "title": "回到中心",
+        "description": "為自己空下半小時平靜時光，讓注意力從外界雜訊回到內在。"
       },
       {
-        "label": "收斂",
-        "icon": "telescope",
-        "color": "amber",
-        "subtitle": "向內整合與輸出",
-        "steps": [
-          {
-            "icon": "pen-line",
-            "title": "落差體悟",
-            "description": "記錄面對理想與現實落差時的取捨與感受，讓思考被文字接住。"
-          },
-          {
-            "icon": "file-text",
-            "title": "產出報告",
-            "description": "系統整合你的職涯輪廓至個人儀表板，並同步至諮詢師後台作為對談依據。"
-          }
-        ]
+        "icon": "user-pen",
+        "title": "填寫背景",
+        "description": "簡短寫下目前職業與長期職涯目標，幫助系統描繪你此刻的情境。"
       }
     ]
   },

@@ -296,7 +296,9 @@ const firebaseConfig = {
 };
 
 // ⭐ Fix: 移除硬編碼白名單，改用 Firestore counselors/{uid} 動態查詢
-const SUPER_ADMIN_UID = "PmLJEKMc8tYRPGNaSUMf5EO5kJp2";
+// PO 個人 UID（何昆陽）— 作為 Firestore 文件不存在時的 Super Admin fallback
+// TODO(v3.6): 抽出 auth-utils.js 後改純 Firestore 判定，這個常數移除
+const SUPER_ADMIN_UID = "jhEQJvOIrKgHiGGNqmjOciEGFY52";
 
 async function isCounselor(uid, email) {
   // 先查 uid（正式文件）

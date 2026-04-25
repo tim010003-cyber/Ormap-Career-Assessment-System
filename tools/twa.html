@@ -2635,6 +2635,23 @@ onAuthStateChanged(auth, async (user) => {
                 sessionId: sid, status: 'active', toolType: 'TWA', createdAt: serverTimestamp()
             });
         } catch(e) {}
+        // ⭐ L1: 進入即同步 — 諮詢師端鏡像立刻顯示，不用等學員動作
+        // 讀本機既有進度（若有）寫入 liveData，無進度就寫空值
+        try {
+            const saved = localStorage.getItem(LS_KEY);
+            const p = saved ? JSON.parse(saved) : {};
+            await setDoc(doc(db, 'whiteboard_sessions', sid), {
+                liveData: {
+                    scores: p.scores || {},
+                    currentScores: p.currentScores || {},
+                    selected: p.selected || {},
+                    insight: p.insight || '',
+                    focusType: '',
+                    activeId: null
+                },
+                liveAt: serverTimestamp()
+            }, { merge: true });
+        } catch(e) { console.warn('[L1 init sync]', e); }
     }
 
     // Load from URL ?load=docId (history)

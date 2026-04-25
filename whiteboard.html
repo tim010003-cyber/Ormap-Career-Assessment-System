@@ -285,6 +285,7 @@ html,body{ height:100%; overflow:hidden; }
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { getFirestore, doc, setDoc, addDoc, getDoc, updateDoc, deleteDoc, collection, onSnapshot, serverTimestamp, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { isCounselor, migratePendingCounselor } from './auth-utils.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
@@ -295,35 +296,6 @@ const firebaseConfig = {
   appId: "1:883599167982:web:6dee33f8abf03de9b53eff"
 };
 
-// ⭐ Fix: 移除硬編碼白名單，改用 Firestore counselors/{uid} 動態查詢
-// PO 個人 UID（何昆陽）— 作為 Firestore 文件不存在時的 Super Admin fallback
-// TODO(v3.6): 抽出 auth-utils.js 後改純 Firestore 判定，這個常數移除
-const SUPER_ADMIN_UID = "jhEQJvOIrKgHiGGNqmjOciEGFY52";
-
-async function isCounselor(uid, email) {
-  // 先查 uid（正式文件）
-  try {
-    const snap = await getDoc(doc(db, "counselors", uid));
-    if (snap.exists() && snap.data().isActive !== false) return true;
-  } catch(e) {}
-  // 再查 pending email 文件（由 admin 以 email 新增、尚未登入過）
-  if (email) {
-    const pendingKey = email.replace(/[.#$\/\[\]]/g, "_");
-    try {
-      const pSnap = await getDoc(doc(db, "counselors", pendingKey));
-      if (pSnap.exists() && pSnap.data().isActive !== false) {
-        // ⭐ Fix: 先放行，再背景遷移
-        const data = pSnap.data();
-        setDoc(doc(db, "counselors", uid), { ...data, uid, pending: false })
-          .then(() => deleteDoc(doc(db, "counselors", pendingKey)))
-          .catch(() => console.warn("[isCounselor] pending 遷移失敗"));
-        return true; // 遷移失敗不影響登入
-      }
-    } catch(e) {}
-  }
-  // Super admin 永遠允許
-  return uid === SUPER_ADMIN_UID;
-}
 const RIASEC_C = { R:"#ef4444",I:"#3b82f6",A:"#8b5cf6",S:"#22c55e",E:"#f97316",C:"#eab308" };
 const RIASEC_L = { R:"實作",I:"研究",A:"藝術",S:"社交",E:"領導",C:"系統" };
 
@@ -352,7 +324,8 @@ onAuthStateChanged(auth, async user => {
   if (!sessionId) {
     hideLoading();
     // ⭐ Fix: 改為 Firestore 動態查詢
-    const canCreate = await isCounselor(user.uid, user.email);
+    const canCreate = await isCounselor(db, user.uid)
+                   || await migratePendingCounselor(db, user.uid, user.email);
     if (!canCreate) document.getElementById('create-section').style.display='none';
     showSetup(); return;
   }

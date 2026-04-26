@@ -326,8 +326,11 @@ async function loadData() {
     }
 
     // 一般諮詢師：前端按 createdAt 排序（避免複合索引需求）
-    const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    let docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    // ⭐ Phase 8 / S1：一般諮詢師看不到學員已取消授權的（counselorAccess === false）
+    // Super Admin 維持看全部，繞過 counselorAccess
     if (!currentUserIsAdmin) {
+      docs = docs.filter(d => d.counselorAccess !== false);
       docs.sort((a, b) => {
         const ta = a.createdAt?.seconds || 0;
         const tb = b.createdAt?.seconds || 0;

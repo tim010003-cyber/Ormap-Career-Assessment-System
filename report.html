@@ -332,17 +332,28 @@ async function fetchReport(currentUid) {
 
     const data = docSnap.data();
 
-    // ⭐ 權限判斷：本人 / Super Admin / 綁定諮詢師
-    if (data.uid && data.uid !== currentUid) {
+    // ⭐ 權限判斷：本人 / Super Admin / 綁定諮詢師（受 counselorAccess 控制）
+    // ⭐ Phase 8：H4 fail-safe — data.uid 為空時直接拒絕（避免任何登入者都能看的漏洞）
+    // ⭐ Phase 8：S1 — 學員可用「取消授權」即時撤回一般諮詢師的可見性，但 Super Admin 永遠看得到
+    if (!data.uid) {
+      // fail-safe：assessment 沒有 uid 欄位（早期測試資料），拒絕
+      document.getElementById('loading-screen').classList.add('hidden');
+      document.getElementById('error-screen').classList.remove('hidden');
+      return;
+    }
+    if (data.uid !== currentUid) {
       let canView = false;
       try {
         const cSnap = await getDoc(doc(db, 'counselors', currentUid));
         if (cSnap.exists() && cSnap.data().isActive !== false) {
           const isAdmin = cSnap.data().isSuperAdmin === true;
           if (isAdmin) {
+            // Super Admin 永遠可看（繞過 counselorAccess）
             canView = true;
           } else if (data.assignedCounselorUid === currentUid) {
-            canView = true;
+            // 一般諮詢師：必須是被綁定那位，且學員未取消授權
+            // counselorAccess 預設 true（白板邀請）；學員按取消授權 → false
+            canView = data.counselorAccess !== false;
           }
         }
       } catch(e) {}

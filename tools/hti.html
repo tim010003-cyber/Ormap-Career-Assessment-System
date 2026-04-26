@@ -1297,6 +1297,8 @@
                     const topTraits = [sorted[0][0], sorted[1][0]];
 
                     // 準備送上雲端的資料包裹 (加入 email 與 name)
+                    // ⭐ Phase 8 / S1：白板邀請流程 = 學員預設授權；自行測驗 = 預設不授權
+                    const isFromWhiteboard = !!window._wbSessionId;
                     const payload = {
                         toolType: "HTI",
                         clientInfo: {
@@ -1307,6 +1309,7 @@
                         topTraits: topTraits,
                         summary: { text: `核心特質：${topTraits.join('')}`, status: "已完成" },
                         uid: userUid,
+                        counselorAccess: isFromWhiteboard,
                         createdAt: serverTimestamp()
                     };
 

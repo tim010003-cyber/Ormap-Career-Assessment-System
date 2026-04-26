@@ -2714,10 +2714,13 @@ async function syncDraftToCloud(uid) {
 window.saveToFirestore = async function(payloadData) {
     const uid = auth.currentUser?.uid;
     if (!uid) throw new Error('無效的登入狀態');
+    // ⭐ Phase 8 / S1：白板邀請流程 = 學員預設授權；自行測驗 = 預設不授權
+    const isFromWhiteboard = !!window._wbSessionId;
     const prd = {
         uid,
         toolType: 'TWA',
         createdAt: serverTimestamp(),
+        counselorAccess: isFromWhiteboard,
         clientInfo: { name: payloadData.name, email: payloadData.email, job: payloadData.job, goal: payloadData.goal },
         summary: { text: '決策狀態：' + payloadData.focusType, status: '已完成' },
         rawData: {

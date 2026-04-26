@@ -653,8 +653,12 @@
         const _isWbMode     = new URLSearchParams(window.location.search).get('wb')     === '1';
         const _isMirrorMode = new URLSearchParams(window.location.search).get('mirror') === '1';
         const _mirrorSid    = _isMirrorMode ? new URLSearchParams(window.location.search).get('sid') : null;
+        const _loadId       = new URLSearchParams(window.location.search).get('loadId');
         window._wbActiveId  = null;
         if (_isWbMode || _isMirrorMode) localStorage.removeItem('hti_progress_v4');
+        // ⭐ Phase 8 / S2：以此重測模式 — 清掉舊草稿，用 banner 顯示前次分數作為參考
+        // HTI 結構（state.selectedIds + state.userMotives）無法從最終分數反推，故重做但顯示參考
+        if (_loadId) localStorage.removeItem('hti_progress_v4');
 
         function saveProgress() {
             if (_isMirrorMode) return; // 鏡像模式：只讀，不存進度
@@ -1201,6 +1205,29 @@
                     setupMirrorSubscription(_mirrorSid);
                 } else if (_isWbMode && _sidFromUrl) {
                     await setupWbBroadcast(user.uid, _sidFromUrl);
+                }
+
+                // ⭐ Phase 8 / S2：以此重測 — 載入舊資料顯示參考 banner
+                if (_loadId) {
+                    try {
+                        const snap = await getDoc(doc(db, 'assessments', _loadId));
+                        if (snap.exists()) {
+                            const old = snap.data();
+                            const oldDate = old.createdAt?.toDate
+                                ? old.createdAt.toDate().toLocaleDateString('zh-TW')
+                                : '';
+                            const oldTraits = (old.topTraits || []).join('');
+                            const banner = document.createElement('div');
+                            banner.className = 'fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-orange-50 border border-orange-200 rounded-2xl px-4 py-2.5 text-sm text-orange-700 shadow-md max-w-md text-center';
+                            banner.innerHTML = `<i data-lucide="rotate-ccw" class="w-4 h-4 inline-block mr-1"></i>
+                                以前次紀錄（${oldDate}・核心特質：${oldTraits}）為基礎重測。完成後另存為新紀錄。
+                                <button onclick="this.parentElement.remove()" class="ml-2 text-orange-500 hover:text-orange-700 font-bold">×</button>`;
+                            document.body.appendChild(banner);
+                            if (window.lucide) lucide.createIcons();
+                            // 清掉 URL 上的 loadId，避免重整時又跳一次
+                            window.history.replaceState({}, document.title, window.location.pathname);
+                        }
+                    } catch(e) { console.warn('[loadHistoryFromUrl HTI]', e); }
                 }
             } else {
                 window.location.href = '../index.html';

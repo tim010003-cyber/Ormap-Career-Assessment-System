@@ -177,51 +177,6 @@ html,body{ height:100%; overflow:hidden; }
           <p class="text-xs text-slate-400 mt-3">傳連結給學員 → 學員去 twa.html / hti.html 做評測</p>
         </div>
 
-        <!-- TWA Mirror（保留，作為 iframe 不可用時的降級方案）-->
-        <div id="mirror-twa" class="hidden">
-          <!-- Sticky header -->
-          <div class="m-section" style="position:sticky;top:0;background:white;z-index:5;border-bottom:2px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,.04);">
-            <div class="flex items-center gap-4 flex-wrap">
-              <div class="flex items-center gap-2">
-                <div class="w-2 h-2 rounded-full bg-green-400" id="live-dot"></div>
-                <span class="text-xs font-black text-slate-600 uppercase tracking-wider">TWA 即時鏡像</span>
-              </div>
-              <div class="flex items-center gap-2 flex-1 min-w-40">
-                <span class="text-xs font-bold text-slate-400 whitespace-nowrap">預算</span>
-                <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div id="twa-budget-bar" class="h-full bg-primary rounded-full transition-all duration-500" style="width:0%"></div>
-                </div>
-                <span id="twa-budget-num" class="text-xs font-black text-primary whitespace-nowrap">0/115</span>
-              </div>
-              <div id="twa-focus-badge" class="hidden px-3 py-1 bg-teal-50 text-primary rounded-xl text-xs font-black"></div>
-            </div>
-          </div>
-          <div id="twa-needs-container" class="p-4 space-y-4"></div>
-          <div id="twa-insight-section" class="hidden m-section">
-            <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">學員體悟</p>
-            <div class="bg-amber-50 rounded-xl p-4 border-l-4 border-amber-400">
-              <p id="twa-insight-text" class="text-sm text-slate-700 leading-relaxed italic"></p>
-            </div>
-          </div>
-          <div class="h-16"></div>
-        </div>
-
-        <!-- HTI Mirror（保留，作為降級方案）-->
-        <div id="mirror-hti" class="hidden">
-          <div class="m-section" style="position:sticky;top:0;background:white;z-index:5;border-bottom:2px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,.04);">
-            <div class="flex items-center gap-4 flex-wrap">
-              <div class="flex items-center gap-2">
-                <div class="w-2 h-2 rounded-full bg-green-400"></div>
-                <span class="text-xs font-black text-slate-600 uppercase tracking-wider">HTI 即時鏡像</span>
-              </div>
-              <div id="hti-bars-header" class="flex gap-2"></div>
-              <div id="hti-top-badge" class="flex gap-2 flex-wrap"></div>
-            </div>
-          </div>
-          <div id="hti-acts-container" class="p-4"></div>
-          <div class="h-16"></div>
-        </div>
-
       </div><!-- mirror-scroll -->
 
       <!-- ⭐ 即時鏡像 iframe：顯示與學員完全相同的 twa/hti 畫面 -->

@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ── 輔助函數（避免重複邏輯）─────────────────────
+    function isSuperAdmin() {
+      return exists(/databases/$(database)/documents/counselors/$(request.auth.uid))
+        && get(/databases/$(database)/documents/counselors/$(request.auth.uid)).data.isSuperAdmin == true;
+    }
+    function isCounselor() {
+      return exists(/databases/$(database)/documents/counselors/$(request.auth.uid))
+        && get(/databases/$(database)/documents/counselors/$(request.auth.uid)).data.isActive != false
+        && get(/databases/$(database)/documents/counselors/$(request.auth.uid)).data.isDeleted != true;
+    }
+    // ── 使用者個人資料 ────────────────────────────────
+    match /users/{userId} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == userId;
+    }
+    // ── 測驗結果 ──────────────────────────────────────
+    match /assessments/{docId} {
+      allow create: if true;
+      allow read: if request.auth != null;
+      // 本人可更新；諮詢師可寫入 assignedCounselorUid
+      allow update: if request.auth != null && (
+        request.auth.uid == resource.data.uid
+        || isCounselor()
+      );
+      // ⭐ 7.6 新增：本人或 Super Admin 可刪除
+      allow delete: if request.auth != null && (
+        request.auth.uid == resource.data.uid
+        || isSuperAdmin()
+      );
+    }
+    // ── 測驗草稿（自動存檔）──────────────────────────
+    match /user_progress/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && docId.matches(request.auth.uid + "_.*");
+    }
+    // ── 諮詢師備註 ────────────────────────────────────
+    match /counselor_notes/{docId} {
+      allow read, write: if request.auth != null && isCounselor();
+    }
+    // ── 白板 Session ──────────────────────────────────
+    match /whiteboard_sessions/{sessionId} {
+      allow read, write: if request.auth != null;
+    }
+    match /whiteboard_sessions/{sessionId}/{sub}/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    // ── 白板活躍狀態 ──────────────────────────────────
+    match /whiteboard_active/{uid} {
+      allow read, write: if request.auth != null;
+    }
+    // ── 諮詢師管理 ────────────────────────────────────
+    match /counselors/{docId} {
+      // 任何登入者可讀（isCounselor 函數需要查詢）
+      allow read: if request.auth != null;
+      // 建立 / 更新：Super Admin 或本人（pending 遷移用）
+      allow create, update: if request.auth != null && (
+        isSuperAdmin()
+        || request.auth.uid == docId
+      );
+      // 刪除：Super Admin、本人文件、或本人的 pending 文件（email 對應）
+      allow delete: if request.auth != null && (
+        isSuperAdmin()
+        || request.auth.uid == docId
+        || resource.data.email == request.auth.token.email
+      );
+    }
+  }
+}

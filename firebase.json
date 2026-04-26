@@ -4,7 +4,14 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "firestore.rules",
+      ".tmp.driveupload/**",
+      "*.lnk",
+      "sync_indicators_sheet.py"
     ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
   }
 }

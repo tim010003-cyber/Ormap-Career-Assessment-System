@@ -199,6 +199,7 @@ import {
   getFirestore, collection, getDocs, doc, getDoc, setDoc,
   updateDoc, deleteDoc, serverTimestamp, query, orderBy
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { isSuperAdmin } from './auth-utils.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
@@ -240,9 +241,8 @@ onAuthStateChanged(auth, async (user) => {
   document.getElementById('navUserPhoto').src = user.photoURL || '';
   document.getElementById('navUserName').innerText = user.displayName || user.email;
 
-  // 確認是 Super Admin
-  const snap = await getDoc(doc(db, 'counselors', user.uid)).catch(() => null);
-  const isAdmin = snap?.exists() && snap.data().isSuperAdmin === true;
+  // ⭐ Phase 8 / S3 收尾：權限判定改用 auth-utils.js（全站統一）
+  const isAdmin = await isSuperAdmin(db, user.uid);
   if (!isAdmin) {
     document.getElementById('accessDenied').classList.remove('hidden');
     lucide.createIcons(); return;

@@ -10,7 +10,7 @@ tailwind.config = {
   theme: { extend: { colors: { primary: '#0d9488', secondary: '#0f172a' } } }
 }
 </script>
-<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://unpkg.com/lucide@1.8.0"></script>
 </head>
 <body class="bg-slate-50 min-h-screen font-sans antialiased text-slate-900">
 
@@ -23,8 +23,8 @@ tailwind.config = {
         <span class="text-xl font-bold tracking-tight text-secondary">Ormap <span class="text-primary">SaaS</span></span>
       </div>
       <div class="flex items-center gap-3">
-        <a href="admin.html"
-          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-xl hover:bg-primary hover:text-white transition-all">
+        <a id="adminLink" href="admin.html"
+          class="hidden items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-xl hover:bg-primary hover:text-white transition-all">
           <i data-lucide="shield" class="w-3.5 h-3.5"></i>
           後台管理
         </a>
@@ -165,8 +165,7 @@ tailwind.config = {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { getFirestore, collection, query, where, orderBy, getDocs, getDoc, deleteDoc, updateDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-
-const COUNSELOR_WHITELIST = ["tim010003@gmail.com"];
+import { isCounselor } from './auth-utils.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
@@ -186,13 +185,18 @@ const loadingState = document.getElementById('loadingState');
 const emptyState = document.getElementById('emptyState');
 const recordCount = document.getElementById('recordCount');
 
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   if (user) {
     document.getElementById('userInfo').classList.remove('hidden');
     document.getElementById('userPhoto').src = user.photoURL || '';
     document.getElementById('userName').innerText = user.displayName;
-    if (COUNSELOR_WHITELIST.includes(user.email)) {
-      document.getElementById('adminLink')?.classList.remove('hidden');
+    // ⭐ Phase 7.3+7.4：諮詢師才看得到「後台管理」按鈕
+    if (await isCounselor(db, user.uid)) {
+      const adminLink = document.getElementById('adminLink');
+      if (adminLink) {
+        adminLink.classList.remove('hidden');
+        adminLink.classList.add('flex');
+      }
     }
     fetchAssessments(user.uid);
     checkActiveWhiteboards(user.uid);

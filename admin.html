@@ -11,7 +11,7 @@ tailwind.config = {
   theme: { extend: { colors: { primary: '#0d9488', secondary: '#0f172a' } } }
 }
 </script>
-<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://unpkg.com/lucide@1.8.0"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
   body { font-family: 'Noto Sans TC', sans-serif; }
@@ -226,48 +226,10 @@ import {
   getFirestore, collection, query, orderBy, where, getDocs,
   doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { isCounselor, isSuperAdmin, migratePendingCounselor } from './auth-utils.js';
 
-// ⭐ Fix: 諮詢師權限改為 Firestore 動態查詢，移除硬編碼白名單
-// Firestore: counselors/{uid} → { email, name, addedAt, isActive, isSuperAdmin? }
-const SUPER_ADMIN_UID = "PmLJEKMc8tYRPGNaSUMf5EO5kJp2"; // tim010003@gmail.com 的 uid
-
-async function isCounselor(uid, email) {
-  // 1. 先查正式 uid 文件
-  try {
-    const snap = await getDoc(doc(db, "counselors", uid));
-    if (snap.exists() && snap.data().isActive !== false) return true;
-  } catch(e) {}
-  // 2. 查 pending email 文件
-  if (email) {
-    const pendingKey = email.replace(/[.#$\/\[\]]/g, "_");
-    try {
-      const pSnap = await getDoc(doc(db, "counselors", pendingKey));
-      if (pSnap.exists() && pSnap.data().isActive !== false) {
-        // ⭐ Fix: 先確認有存取權，再嘗試遷移（遷移失敗不影響登入）
-        const data = pSnap.data();
-        // 背景遷移：寫入正式 uid 文件，失敗不阻斷登入
-        setDoc(doc(db, "counselors", uid), {
-          ...data, uid, name: data.name, pending: false
-        }).then(() =>
-          deleteDoc(doc(db, "counselors", pendingKey))
-        ).catch(() => {
-          // 權限不足時遷移失敗，下次登入再試，不影響本次存取
-          console.warn("[isCounselor] pending 遷移失敗，將於下次登入重試");
-        });
-        return true; // ⭐ 無論遷移是否成功，都放行
-      }
-    } catch(e) {}
-  }
-  return false;
-}
-
-async function isSuperAdmin(uid) {
-  if (uid === SUPER_ADMIN_UID) return true;
-  try {
-    const snap = await getDoc(doc(db, "counselors", uid));
-    return snap.exists() && snap.data().isSuperAdmin === true;
-  } catch(e) { return false; }
-}
+// ⭐ Phase 7.2c：權限判定統一改用 auth-utils.js（Firestore counselors/{uid} 為唯一事實來源）
+// 移除舊版 inline 寫死的 SUPER_ADMIN_UID 與本地 isCounselor / isSuperAdmin
 
 const firebaseConfig = {
   apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
@@ -293,8 +255,10 @@ let twaChart = null;
 onAuthStateChanged(auth, async (user) => {
   document.getElementById('initLoading').style.display = 'none';
   if (!user) { window.location.href = 'index.html'; return; }
-  // ⭐ Fix: 改從 Firestore counselors/{uid} 動態查詢，不再硬編碼白名單
-  const allowed = await isCounselor(user.uid, user.email); // ⭐ 傳入 email 供 pending 查詢
+  // ⭐ Phase 7.2c：權限判定改用 auth-utils（Firestore 為唯一事實來源）
+  // 先查正式 uid 文件，沒有則嘗試 pending 遷移（受邀諮詢師第一次登入）
+  const allowed = await isCounselor(db, user.uid)
+               || await migratePendingCounselor(db, user.uid, user.email);
   if (!allowed) {
     document.getElementById('navUserInfo').classList.remove('hidden');
     document.getElementById('navUserPhoto').src = user.photoURL || '';
@@ -318,7 +282,7 @@ onAuthStateChanged(auth, async (user) => {
   } catch(e) {}
 
   // ⭐ 設定 Super Admin 旗標 + 顯示諮詢師連結
-  currentUserIsAdmin = await isSuperAdmin(user.uid);
+  currentUserIsAdmin = await isSuperAdmin(db, user.uid);
   if (currentUserIsAdmin) {
     document.getElementById('navCounselorsLink')?.classList.replace('hidden', 'flex');
     // ⭐ 浮動面板已移除，改用 counselors.html 專頁管理

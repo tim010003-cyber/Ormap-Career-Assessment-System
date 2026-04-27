@@ -204,9 +204,14 @@ import { isSuperAdmin } from './auth-utils.js';
 import { callGasMailer } from './gas-mailer.js';
 
 // ── Auth ────────────────────────────────────────────────
+// ── Phase 9.1：當前登入者 UID（用於 render 時保護「不能對自己操作」）──
+let currentUid = null;
+
 onAuthStateChanged(auth, async (user) => {
   document.getElementById('initLoading').style.display = 'none';
   if (!user) { location.href = 'index.html'; return; }
+
+  currentUid = user.uid;  // Phase 9.1：記住登入者 UID 給 render 使用
 
   document.getElementById('navUserInfo').classList.remove('hidden');
   document.getElementById('navUserPhoto').src = user.photoURL || '';
@@ -280,6 +285,9 @@ window.loadCounselors = async function() {
     }
 
     // ── 正常名單 ──
+    // ── Phase 9.1：先算啟用中的 Super Admin 數量，用於「最後一個啟用 SA 不能降級」保護 ──
+    const activeSuperAdminCount = activeDocs.filter(d => d.isSuperAdmin && d.isActive !== false).length;
+
     listEl.innerHTML = activeDocs.map(d => {
       const isActive  = d.isActive !== false;
       const isPending = d.pending === true;
@@ -314,23 +322,44 @@ window.loadCounselors = async function() {
         </div>
         <div class="flex items-center gap-2 flex-shrink-0">
           ${statusBadge}
-          ${!d.isSuperAdmin ? `
+          ${(() => {
+            // ── Phase 9.1：依 4 個邏輯狀態決定操作按鈕 ──
+            // (1) 自己的卡片 → 全藏（避免誤動自己）
+            // (2) 最後一個啟用中的 Super Admin → 全藏（避免變 0 個 SA）
+            // (3) 其他 Super Admin → 只顯示「降級」按鈕
+            // (4) 一般諮詢師 → 顯示「停用/啟用」+「升管理員」+「刪除」三按鈕
+            const isMe = d.id === currentUid;
+            const isLastActiveSuperAdmin = d.isSuperAdmin && isActive && activeSuperAdminCount <= 1;
+
+            if (isMe || isLastActiveSuperAdmin) {
+              return '';
+            }
+            if (d.isSuperAdmin) {
+              return `
+          <button onclick="upgradeAdmin('${d.id}', true)"
+            title="降級為一般諮詢師（降級後才會出現停用、刪除按鈕）"
+            class="text-xs font-bold px-3 py-1.5 rounded-lg border border-orange-200 text-orange-500 hover:bg-orange-50 transition-colors">
+            降級
+          </button>`;
+            }
+            return `
           <button onclick="toggleCounselor('${d.id}', ${isActive})"
             class="text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors ${isActive
               ? 'border-red-200 text-red-500 hover:bg-red-50'
               : 'border-green-200 text-green-600 hover:bg-green-50'}">
             ${isActive ? '停用' : '啟用'}
           </button>
-          <button onclick="upgradeAdmin('${d.id}', ${!!d.isSuperAdmin})"
-            title="${d.isSuperAdmin ? '移除管理員權限' : '升級為管理員'}"
+          <button onclick="upgradeAdmin('${d.id}', false)"
+            title="升級為管理員"
             class="text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors border-slate-200 text-slate-500 hover:bg-slate-50">
-            ${d.isSuperAdmin ? '降級' : '升管理員'}
+            升管理員
           </button>
           <button onclick="softDelete('${d.id}')"
             title="移至垃圾桶"
             class="text-slate-300 hover:text-red-400 transition-colors p-1">
             <i data-lucide="trash-2" class="w-4 h-4"></i>
-          </button>` : ''}
+          </button>`;
+          })()}
           ${isPending ? `
           <button onclick="resendInvite('${d.id}', '${d.email}')"
             title="重寄邀請信"

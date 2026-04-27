@@ -237,26 +237,17 @@ html,body{ height:100%; overflow:hidden; }
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, addDoc, getDoc, updateDoc, deleteDoc, collection, onSnapshot, serverTimestamp, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+// ── Phase 9：Firebase / GAS Mailer / 共用常數改由共用模組提供 ──
+import { auth, db } from './firebase-init.js';
+import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { doc, setDoc, addDoc, getDoc, updateDoc, deleteDoc, collection, onSnapshot, serverTimestamp, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { isCounselor, migratePendingCounselor } from './auth-utils.js';
-
-const firebaseConfig = {
-  apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
-  authDomain: "careervalue-ormap.firebaseapp.com",
-  projectId: "careervalue-ormap",
-  storageBucket: "careervalue-ormap.firebasestorage.app",
-  messagingSenderId: "883599167982",
-  appId: "1:883599167982:web:6dee33f8abf03de9b53eff"
-};
+import { callGasMailer } from './gas-mailer.js';
+import { CONFIG_COUNSELOR_NAME } from './config.js';
 
 const RIASEC_C = { R:"#ef4444",I:"#3b82f6",A:"#8b5cf6",S:"#22c55e",E:"#f97316",C:"#eab308" };
 const RIASEC_L = { R:"實作",I:"研究",A:"藝術",S:"社交",E:"領導",C:"系統" };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
 let currentUser=null, userRole=null, sessionId=new URLSearchParams(location.search).get('session'), sessionData=null;
@@ -771,26 +762,8 @@ window.addEventListener('beforeunload',()=>{ unsubs.forEach(u=>u?.()); });
 lucide.createIcons();
 
 // ══════════════════════════════════════════════
-// ⭐ GAS Mailer 整合
+// ⭐ GAS Mailer 整合（Phase 9：移至 gas-mailer.js / config.js 共用模組）
 // ══════════════════════════════════════════════
-const GAS_MAILER_URL = "https://script.google.com/macros/s/AKfycbzyTam8pCWA9GPAfvr9HeKg5tUHANRKefjGN5FXFzWdaZlkudnqhFfmUfKY_smIWQyRMg/exec"; // 部署後替換此 URL
-const CONFIG_COUNSELOR_NAME = "何昆陽";
-
-async function callGasMailer(type, data) {
-  if (!GAS_MAILER_URL || GAS_MAILER_URL.includes("__")) {
-    console.warn("[GAS Mailer] URL 尚未設定"); return false;
-  }
-  return new Promise((resolve) => {
-    // 用 Image() 觸發 GET，天然跟著 redirect、完全沒有 CORS 問題
-    const params = new URLSearchParams({ type, payload: JSON.stringify(data) });
-    const img = new Image();
-    img.onload  = () => resolve(true);
-    img.onerror = () => resolve(true); // GAS 回傳 JSON 非圖片，onerror 是正常的
-    img.src = `${GAS_MAILER_URL}?${params.toString()}`;
-    // 3 秒 timeout 保護
-    setTimeout(() => resolve(true), 3000);
-  });
-}
 
 window.sendInviteEmail = async function() {
   const emailInput = document.getElementById("student-email-input");

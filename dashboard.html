@@ -162,23 +162,11 @@ tailwind.config = {
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { getFirestore, collection, query, where, orderBy, getDocs, getDoc, deleteDoc, updateDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+// ── Phase 9：Firebase 初始化改由共用模組提供 ──
+import { auth, db } from './firebase-init.js';
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { collection, query, where, orderBy, getDocs, getDoc, deleteDoc, updateDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { isCounselor } from './auth-utils.js';
-
-const firebaseConfig = {
-  apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
-  authDomain: "careervalue-ormap.firebaseapp.com",
-  projectId: "careervalue-ormap",
-  storageBucket: "careervalue-ormap.firebasestorage.app",
-  messagingSenderId: "883599167982",
-  appId: "1:883599167982:web:6dee33f8abf03de9b53eff"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
 
 const container = document.getElementById('recordsContainer');
 const loadingState = document.getElementById('loadingState');

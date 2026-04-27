@@ -64,21 +64,10 @@ tailwind.config = {
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+// ── Phase 9：Firebase 初始化改由共用模組提供 ──
+import { auth } from './firebase-init.js';
+import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
-  authDomain: "careervalue-ormap.firebaseapp.com",
-  projectId: "careervalue-ormap",
-  storageBucket: "careervalue-ormap.firebasestorage.app",
-  messagingSenderId: "883599167982",
-  appId: "1:883599167982:web:6dee33f8abf03de9b53eff",
-  measurementId: "G-YR8YK2CBK6"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
 const loginArea = document.getElementById('loginArea');

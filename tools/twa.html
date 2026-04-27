@@ -2535,22 +2535,11 @@ window.toggleMobileNav = toggleMobileNav;
      FIREBASE MODULE SCRIPT
 ================================================================ -->
 <script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js';
-import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
-import { getFirestore, collection, addDoc, serverTimestamp, setDoc, getDoc, doc, deleteDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js';
-
-const firebaseConfig = {
-    apiKey: "AIzaSyDI_joRjSRWZ5qW9sr2rkpQ6o2q-ORhicQ",
-    authDomain: "careervalue-ormap.firebaseapp.com",
-    projectId: "careervalue-ormap",
-    storageBucket: "careervalue-ormap.firebasestorage.app",
-    messagingSenderId: "883599167982",
-    appId: "1:883599167982:web:6dee33f8abf03de9b53eff"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+// ── Phase 9：Firebase / GAS Mailer 初始化改由共用模組提供（注意 tools/ 子目錄用 ../）──
+import { auth, db } from '../firebase-init.js';
+import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
+import { collection, addDoc, serverTimestamp, setDoc, getDoc, doc, deleteDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js';
+import { callGasMailer } from '../gas-mailer.js';
 
 // Expose to inline script
 window._fbAuth = auth;
@@ -2753,17 +2742,7 @@ window.saveToFirestore = async function(payloadData) {
     return docRef.id;
 };
 
-// ── GAS Mailer ──
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzyTam8pCWA9GPAfvr9HeKg5tUHANRKefjGN5FXFzWdaZlkudnqhFfmUfKY_smIWQyRMg/exec';
-function callGasMailer(type, data) {
-    return new Promise(resolve => {
-        const params = new URLSearchParams({ type, payload: JSON.stringify(data) });
-        const img = new Image();
-        img.onload = img.onerror = () => resolve(true);
-        img.src = GAS_URL + '?' + params.toString();
-        setTimeout(() => resolve(true), 3000);
-    });
-}
+// ── GAS Mailer（Phase 9：移至 ../gas-mailer.js）──
 </script>
 </body>
 </html>

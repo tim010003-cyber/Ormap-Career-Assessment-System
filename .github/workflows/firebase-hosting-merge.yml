@@ -1,0 +1,25 @@
+# 推到 main 就自動部署到 Firebase Hosting（GCP 專案：careervalue-ormap）
+# 需要在 GitHub repo 設定一個 secret：FIREBASE_SERVICE_ACCOUNT_CAREERVALUE_ORMAP
+#   內容 = GCP 服務帳戶的 JSON 金鑰（見 CLAUDE.md「自動部署」段落的建立步驟）
+name: Deploy to Firebase Hosting on merge
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 純靜態站，無 build 步驟。若日後改用 sync_*.py 產生 JSON 再部署，
+      # 可在此加入 Python + openpyxl 的 sync step。
+      - name: Deploy to Firebase Hosting (live channel)
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CAREERVALUE_ORMAP }}
+          channelId: live
+          projectId: careervalue-ormap

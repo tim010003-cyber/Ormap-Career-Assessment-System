@@ -232,7 +232,7 @@ html,body{ height:100%; overflow:hidden; }
 // ── Phase 9：Firebase 初始化改由共用模組提供 ──
 import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { doc, setDoc, getDoc, updateDoc, deleteDoc, collection, onSnapshot, serverTimestamp, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { doc, setDoc, getDoc, updateDoc, deleteDoc, collection, onSnapshot, serverTimestamp, getDocs, query, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { isCounselor, migratePendingCounselor } from './auth-utils.js';
 
 const RIASEC_C = { R:"#ef4444",I:"#3b82f6",A:"#8b5cf6",S:"#22c55e",E:"#f97316",C:"#eab308" };
@@ -554,20 +554,24 @@ window.confirmEnd=function(){
             where('uid', '==', sessionData.studentUid)
           );
           const snap = await getDocs(q);
-          const bindOps = [];
+          // ⭐ A9：改用 writeBatch 原子提交 — 全部成功或全部不寫，
+          //    避免 Promise.all 部分失敗造成「半綁定」狀態
+          const batch = writeBatch(db);
+          let bindCount = 0;
           snap.forEach(d => {
             // 只綁定還沒有指定諮詢師的報告
             if (!d.data().assignedCounselorUid) {
-              bindOps.push(updateDoc(doc(db, 'assessments', d.id), {
+              batch.update(doc(db, 'assessments', d.id), {
                 assignedCounselorUid  : currentUser.uid,
                 assignedCounselorName : currentUser.displayName || '諮詢師',
                 // ⭐ Phase 8 / S1：白板邀請流程 = 學員預設授權諮詢師查看
                 counselorAccess       : true
-              }));
+              });
+              bindCount++;
             }
           });
-          if (bindOps.length > 0) await Promise.all(bindOps);
-          console.log(`[綁定] 已將 ${bindOps.length} 份報告綁定至 ${currentUser.displayName}`);
+          if (bindCount > 0) await batch.commit();
+          console.log(`[綁定] 已將 ${bindCount} 份報告綁定至 ${currentUser.displayName}`);
         } catch(e) { console.warn('[綁定學員]', e); }
       }
 
@@ -632,6 +636,10 @@ async function showStudentWelcome(sData) {
   document.getElementById('loading-overlay').style.display = 'none';
   document.getElementById('setup-modal').classList.add('hidden');
   document.getElementById('wb-app').classList.add('hidden');
+
+  // ⭐ A8：先移除既有的 student-screen（未登入→登入會呼叫兩次，
+  //    否則疊出重複 id，getElementById 會命中被蓋住的舊節點）
+  document.getElementById('student-screen')?.remove();
 
   // Build student welcome screen
   const screen = document.createElement('div');

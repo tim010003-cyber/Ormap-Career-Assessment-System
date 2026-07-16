@@ -774,10 +774,7 @@ window.openNewConsult = function(clientUid) {
   lucide.createIcons();
 };
 
-// Also keep old openWhiteboard as alias for detail view button (uses currentUid)
-window.openWhiteboard = function() {
-  window.openNewConsult(currentUid);
-};
+// ⭐ A13：openWhiteboard 未使用別名已移除（詳情頁按鈕直接呼叫 openNewConsult）
 
 window.ncPickTool = function(tool) {
   _ncTool = tool;
@@ -836,15 +833,7 @@ window.ncCreate = async function() {
   btn.disabled = false;
 };
 
-window.ncCopyInvite = function() {
-  const url = document.getElementById('nc-invite-url').textContent;
-  navigator.clipboard.writeText(url).then(() => {
-    const el = document.getElementById('nc-invite-url');
-    const orig = el.textContent;
-    el.textContent = '✓ 已複製！';
-    setTimeout(() => { el.textContent = orig; }, 1500);
-  });
-};
+// ⭐ A13：ncCopyInvite 死碼已移除（引用不存在的 #nc-invite-url，且無呼叫者）
 
 window.ncCopyWb = function() {
   const url = document.getElementById('nc-wb-url').textContent;

@@ -8,7 +8,10 @@
       "firestore.rules",
       ".tmp.driveupload/**",
       "*.lnk",
-      "sync_indicators_sheet.py"
+      "sync_*.py",
+      "PRD/**",
+      "**/*.md",
+      "**/*.xlsx"
     ]
   },
   "firestore": {

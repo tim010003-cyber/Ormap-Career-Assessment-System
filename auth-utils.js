@@ -66,6 +66,17 @@ export async function isSuperAdmin(db, uid) {
 }
 
 /**
+ * email → pending 文件 document ID（把 . # $ / [ ] 都換成 _）
+ * ⭐ A14：counselors.html 建立 pending 文件與本檔的遷移查找必須用同一個
+ *    轉換，抽成共用函式避免兩處 regex 各自漂移（漂移會讓遷移默默失敗）。
+ * @param {string} email
+ * @returns {string}
+ */
+export function pendingKeyForEmail(email) {
+  return String(email).replace(/[.#$\/\[\]]/g, "_");
+}
+
+/**
  * 將「以 email 命名的 pending 文件」遷移到「以 uid 命名的正式文件」
  *
  * 使用情境：
@@ -85,8 +96,7 @@ export async function isSuperAdmin(db, uid) {
  */
 export async function migratePendingCounselor(db, uid, email) {
   if (!uid || !email) return false;
-  // pending 文件的 document ID 格式：把 email 中 . # $ / [ ] 都換成 _
-  const pendingKey = email.replace(/[.#$\/\[\]]/g, "_");
+  const pendingKey = pendingKeyForEmail(email);
   try {
     const pSnap = await getDoc(doc(db, "counselors", pendingKey));
     if (!pSnap.exists()) return false;

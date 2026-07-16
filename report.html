@@ -178,6 +178,7 @@
 <script type="module">
 // ── Phase 9：Firebase 初始化改由共用模組提供 ──
 import { auth, db } from './firebase-init.js';
+import { isCounselor, isSuperAdmin } from './auth-utils.js'; // ⭐ A12：權限判定統一
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
@@ -329,19 +330,18 @@ async function fetchReport(currentUid) {
       return;
     }
     if (data.uid !== currentUid) {
+      // ⭐ A12：改用 auth-utils 統一判定（counselors/{uid} 唯一事實來源），
+      //    取代舊 inline 自查（isActive !== false 且不查 isDeleted 的分歧語意）
       let canView = false;
       try {
-        const cSnap = await getDoc(doc(db, 'counselors', currentUid));
-        if (cSnap.exists() && cSnap.data().isActive !== false) {
-          const isAdmin = cSnap.data().isSuperAdmin === true;
-          if (isAdmin) {
-            // Super Admin 永遠可看（繞過 counselorAccess）
-            canView = true;
-          } else if (data.assignedCounselorUid === currentUid) {
-            // 一般諮詢師：必須是被綁定那位，且學員未取消授權
-            // counselorAccess 預設 true（白板邀請）；學員按取消授權 → false
-            canView = data.counselorAccess !== false;
-          }
+        if (await isSuperAdmin(db, currentUid)) {
+          // Super Admin 永遠可看（繞過 counselorAccess）
+          canView = true;
+        } else if (data.assignedCounselorUid === currentUid
+                   && await isCounselor(db, currentUid)) {
+          // 一般諮詢師：必須是被綁定那位，且學員未取消授權
+          // counselorAccess 預設 true（白板邀請）；學員按取消授權 → false
+          canView = data.counselorAccess !== false;
         }
       } catch(e) {}
       if (!canView) {

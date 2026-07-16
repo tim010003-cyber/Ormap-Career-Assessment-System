@@ -177,7 +177,8 @@ onAuthStateChanged(auth, async (user) => {
   if (user) {
     document.getElementById('userInfo').classList.remove('hidden');
     document.getElementById('userPhoto').src = user.photoURL || '';
-    document.getElementById('userName').innerText = user.displayName;
+    // ⭐ A10：displayName 缺失時退回 email，避免顯示字面 "null"
+    document.getElementById('userName').innerText = user.displayName || user.email || '';
     // ⭐ Phase 7.3+7.4：諮詢師才看得到「後台管理」按鈕
     if (await isCounselor(db, user.uid)) {
       const adminLink = document.getElementById('adminLink');
@@ -375,8 +376,10 @@ document.getElementById('logoutBtn').addEventListener('click', () => signOut(aut
 // ── 白板邀請通知 ────────────────────────────────────────
 const WB_TTL_MS = 24 * 60 * 60 * 1000; // ⭐ Fix: 24 小時 TTL
 
+let _wbNoticeUnsub = null; // ⭐ A10：保留 unsubscribe，離頁時解除監聽
 function checkActiveWhiteboards(uid) {
-  onSnapshot(doc(db, 'whiteboard_active', uid), async (snap) => {
+  _wbNoticeUnsub?.();
+  _wbNoticeUnsub = onSnapshot(doc(db, 'whiteboard_active', uid), async (snap) => {
     const notice = document.getElementById('wbNotice');
     if (!snap.exists()) { notice.classList.add('hidden'); return; }
     const data = snap.data();
@@ -423,6 +426,7 @@ function checkActiveWhiteboards(uid) {
     lucide.createIcons();
   });
 }
+window.addEventListener('beforeunload', () => _wbNoticeUnsub?.()); // ⭐ A10
 
 lucide.createIcons();
 </script>

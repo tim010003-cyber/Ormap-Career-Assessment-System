@@ -10,6 +10,8 @@ The two assessment instruments are **TWA** (工作價值觀 / work values) and *
 
 All UI text, comments, and product docs are in **Traditional Chinese** — match this when editing.
 
+**Product direction (2026-07-16 repositioning)**: the product is being repositioned from "counsellor back-office" to a **modular career-tool platform** with three categories (職涯/生涯/組織), freemium funnel into paid courses, and member/EDM operations. **Read `PRD/Ormap_系統規格書_v4.0_2026-07-16.md` for product direction** (positioning, IA, roadmap, planned features like 履歷健檢/JD 評測/授權碼); `PRD/Ormap_系統規格書_v3.8_2026-07-16.md` remains the detailed technical current-state snapshot. Copy tone follows the brand doc essence in v4.0 §1 — 「先清醒,再勇敢」, supportive, never anxiety-selling.
+
 ## Tech stack
 
 Cloud-native, serverless, **no build step**. Everything runs on Google Cloud Platform via Firebase.

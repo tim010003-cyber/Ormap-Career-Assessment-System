@@ -3,11 +3,12 @@
 // 全站共用的常數設定模組
 // ───────────────────────────────────────────────────────────────
 // 提供全站共用的小常數。
-// 不放 Firebase 設定(已在 firebase-init.js)
-// 也不放 GAS 設定(已在 gas-mailer.js)。
+// 不放 Firebase 設定(已在 firebase-init.js)。
 //
 // 提供的 export:
 //   CONFIG_COUNSELOR_NAME — 諮詢師預設顯示名稱(displayName 缺失時的 fallback)
+//   ⚠️ 2026-07-16 GAS 發信移除後，此常數目前無任何頁面使用，
+//      保留作為未來全站常數的家(見下方設計決定)。
 //
 // 使用情境:
 //   import { CONFIG_COUNSELOR_NAME } from './config.js';

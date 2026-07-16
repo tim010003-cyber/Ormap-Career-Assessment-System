@@ -24,7 +24,7 @@ Cloud-native, serverless, **no build step**. Everything runs on Google Cloud Pla
 - **Cloud Firestore** — the app's database (NoSQL document store). Access control is entirely in `firestore.rules`; there is no server-side app tier.
 - **Firebase Hosting** — serves the repo root statically (`firebase.json` → `"public": "."`). Deploy target / GCP project: **`careervalue-ormap`** (`.firebaserc`).
 - **Firebase JS SDK 10.8.1**, imported per-page from the gstatic CDN (`firebase-app` / `firebase-auth` / `firebase-firestore`). Keep this version consistent across pages.
-- **Google Apps Script (GAS)** — external transactional-email endpoint, called from `gas-mailer.js`.
+- ~~Google Apps Script (GAS) transactional email~~ — **removed entirely on 2026-07-16** (backend `gas_mailer.gs` decommissioned by the PO). All invites now go through copy-link flows; there is no email sending anywhere in the app. Do not re-introduce `gas-mailer.js` / `callGasMailer`.
 
 **Data tooling**
 - **Python 3** scripts (`sync_*.py`) using **`openpyxl`** to sync Excel masters (`data/*.xlsx`) → runtime JSON (`data/*.json`). Only stdlib + `openpyxl`; no `requirements.txt` (install with `pip install openpyxl`).
@@ -65,12 +65,11 @@ Firebase project: `careervalue-ormap` (see `.firebaserc`). The Firebase web conf
 
 ### Shared modules (the "single source of truth" layer)
 
-Phase 9 extracted cross-page logic into four small ES modules at the repo root. **Always import from these rather than re-implementing** — duplicating Firebase init or auth logic across pages is exactly the anti-pattern this layer removed. Pages in `tools/` must use `../` paths.
+Phase 9 extracted cross-page logic into small ES modules at the repo root (originally four; `gas-mailer.js` was deleted 2026-07-16 along with the whole email feature). **Always import from these rather than re-implementing** — duplicating Firebase init or auth logic across pages is exactly the anti-pattern this layer removed. Pages in `tools/` must use `../` paths.
 
 - **`firebase-init.js`** — the only place Firebase is initialized. Exports `auth` and `db`. Other SDK verbs (`onAuthStateChanged`, `getDoc`, `setDoc`, …) are still imported per-page directly from the gstatic CDN; this module only owns connection init.
 - **`auth-utils.js`** — role checks against the `counselors/{uid}` Firestore doc: `isCounselor(db, uid)`, `isSuperAdmin(db, uid)`, and `migratePendingCounselor(db, uid, email)`. All fail **safe** (return `false` on any error). Callers pass in the already-initialized `db`.
-- **`gas-mailer.js`** — `callGasMailer(type, data)` triggers transactional email via a Google Apps Script endpoint. Types: `invite_counselor`, `invite_student`, `assessment_completed`, `report_delivery`. It sends via `new Image()` GET (not `fetch`) to follow the GAS 302 redirect and dodge CORS — this is deliberate; `fetch`+`no-cors` silently fails here. Fire-and-forget: always resolves, 3s timeout.
-- **`config.js`** — small site-wide constants (currently just `CONFIG_COUNSELOR_NAME`, a display-name fallback). Put new global constants here, never secrets.
+- **`config.js`** — small site-wide constants (currently just `CONFIG_COUNSELOR_NAME`, a display-name fallback; has no consumers since the GAS removal but is kept as the designated home for future constants). Put new global constants here, never secrets.
 
 ### Pages (each is a self-contained app)
 
@@ -111,4 +110,4 @@ Enforced by `firestore.rules` — read that file before changing any read/write 
 - Styling is **Tailwind via CDN** (`cdn.tailwindcss.com`) with a per-page inline `tailwind.config`. Brand colors: `primary` = `#0d9488` (teal), `secondary` = `#0f172a`. Icons: `lucide`.
 - Firebase SDK is pinned to **10.8.1** from gstatic across all pages — keep versions consistent when adding imports.
 - `.tmp.driveupload/` is OneDrive sync cruft; ignore it (already excluded from hosting in `firebase.json`).
-- Known outstanding debt noted in handover docs: a hardcoded `SUPER_ADMIN_UID` legacy path and unfinished counsellor stats / `assessment_done` mail routing.
+- Known outstanding debt noted in handover docs: a hardcoded `SUPER_ADMIN_UID` legacy path and unfinished counsellor stats. (The `assessment_done` mail-routing debt is obsolete — the GAS email feature was removed entirely on 2026-07-16.)

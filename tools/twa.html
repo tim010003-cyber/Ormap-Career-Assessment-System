@@ -2535,11 +2535,10 @@ window.toggleMobileNav = toggleMobileNav;
      FIREBASE MODULE SCRIPT
 ================================================================ -->
 <script type="module">
-// ── Phase 9：Firebase / GAS Mailer 初始化改由共用模組提供（注意 tools/ 子目錄用 ../）──
+// ── Phase 9：Firebase 初始化改由共用模組提供（注意 tools/ 子目錄用 ../）──
 import { auth, db } from '../firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
 import { collection, addDoc, serverTimestamp, setDoc, getDoc, doc, deleteDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js';
-import { callGasMailer } from '../gas-mailer.js';
 
 // Expose to inline script
 window._fbAuth = auth;
@@ -2729,20 +2728,11 @@ window.saveToFirestore = async function(payloadData) {
     localStorage.removeItem('LPK_TWA_REALITY_CHECK');
     try { await deleteDoc(doc(db, 'user_progress', uid + '_TWA')); } catch(e) {}
     try { await deleteDoc(doc(db, 'whiteboard_active', uid)); } catch(e) {}
-    // GAS 封三
-    try {
-        const reportUrl = location.origin.replace('/tools','') + '/report.html?id=' + docRef.id;
-        await callGasMailer('assessment_done', {
-            studentName: prd.clientInfo.name || '學員',
-            studentEmail: prd.clientInfo.email || '',
-            toolType: 'TWA', reportUrl,
-            completedAt: new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
-        });
-    } catch(e) {}
+    // GAS 發信（封三）已於 2026-07-16 整體移除（後端 gas_mailer.gs 停用）
     return docRef.id;
 };
 
-// ── GAS Mailer（Phase 9：移至 ../gas-mailer.js）──
+// ── GAS Mailer 已於 2026-07-16 整體移除 ──
 </script>
 </body>
 </html>

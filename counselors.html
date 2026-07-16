@@ -155,18 +155,7 @@
           class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10">
       </div>
 
-      <!-- 寄送邀請信選項 -->
-      <div class="bg-teal-50 rounded-xl p-4">
-        <label class="flex items-start gap-3 cursor-pointer">
-          <input id="add-send-email" type="checkbox" checked class="mt-0.5 w-4 h-4 accent-primary">
-          <div>
-            <p class="text-sm font-bold text-slate-700">同時寄送邀請信</p>
-            <p class="text-xs text-slate-500 mt-0.5">透過你的 Gmail 自動寄送含登入連結的邀請信</p>
-          </div>
-        </label>
-      </div>
-
-      <!-- 邀請連結（可直接複製傳送） -->
+      <!-- 邀請連結（可直接複製傳送）；GAS 寄信功能已於 2026-07-16 移除 -->
       <div>
         <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">邀請連結（可複製傳 LINE）</label>
         <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5">
@@ -183,7 +172,7 @@
       <button onclick="closeAddModal()" class="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50">取消</button>
       <button onclick="submitAddCounselor()" id="add-submit-btn"
         class="flex-1 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-teal-700 transition-colors">
-        新增並送出邀請
+        新增諮詢師
       </button>
     </div>
   </div>
@@ -201,7 +190,6 @@ import {
   updateDoc, deleteDoc, serverTimestamp, query, orderBy
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { isSuperAdmin } from './auth-utils.js';
-import { callGasMailer } from './gas-mailer.js';
 
 // ── Auth ────────────────────────────────────────────────
 // ── Phase 9.1：當前登入者 UID（用於 render 時保護「不能對自己操作」）──
@@ -360,12 +348,6 @@ window.loadCounselors = async function() {
             <i data-lucide="trash-2" class="w-4 h-4"></i>
           </button>`;
           })()}
-          ${isPending ? `
-          <button onclick="resendInvite('${d.id}', '${d.email}')"
-            title="重寄邀請信"
-            class="text-xs font-bold px-3 py-1.5 rounded-lg border border-teal-200 text-primary hover:bg-teal-50 transition-colors">
-            重寄邀請
-          </button>` : ''}
         </div>
       </div>`;
     }).join('') || '<div class="px-6 py-8 text-center text-sm text-slate-400">尚無諮詢師</div>';
@@ -427,7 +409,6 @@ window.closeAddModal = function() {
 window.submitAddCounselor = async function() {
   const email   = document.getElementById('add-email').value.trim();
   const name    = document.getElementById('add-name').value.trim();
-  const sendMail= document.getElementById('add-send-email').checked;
   if (!email || !email.includes('@')) { showToast('請輸入有效的 Email'); return; }
 
   const btn = document.getElementById('add-submit-btn');
@@ -443,7 +424,7 @@ window.submitAddCounselor = async function() {
     });
     if (alreadyExists) {
       showToast(`${email} 已在名單中，請勿重複新增`);
-      btn.textContent = '新增並送出邀請'; btn.disabled = false;
+      btn.textContent = '新增諮詢師'; btn.disabled = false;
       return;
     }
     btn.textContent = '新增中...';
@@ -459,23 +440,15 @@ window.submitAddCounselor = async function() {
 
     const inviteUrl = `${location.origin}/admin.html`;
 
-    // 寄邀請信
-    if (sendMail) {
-      await callGasMailer('invite_counselor', {
-        to           : email,
-        counselorName: name || email.split('@')[0],
-        inviteUrl
-      });
-    }
-
     // 成功：切換 modal 為「成功畫面」，保留連結可複製
+    // （GAS 寄信已移除，邀請一律複製連結手動傳送）
     document.getElementById('addModal').innerHTML = `
       <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-7 text-center">
         <div class="w-14 h-14 bg-teal-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <i data-lucide="check-circle-2" class="w-7 h-7 text-primary"></i>
         </div>
         <h3 class="font-black text-lg text-slate-800 mb-1">諮詢師已新增！</h3>
-        <p class="text-sm text-slate-400 mb-5">${sendMail ? '邀請信已寄送，同時可複製以下連結傳給對方' : '請複製以下連結傳給對方'}</p>
+        <p class="text-sm text-slate-400 mb-5">請複製以下連結傳給對方</p>
         <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 mb-5 text-left">
           <span class="text-xs text-slate-500 font-mono flex-1 break-all leading-relaxed">${inviteUrl}</span>
           <button onclick="navigator.clipboard.writeText('${inviteUrl}').then(()=>showToast('連結已複製 ✓'))"
@@ -490,7 +463,7 @@ window.submitAddCounselor = async function() {
   } catch(e) {
     showToast('新增失敗：' + e.message);
   } finally {
-    btn.textContent = '新增'; btn.disabled = false;
+    btn.textContent = '新增諮詢師'; btn.disabled = false;
   }
 };
 
@@ -573,15 +546,6 @@ window.toggleCounselor = async function(uid, currentActive) {
     showToast(currentActive ? '已停用' : '已啟用');
     await loadCounselors();
   } catch(e) { showToast('操作失敗：' + e.message); }
-};
-
-// ── 重寄邀請信 ──────────────────────────────────────────
-window.resendInvite = async function(uid, email) {
-  const inviteUrl = `${location.origin}/admin.html`;
-  const ok = await callGasMailer('invite_counselor', {
-    to: email, counselorName: '', inviteUrl
-  });
-  showToast(ok ? '邀請信已重新寄出 ✓' : 'GAS URL 未設定，請手動傳送連結');
 };
 
 // ── Toast ────────────────────────────────────────────────

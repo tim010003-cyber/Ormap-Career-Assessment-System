@@ -106,14 +106,6 @@ html,body{ height:100%; overflow:hidden; }
       <span id="invite-url" class="text-xs text-slate-600 flex-1 break-all leading-relaxed font-mono"></span>
       <button onclick="copyInvite()" class="flex-shrink-0 text-primary mt-0.5" title="複製連結"><i data-lucide="copy" class="w-4 h-4"></i></button>
     </div>
-    <!-- ⭐ 寄送邀請信（需學員 email） -->
-    <div class="mt-3 flex gap-2 items-center">
-      <input id="student-email-input" type="email" placeholder="學員 Email（選填，寄信用）"
-        class="flex-1 text-xs px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-primary">
-      <button onclick="sendInviteEmail()" class="flex-shrink-0 bg-teal-50 border border-primary text-primary rounded-xl px-3 py-2 text-xs font-bold hover:bg-teal-100 flex items-center gap-1.5">
-        <i data-lucide="mail" class="w-3.5 h-3.5"></i>寄信
-      </button>
-    </div>
     <button onclick="enterBoard()" class="w-full bg-primary text-white rounded-2xl py-3 font-black text-sm shadow-lg hover:-translate-y-0.5 transition-all mt-3">進入白板</button>
   </div>
 </div>
@@ -237,13 +229,11 @@ html,body{ height:100%; overflow:hidden; }
 </div>
 
 <script type="module">
-// ── Phase 9：Firebase / GAS Mailer / 共用常數改由共用模組提供 ──
+// ── Phase 9：Firebase 初始化改由共用模組提供 ──
 import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { doc, setDoc, addDoc, getDoc, updateDoc, deleteDoc, collection, onSnapshot, serverTimestamp, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { doc, setDoc, getDoc, updateDoc, deleteDoc, collection, onSnapshot, serverTimestamp, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { isCounselor, migratePendingCounselor } from './auth-utils.js';
-import { callGasMailer } from './gas-mailer.js';
-import { CONFIG_COUNSELOR_NAME } from './config.js';
 
 const RIASEC_C = { R:"#ef4444",I:"#3b82f6",A:"#8b5cf6",S:"#22c55e",E:"#f97316",C:"#eab308" };
 const RIASEC_L = { R:"實作",I:"研究",A:"藝術",S:"社交",E:"領導",C:"系統" };
@@ -540,13 +530,6 @@ function updateStatus(){
 // ── TWA / HTI 舊側欄渲染函數已移除（配合 subAssessment 一起清除）──
 
 window.confirmEnd=function(){
-  const hasStudent = !!(sessionData?.studentEmail);
-  const sendReport = hasStudent && confirm(
-    '結束前是否同時寄送報告連結給學員？\n\n' +
-    '學員：' + (sessionData?.studentName || '未知') + '\n' +
-    '信箱：' + (sessionData?.studentEmail || '未知') + '\n\n' +
-    '按「確定」＝結束並寄信\n按「取消」＝僅結束，不寄信'
-  );
   if (!confirm('確定結束此白板階段？')) return;
   const studentUid = sessionData?.studentUid;
   const ops = [
@@ -580,30 +563,6 @@ window.confirmEnd=function(){
         } catch(e) { console.warn('[綁定學員]', e); }
       }
 
-      // ⭐ 若選擇寄信，查最新報告寄送
-      if (sendReport && sessionData?.studentUid) {
-        try {
-          const q = query(
-            collection(db, 'assessments'),
-            where('uid', '==', sessionData.studentUid),
-            orderBy('createdAt', 'desc'),
-            limit(1)
-          );
-          const snap = await getDocs(q);
-          if (!snap.empty) {
-            const reportDocId = snap.docs[0].id;
-            const reportUrl = `${location.origin}/report.html?id=${reportDocId}`;
-            await callGasMailer('report_ready', {
-              to           : sessionData.studentEmail,
-              studentName  : sessionData.studentName || '學員',
-              counselorName: currentUser.displayName || CONFIG_COUNSELOR_NAME,
-              toolType     : sessionData.toolType,
-              reportUrl,
-            });
-            toast('報告信已寄出 ✓');
-          }
-        } catch(e) { console.warn('[report_ready]', e); }
-      }
       toast('已結束');
       setTimeout(() => { location.href='admin.html'; }, 1800);
     })
@@ -761,25 +720,8 @@ function fatalError(msg){ document.body.innerHTML=`<div style="min-height:100vh;
 window.addEventListener('beforeunload',()=>{ unsubs.forEach(u=>u?.()); });
 lucide.createIcons();
 
-// ══════════════════════════════════════════════
-// ⭐ GAS Mailer 整合（Phase 9：移至 gas-mailer.js / config.js 共用模組）
-// ══════════════════════════════════════════════
-
-window.sendInviteEmail = async function() {
-  const emailInput = document.getElementById("student-email-input");
-  const email = emailInput?.value?.trim();
-  if (!email || !email.includes("@")) { toast("請輸入有效的學員 Email"); return; }
-  const btn = emailInput.nextElementSibling;
-  const orig = btn.innerHTML; btn.innerHTML = "寄送中..."; btn.disabled = true;
-  const ok = await callGasMailer("invite_student", {
-    to: email, studentName: "",
-    counselorName: currentUser?.displayName || CONFIG_COUNSELOR_NAME,
-    toolType: sessionData?.toolType || selectedTool || "TWA",
-    whiteboardUrl: buildUrl()
-  });
-  btn.innerHTML = orig; btn.disabled = false;
-  toast(ok ? "邀請信已寄出 ✓" : "GAS URL 未設定，請複製連結手動傳送");
-};
+// GAS 發信功能已於 2026-07-16 整體移除（後端 gas_mailer.gs 停用）：
+// 邀請一律改用「複製連結」手動傳送。
 </script>
 </body>
 </html>

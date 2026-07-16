@@ -1129,11 +1129,10 @@
         };
     </script>
 <script type="module">
-        // ── Phase 9：Firebase / GAS Mailer 初始化改由共用模組提供（注意 tools/ 子目錄用 ../）──
+        // ── Phase 9：Firebase 初始化改由共用模組提供（注意 tools/ 子目錄用 ../）──
         import { auth, db } from '../firebase-init.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         import { collection, addDoc, serverTimestamp, doc, getDoc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-        import { callGasMailer } from '../gas-mailer.js';
 
         // ===== ⭐ HTI 白板同步模組 =====
         const _sidFromUrl   = new URLSearchParams(window.location.search).get('sid');
@@ -1331,17 +1330,7 @@
                     // 寫入 Firestore
                     const docRef = await addDoc(collection(db, "assessments"), payload);
                     
-                    // ⭐ GAS 封三：通知諮詢師學員完成測驗
-                    try {
-                        const reportUrl = `${location.origin.replace('/tools','')}/report.html?id=${docRef.id}`;
-                        await callGasMailer("assessment_done", {
-                            studentName : window.currentUserName  || "學員",
-                            studentEmail: window.currentUserEmail || "",
-                            toolType    : "HTI",
-                            reportUrl,
-                            completedAt : new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" })
-                        });
-                    } catch(e) { console.warn("[GAS assessment_done]", e); }
+                    // GAS 發信（封三）已於 2026-07-16 整體移除（後端 gas_mailer.gs 停用）
 
                     // 等待一下下，讓使用者感覺系統在運作
                     await new Promise(resolve => setTimeout(resolve, 600));
@@ -1367,7 +1356,7 @@
 
         // ⭐ Fix: ?reportId 殘留邏輯已移除（歷史報告統一由 report.html 負責）
 
-        // ── GAS Mailer 共用函數（Phase 9：移至 ../gas-mailer.js）──────
+        // ── GAS Mailer 已於 2026-07-16 整體移除 ──────
     </script>
 </body>
 </html>

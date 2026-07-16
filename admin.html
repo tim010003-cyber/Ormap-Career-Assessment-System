@@ -239,6 +239,16 @@ let currentCounselorName = '';
 let currentUserIsAdmin = false; // ⭐ Super Admin 標記
 let twaChart = null;
 
+// ================= XSS 防護（Phase 9.2 / A1）=================
+// assessments 的 create 規則為全開，clientInfo / rawData / summary 皆為
+// 匿名可寫入的欄位，可能夾帶惡意 HTML（如 <img src=x onerror=...>）。
+// 本後台以 innerHTML 渲染這些欄位，故渲染前一律經 esc() 轉義。
+// （對照 report.html 的 escHtml；此處同一實作。）
+function esc(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 // ── 驗證 ──────────────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
   document.getElementById('initLoading').style.display = 'none';
@@ -400,7 +410,7 @@ function renderClientList(clients) {
     card.className = "bg-white rounded-2xl border border-slate-200 p-5 flex items-center gap-4 hover:shadow-md hover:border-slate-300 transition-all cursor-pointer";
     card.onclick = () => showDetail(client.uid);
 
-    const initial = client.name.charAt(0) || '?';
+    const initial = esc(client.name.charAt(0) || '?');
     const status = client.note?.status || '';
     const tools = [...new Set(client.assessments.map(a => a.toolType))];
     const latestDate = client.assessments[0]?.createdAt?.toDate
@@ -420,7 +430,7 @@ function renderClientList(clients) {
       <div class="w-11 h-11 rounded-xl bg-teal-50 text-primary flex items-center justify-center text-base font-black flex-shrink-0">${initial}</div>
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2 flex-wrap mb-1">
-          <span class="font-bold text-secondary">${client.name}</span>
+          <span class="font-bold text-secondary">${esc(client.name)}</span>
           ${authBadge}
           ${status ? `<span class="text-[10px] font-bold px-2 py-0.5 border rounded-full status-${status}">${status}</span>` : ''}
         </div>
@@ -429,7 +439,7 @@ function renderClientList(clients) {
           <span class="text-xs text-slate-400">最近 ${latestDate}</span>
           ${hasNotes ? `<span class="text-xs text-slate-400 flex items-center gap-0.5"><i data-lucide="message-square" class="w-3 h-3"></i> 有紀錄</span>` : ''}
         </div>
-        ${client.email ? `<p class="text-xs text-slate-400 mt-0.5 truncate">${client.email}</p>` : ''}
+        ${client.email ? `<p class="text-xs text-slate-400 mt-0.5 truncate">${esc(client.email)}</p>` : ''}
       </div>
       <div class="text-xs text-slate-400 flex-shrink-0">${client.assessments.length} 份報告</div>
       <i data-lucide="chevron-right" class="w-5 h-5 text-slate-300 flex-shrink-0"></i>
@@ -520,8 +530,8 @@ function renderSummary(client) {
   if (twa) {
     grid.innerHTML += `<div class="p-4 bg-teal-50 rounded-xl">
       <div class="text-[10px] font-bold text-teal-600 uppercase tracking-widest mb-1">TWA 決策狀態</div>
-      <div class="text-base font-black text-teal-800">${twa.rawData?.focusType || '—'}</div>
-      <div class="text-xs text-teal-600 mt-1 leading-relaxed">${twa.rawData?.top5 || '—'}</div>
+      <div class="text-base font-black text-teal-800">${esc(twa.rawData?.focusType || '—')}</div>
+      <div class="text-xs text-teal-600 mt-1 leading-relaxed">${esc(twa.rawData?.top5 || '—')}</div>
     </div>`;
   }
   if (hti) {
@@ -529,7 +539,7 @@ function renderSummary(client) {
     const top = Object.entries(scores).sort(([,a],[,b]) => b-a)[0]?.[0] || '—';
     grid.innerHTML += `<div class="p-4 bg-orange-50 rounded-xl">
       <div class="text-[10px] font-bold text-orange-600 uppercase tracking-widest mb-1">HTI 核心特質</div>
-      <div class="text-base font-black text-orange-800">${hti.summary?.text || '—'}</div>
+      <div class="text-base font-black text-orange-800">${esc(hti.summary?.text || '—')}</div>
       <div class="text-xs text-orange-600 mt-1">最高維度：${top}</div>
     </div>`;
   }
@@ -568,7 +578,7 @@ function renderAssessments(client) {
       div.innerHTML = `
         <div class="w-1.5 h-1.5 rounded-full bg-teal-400 flex-shrink-0"></div>
         <span class="text-xs text-slate-400 w-20 flex-shrink-0">${date}</span>
-        <span class="text-sm text-slate-600 flex-1">${a.rawData?.focusType || '—'}</span>
+        <span class="text-sm text-slate-600 flex-1">${esc(a.rawData?.focusType || '—')}</span>
         <a href="report.html?id=${a.id}" target="_blank" class="text-xs text-primary font-bold hover:underline flex items-center gap-1">
           查看報告 <i data-lucide="external-link" class="w-3 h-3"></i>
         </a>
@@ -598,7 +608,7 @@ function renderAssessments(client) {
       div.innerHTML = `
         <div class="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0"></div>
         <span class="text-xs text-slate-400 w-20 flex-shrink-0">${date}</span>
-        <span class="text-sm text-slate-600 flex-1">${a.summary?.text || '—'}</span>
+        <span class="text-sm text-slate-600 flex-1">${esc(a.summary?.text || '—')}</span>
         <a href="report.html?id=${a.id}" target="_blank" class="text-xs text-orange-500 font-bold hover:underline flex items-center gap-1">
           查看報告 <i data-lucide="external-link" class="w-3 h-3"></i>
         </a>
@@ -698,10 +708,10 @@ function renderNotes(notes) {
       </div>
       <div class="pb-4 flex-1">
         <div class="flex items-center gap-2 mb-1.5">
-          <span class="text-xs font-bold text-slate-500">${note.counselorName || '諮詢師'}</span>
+          <span class="text-xs font-bold text-slate-500">${esc(note.counselorName || '諮詢師')}</span>
           <span class="text-xs text-slate-400">${note.createdAtStr || '未知時間'}</span>
         </div>
-        <div class="bg-slate-50 rounded-xl p-3 text-sm text-slate-700 leading-relaxed">${note.text}</div>
+        <div class="bg-slate-50 rounded-xl p-3 text-sm text-slate-700 leading-relaxed">${esc(note.text)}</div>
       </div>
     `;
     timeline.appendChild(div);

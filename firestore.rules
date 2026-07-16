@@ -19,7 +19,25 @@ service cloud.firestore {
     // ── 測驗結果 ──────────────────────────────────────
     match /assessments/{docId} {
       allow create: if true;
-      allow read: if request.auth != null;
+      // ── 讀取（Phase 9.2 / A2）：get 與 list 分離 ──
+      // 單筆 get 鎖定：本人 / Super Admin / 綁定且未撤銷授權的諮詢師。
+      // 堵住「任意登入者拿 docId 直接讀他人報告」與「被撤銷授權的諮詢師
+      // 仍能從 report.html?id= 讀取」兩個漏洞（counselorAccess 現在 DB 層生效）。
+      // 註：counselorAccess 欄位不存在時視為授權（null != false 為 true），
+      //     符合「undefined/true 皆授權，僅 false 撤銷」的資料契約。
+      allow get: if request.auth != null && (
+        request.auth.uid == resource.data.uid
+        || isSuperAdmin()
+        || (isCounselor()
+            && resource.data.assignedCounselorUid == request.auth.uid
+            && resource.data.counselorAccess != false)
+      );
+      // 查詢（list）維持登入可用：admin 後台 Super Admin 全表查詢、
+      // 一般諮詢師 where assignedCounselorUid、timeline/dashboard where uid 都靠 list。
+      // ⚠️ 殘留風險：list 未逐筆落實 counselorAccess 過濾（Firestore 規則非過濾器，
+      //    需查詢端 where 對齊 + counselorAccess 全面布林化才能收緊）。
+      //    目前 list 結果仍由前端過濾，列為後續 backlog。
+      allow list: if request.auth != null;
       // 本人可更新；諮詢師可寫入 assignedCounselorUid
       allow update: if request.auth != null && (
         request.auth.uid == resource.data.uid

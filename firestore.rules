@@ -70,6 +70,16 @@ service cloud.firestore {
     match /whiteboard_active/{uid} {
       allow read, write: if request.auth != null;
     }
+    // ── 意見回饋（基礎建設⑤，2026-07-16）──────────────
+    // 任何人皆可送出回饋（含未登入訪客）；只讀權限保留給 Super Admin（未來後台）。
+    // 客戶端不可讀他人回饋、不可改/刪，避免濫用；create 加基本欄位驗證擋灌爆。
+    match /feedback/{docId} {
+      allow create: if request.resource.data.message is string
+        && request.resource.data.message.size() > 0
+        && request.resource.data.message.size() <= 5000;
+      allow read: if request.auth != null && isSuperAdmin();
+      allow update, delete: if false;
+    }
     // ── 諮詢師管理 ────────────────────────────────────
     match /counselors/{docId} {
       // 任何登入者可讀（isCounselor 函數需要查詢）

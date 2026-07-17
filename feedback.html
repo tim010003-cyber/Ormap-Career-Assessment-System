@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>意見回饋 | Ormap 原味藍圖</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = { theme: { extend: { colors: { primary: '#0d9488', secondary: '#0f172a' } } } }
+</script>
+<script src="https://unpkg.com/lucide@1.8.0"></script>
+<style>
+  body { font-family: 'Noto Sans TC', system-ui, sans-serif; }
+</style>
+</head>
+<body class="bg-slate-50 text-secondary antialiased min-h-screen flex flex-col">
+
+<main class="flex-1 flex items-center justify-center px-4 py-12">
+  <div class="w-full max-w-lg">
+
+    <!-- 標題 -->
+    <div class="text-center mb-8">
+      <div class="w-14 h-14 rounded-2xl bg-teal-50 text-primary flex items-center justify-center mx-auto mb-4">
+        <i data-lucide="message-circle-heart" class="w-7 h-7"></i>
+      </div>
+      <h1 class="text-2xl font-black tracking-tight">告訴我們你的想法</h1>
+      <p class="text-slate-500 text-sm mt-2 leading-relaxed">
+        遇到問題、有建議，或只是想分享使用感受？<br>你的每一則回饋都會被我們認真看待。
+      </p>
+    </div>
+
+    <!-- 表單卡 -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+      <form id="fbForm" class="space-y-5">
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">回饋類型</label>
+          <select id="fb-category" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10">
+            <option value="問題回報">🐞 問題回報（哪裡壞了）</option>
+            <option value="功能建議">💡 功能建議（希望有什麼）</option>
+            <option value="使用體驗">🌱 使用體驗（好用 / 不好用）</option>
+            <option value="其他">💬 其他</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">內容 <span class="text-red-400">*</span></label>
+          <textarea id="fb-message" rows="5" maxlength="5000" required
+            placeholder="請描述你的想法，越具體越好（例如：在哪一頁、做了什麼、發生什麼）"
+            class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm leading-relaxed resize-none focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"></textarea>
+          <div class="text-right text-xs text-slate-300 mt-1"><span id="fb-count">0</span> / 5000</div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">聯絡 Email（選填）</label>
+          <input id="fb-email" type="email" placeholder="想收到回覆再填；留空也沒關係"
+            class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10">
+          <p class="text-xs text-slate-400 mt-1.5">我們僅用於回覆本則回饋，不會用於行銷。</p>
+        </div>
+
+        <button type="submit" id="fb-submit"
+          class="w-full py-3 bg-primary text-white rounded-2xl font-black text-sm shadow-sm hover:bg-teal-700 hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center gap-2">
+          <i data-lucide="send" class="w-4 h-4"></i> 送出回饋
+        </button>
+      </form>
+
+      <!-- 成功畫面（預設隱藏）-->
+      <div id="fb-success" class="hidden text-center py-6">
+        <div class="w-16 h-16 rounded-2xl bg-teal-50 text-primary flex items-center justify-center mx-auto mb-4">
+          <i data-lucide="check-circle-2" class="w-8 h-8"></i>
+        </div>
+        <h2 class="text-xl font-black mb-1.5">收到了，謝謝你！</h2>
+        <p class="text-slate-500 text-sm leading-relaxed">你的回饋已送出。<br>我們會用它讓 Ormap 變得更好。</p>
+        <button id="fb-again" class="mt-6 text-sm font-bold text-primary hover:text-teal-700">再送一則 →</button>
+      </div>
+    </div>
+
+    <!-- 頁尾 -->
+    <div class="text-center mt-6 text-xs text-slate-400 space-x-3">
+      <a href="dashboard.html" class="hover:text-slate-600">返回首頁</a>
+      <span class="text-slate-300">·</span>
+      <a href="privacy.html" class="hover:text-slate-600">隱私權政策</a>
+      <span class="text-slate-300">·</span>
+      <a href="terms.html" class="hover:text-slate-600">服務條款</a>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import { auth, db } from './firebase-init.js';
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+let currentUid = null;
+
+// 登入者自動帶入 email（可改），並記錄 uid；未登入也能送
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    currentUid = user.uid;
+    const emailEl = document.getElementById('fb-email');
+    if (emailEl && !emailEl.value) emailEl.value = user.email || '';
+  }
+});
+
+// 字數計數
+const msgEl = document.getElementById('fb-message');
+const countEl = document.getElementById('fb-count');
+msgEl.addEventListener('input', () => { countEl.textContent = msgEl.value.length; });
+
+// 來源頁（?from= 或 referrer），純內部診斷用
+const params = new URLSearchParams(location.search);
+const fromPage = params.get('from') || document.referrer || '';
+
+const form = document.getElementById('fbForm');
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const message = msgEl.value.trim();
+  if (!message) return;
+
+  const btn = document.getElementById('fb-submit');
+  btn.disabled = true;
+  btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> 送出中…';
+  lucide.createIcons();
+
+  try {
+    await addDoc(collection(db, 'feedback'), {
+      category : document.getElementById('fb-category').value,
+      message  : message,
+      email    : document.getElementById('fb-email').value.trim() || null,
+      uid      : currentUid,           // 未登入為 null
+      fromPage : fromPage,
+      userAgent: navigator.userAgent,
+      createdAt: serverTimestamp()
+    });
+    form.classList.add('hidden');
+    document.getElementById('fb-success').classList.remove('hidden');
+    lucide.createIcons();
+  } catch (err) {
+    console.error('[feedback]', err);
+    alert('送出失敗，請稍後再試。');
+    btn.disabled = false;
+    btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> 送出回饋';
+    lucide.createIcons();
+  }
+});
+
+// 再送一則
+document.getElementById('fb-again').addEventListener('click', () => {
+  form.reset();
+  countEl.textContent = '0';
+  document.getElementById('fb-success').classList.add('hidden');
+  form.classList.remove('hidden');
+  const btn = document.getElementById('fb-submit');
+  btn.disabled = false;
+  btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> 送出回饋';
+  if (currentUid && auth.currentUser) document.getElementById('fb-email').value = auth.currentUser.email || '';
+  lucide.createIcons();
+});
+
+lucide.createIcons();
+</script>
+</body>
+</html>

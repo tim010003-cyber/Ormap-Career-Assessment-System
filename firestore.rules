@@ -59,17 +59,13 @@ service cloud.firestore {
     match /counselor_notes/{docId} {
       allow read, write: if request.auth != null && isCounselor();
     }
-    // ── 白板 Session ──────────────────────────────────
-    match /whiteboard_sessions/{sessionId} {
-      allow read, write: if request.auth != null;
-    }
-    match /whiteboard_sessions/{sessionId}/{sub}/{docId} {
-      allow read, write: if request.auth != null;
-    }
-    // ── 白板活躍狀態 ──────────────────────────────────
-    match /whiteboard_active/{uid} {
-      allow read, write: if request.auth != null;
-    }
+    // ── 白板功能已於 2026-07-20 依使用者決策全面移除 ──────
+    // 原有 whiteboard_sessions（含子集合）與 whiteboard_active 兩個集合的
+    // 規則為 `if request.auth != null`，任何登入者皆可讀寫任意 session，
+    // 並可經由結束流程取得他人評測報告的存取權（SEC-002 / SEC-005，皆 P0）。
+    // 功能移除後不再保留任何規則 —— 未列出的路徑一律拒絕存取，
+    // 因此殘留資料即使仍在資料庫中也無法被前端讀寫。
+    // 既有文件的實際清理另行處理（需使用者授權後執行）。
     // ── 意見回饋（基礎建設⑤，2026-07-16）──────────────
     // 任何人皆可送出回饋（含未登入訪客）；只讀權限保留給 Super Admin（未來後台）。
     // 客戶端不可讀他人回饋、不可改/刪，避免濫用；create 加基本欄位驗證擋灌爆。

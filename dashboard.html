@@ -46,27 +46,6 @@ tailwind.config = {
     <p class="text-slate-500">在這裡查看你的職涯評測紀錄，追蹤每一次的成長軌跡。</p>
   </header>
 
-  <!-- ⭐ 白板邀請通知（有 active session 才顯示）-->
-  <div id="wbNotice" class="hidden mb-8">
-    <div class="relative overflow-hidden flex items-center gap-5 p-5 bg-gradient-to-r from-teal-600 to-teal-500 rounded-2xl shadow-lg text-white">
-      <!-- Decorative circle -->
-      <div class="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8 pointer-events-none"></div>
-      <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
-        <i data-lucide="layout" class="w-6 h-6 text-white"></i>
-      </div>
-      <div class="flex-1 min-w-0">
-        <p class="text-xs font-black uppercase tracking-widest text-teal-100 mb-0.5">即時互動白板</p>
-        <h3 id="wbNoticeTitle" class="font-black text-base leading-tight">諮詢師邀請你進行即時諮詢</h3>
-        <p id="wbNoticeSubtitle" class="text-teal-100 text-sm mt-0.5">點擊加入，與諮詢師一起使用互動白板</p>
-      </div>
-      <a id="wbNoticeBtn" href="#"
-        class="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 bg-white text-primary rounded-xl font-black text-sm shadow hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all whitespace-nowrap">
-        <i data-lucide="arrow-right-circle" class="w-4 h-4"></i>
-        加入白板
-      </a>
-    </div>
-  </div>
-
   <!-- 開始新的評測 -->
   <section class="mb-12">
     <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400 mb-4">開始新的評測</h2>
@@ -165,7 +144,7 @@ tailwind.config = {
 // ── Phase 9：Firebase 初始化改由共用模組提供 ──
 import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { collection, query, where, orderBy, getDocs, getDoc, deleteDoc, updateDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { collection, query, where, orderBy, getDocs, deleteDoc, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { isCounselor } from './auth-utils.js';
 
 const container = document.getElementById('recordsContainer');
@@ -188,7 +167,6 @@ onAuthStateChanged(auth, async (user) => {
       }
     }
     fetchAssessments(user.uid);
-    checkActiveWhiteboards(user.uid);
   } else {
     window.location.href = 'index.html';
   }
@@ -373,60 +351,6 @@ async function deleteReport(docId) {
 
 document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
 
-// ── 白板邀請通知 ────────────────────────────────────────
-const WB_TTL_MS = 24 * 60 * 60 * 1000; // ⭐ Fix: 24 小時 TTL
-
-let _wbNoticeUnsub = null; // ⭐ A10：保留 unsubscribe，離頁時解除監聽
-function checkActiveWhiteboards(uid) {
-  _wbNoticeUnsub?.();
-  _wbNoticeUnsub = onSnapshot(doc(db, 'whiteboard_active', uid), async (snap) => {
-    const notice = document.getElementById('wbNotice');
-    if (!snap.exists()) { notice.classList.add('hidden'); return; }
-    const data = snap.data();
-
-    // 狀態不是 waiting/active → 清除殘留文件並隱藏
-    if (data.status !== 'waiting' && data.status !== 'active') {
-      notice.classList.add('hidden');
-      try { await deleteDoc(doc(db, 'whiteboard_active', uid)); } catch(e) {}
-      return;
-    }
-
-    // ⭐ Fix: TTL 保護 — 超過 24 小時的文件視為孤立，自動清除
-    if (data.createdAt) {
-      const createdMs = data.createdAt.toMillis
-        ? data.createdAt.toMillis()
-        : data.createdAt.seconds * 1000;
-      if (Date.now() - createdMs > WB_TTL_MS) {
-        notice.classList.add('hidden');
-        try { await deleteDoc(doc(db, 'whiteboard_active', uid)); } catch(e) {}
-        return;
-      }
-    }
-
-    // ⭐ 確認對應 session 是否仍有效（防止孤立文件一直顯示）
-    if (data.sessionId) {
-      try {
-        const sSnap = await getDoc(doc(db, 'whiteboard_sessions', data.sessionId));
-        if (!sSnap.exists() || sSnap.data().status === 'ended') {
-          notice.classList.add('hidden');
-          await deleteDoc(doc(db, 'whiteboard_active', uid));
-          return;
-        }
-      } catch(e) { console.warn('whiteboard session check failed', e); }
-    }
-
-    // 顯示橫幅
-    notice.classList.remove('hidden');
-    document.getElementById('wbNoticeTitle').textContent =
-      `${data.counselorName || '諮詢師'} 邀請你進行即時白板諮詢`;
-    document.getElementById('wbNoticeSubtitle').textContent =
-      `評測類型：${data.toolType || '自由模式'} ・ 點擊立即加入`;
-    document.getElementById('wbNoticeBtn').href =
-      `whiteboard.html?session=${data.sessionId}`;
-    lucide.createIcons();
-  });
-}
-window.addEventListener('beforeunload', () => _wbNoticeUnsub?.()); // ⭐ A10
 
 lucide.createIcons();
 </script>

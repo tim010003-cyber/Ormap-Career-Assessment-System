@@ -1,0 +1,61 @@
+/* ============================================================
+   brand.css — 原味藍圖 共用 Design Tokens 與視覺基礎
+   ------------------------------------------------------------
+   Phase: 前端整合 第一階段 (2026-07-19)
+   來源: mockups/home-attractor.html 定稿 + mockups/CLAUDE_IMPLEMENTATION_HANDOFF.md
+
+   用途:
+   - 提供跨頁一致的品牌色彩變數、字體 helper、focus 可見性
+     與 prefers-reduced-motion 降級。
+   - 各頁的 tailwind.config 仍依專案慣例 per-page inline;
+     此檔只承載「非 Tailwind」的共通層,兩者色值必須一致。
+
+   使用方式:
+   - 根目錄頁: <link rel="stylesheet" href="brand.css">
+   - tools/ 子目錄頁: <link rel="stylesheet" href="../brand.css">
+   - 搭配字體(頁面自行載入):
+     Noto Sans TC (內文) + Noto Serif TC (標題襯線)
+
+   注意:
+   - 不放任何秘密、不含 JS。
+   - 既有正式頁 (dashboard/tools/report...) 尚未掛此檔,
+     掛入前需逐頁驗證 focus 樣式不與其自訂樣式衝突。
+   ============================================================ */
+
+:root {
+  /* 新視覺系統 (吸引子定稿) */
+  --brand-paper:   #FBF8F2;  /* 暖紙白:主背景 */
+  --brand-paper-2: #F3EDE2;  /* 紙白次階:面板底 */
+  --brand-ink:     #142033;  /* 深墨藍:標題/主要文字/深色區塊 */
+  --brand-teal:    #1E9188;  /* 沉靜青綠:重點/連結/路徑 */
+  --brand-mist:    #DCECEF;  /* 淡霧藍:次要層次 */
+  --brand-clay:    #E88A55;  /* 暖陶橘:轉折/行動提示(少量) */
+  --brand-sand:    #EFE6D5;  /* 暖砂:區塊底色 */
+  --brand-line:    rgba(20, 32, 51, .12);  /* 分隔線 */
+
+  /* 既有品牌色(現行正式頁仍在使用,過渡期並存) */
+  --brand-primary:   #0d9488;
+  --brand-secondary: #0f172a;
+}
+
+/* 襯線標題 helper (需頁面已載入 Noto Serif TC) */
+.serif { font-family: "Noto Serif TC", serif; }
+
+/* 鍵盤操作 focus 可見性 */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--brand-teal);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* 動效降級:所有動畫/轉場停用,由各頁自行補「動畫終止狀態」 */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

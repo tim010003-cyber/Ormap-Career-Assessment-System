@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>職務設計與甄選｜案例列表</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
+<script>
+tailwind.config = { theme: { extend: {
+  colors: {
+    primary:'#0d9488', secondary:'#0f172a',
+    ivory:'#FBF8F2', navy:'#142033', tealgreen:'#1E9188', tealdeep:'#136E68',
+    accent:'#E88A55', mist:'#DCECEF',
+  },
+  fontFamily: { sans:['"Noto Sans TC"','sans-serif'], serif:['"Noto Serif TC"','serif'] },
+}}}
+</script>
+<script src="https://unpkg.com/lucide@1.8.0"></script>
+<style>
+  body{background:#FBF8F2;color:#142033;}
+  h1,h2,.serif{font-family:"Noto Serif TC",serif;}
+  .card{transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;}
+  .card:hover{transform:translateY(-2px); box-shadow:0 14px 34px -18px #14203344; border-color:#1E918866;}
+  dialog::backdrop{background:rgba(20,32,51,.45);}
+  .badge{font-size:11px;padding:2px 10px;border-radius:999px;font-weight:600;}
+</style>
+</head>
+<body class="min-h-screen font-sans">
+
+<!-- 頁首 -->
+<header class="border-b border-navy/10 bg-ivory/80 backdrop-blur sticky top-0 z-30">
+  <div class="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-lg bg-navy text-ivory grid place-items-center font-black serif">原</div>
+      <div>
+        <div class="font-bold leading-tight">職務設計與甄選</div>
+        <div class="text-[11px] text-navy/50 leading-tight">原味藍圖 · 組織工具 Beta</div>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-1 bg-white rounded-full p-1 border border-navy/10 text-sm" id="identitySwitch">
+        <button data-role="student" class="px-3 py-1 rounded-full">學員</button>
+        <button data-role="instructor" class="px-3 py-1 rounded-full">講師</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-5 py-8">
+
+  <!-- 說明條 -->
+  <section class="mb-7">
+    <div class="text-[12px] tracking-[2px] text-tealdeep font-semibold mb-1">既有職務優化 · 路徑 B</div>
+    <h1 class="text-3xl font-black text-navy mb-2">把既有職務，整理成能用的規格與甄選文件</h1>
+    <p class="text-navy/60 max-w-2xl leading-relaxed">口述你手上的職務 → AI 幫你整理與檢查 → 你逐項確認 → 產出職務說明書、甄選流程與 JD，最後合併成一份 Word。AI 只整理與提問，<strong class="text-navy">要不要建立、最低標準、發布內容，都由人決定</strong>。</p>
+  </section>
+
+  <!-- 工具列 -->
+  <div class="flex items-center justify-between mb-4">
+    <div class="text-sm text-navy/50" id="caseCount">—</div>
+    <div class="flex items-center gap-2">
+      <button id="seedDemoBtn" class="inline-flex items-center gap-2 bg-white border border-tealgreen/40 text-tealdeep px-4 py-2.5 rounded-lg font-semibold hover:bg-mist/50 transition" title="全部填好、可直接走完六模組並下載">
+        <i data-lucide="presentation" class="w-4 h-4"></i>示範①　完整流程
+      </button>
+      <button id="seedContraBtn" class="inline-flex items-center gap-2 bg-white border border-accent/50 text-accent px-4 py-2.5 rounded-lg font-semibold hover:bg-accent/5 transition" title="示範系統偵測權責矛盾、把決定權交還給人">
+        <i data-lucide="alert-triangle" class="w-4 h-4"></i>示範②　權責矛盾
+      </button>
+      <button id="newCaseBtn" class="inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2.5 rounded-lg font-semibold hover:bg-tealdeep transition">
+        <i data-lucide="plus" class="w-4 h-4"></i>建立新案例
+      </button>
+    </div>
+  </div>
+
+  <!-- 案例列表 -->
+  <div id="caseList" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+
+  <!-- 空狀態 -->
+  <div id="emptyState" class="hidden text-center py-20 border-2 border-dashed border-navy/15 rounded-2xl">
+    <i data-lucide="folder-open" class="w-10 h-10 mx-auto text-navy/30 mb-3"></i>
+    <p class="text-navy/50 mb-4">還沒有案例，建立第一個既有職務優化案例吧。</p>
+    <button class="newCaseBtn2 bg-tealgreen text-white px-4 py-2 rounded-lg font-semibold">建立新案例</button>
+  </div>
+</main>
+
+<!-- 建立案例對話框 -->
+<dialog id="caseDialog" class="rounded-2xl p-0 w-[92vw] max-w-lg backdrop:backdrop-blur">
+  <form method="dialog" id="caseForm" class="p-6">
+    <h2 class="text-xl font-bold text-navy mb-1">建立新案例</h2>
+    <p class="text-sm text-navy/50 mb-5">路徑：既有職務優化（路徑 B）</p>
+    <div id="caseFormFields" class="space-y-4"></div>
+    <div class="flex justify-end gap-2 mt-6">
+      <button value="cancel" class="px-4 py-2 rounded-lg text-navy/60 hover:bg-navy/5">取消</button>
+      <button value="ok" id="caseCreateBtn" class="px-5 py-2 rounded-lg bg-navy text-ivory font-semibold hover:bg-tealdeep">建立</button>
+    </div>
+  </form>
+</dialog>
+
+<script type="module">
+import { CASE_FIELDS } from './jd-fields.js';
+import { listCases, createCase, deleteCase, getIdentity, setIdentity, getModuleStatus } from './jd-store.js';
+import { countPending } from './jd-word.js';
+import { seedDemoCase, seedContradictionCase } from './jd-seed.js';
+
+const $ = (s, r=document) => r.querySelector(s);
+const el = (t, cls, html) => { const e=document.createElement(t); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e; };
+
+// ── 身分切換 ──
+function paintIdentity(){
+  const role = getIdentity();
+  document.querySelectorAll('#identitySwitch button').forEach(b=>{
+    const on = b.dataset.role===role;
+    b.classList.toggle('bg-navy', on); b.classList.toggle('text-ivory', on);
+    b.classList.toggle('text-navy/60', !on);
+  });
+}
+document.querySelectorAll('#identitySwitch button').forEach(b=>{
+  b.addEventListener('click', ()=>{ setIdentity(b.dataset.role); paintIdentity(); });
+});
+
+// ── 案例列表 ──
+const STATUS_STYLE = {
+  active:['進行中','bg-mist text-tealdeep'],
+  submitted:['已提交','bg-mist text-tealdeep'],
+  output_ready:['可產出','bg-tealgreen/15 text-tealdeep'],
+  downloaded_grace:['已下載·倒數中','bg-accent/15 text-accent'],
+  closed:['已關閉','bg-navy/10 text-navy/50'],
+  reopened:['重新開放','bg-accent/15 text-accent'],
+};
+const MODS = [['existing','基礎確認'],['m3','M3 規格'],['m4','職務說明書'],['m5','甄選流程'],['m6','JD']];
+
+function progressOf(c){
+  const done = MODS.filter(([m])=>getModuleStatus(c,m)==='confirmed').length;
+  return Math.round(done/MODS.length*100);
+}
+
+function render(){
+  const cases = listCases();
+  $('#caseCount').textContent = cases.length ? `${cases.length} 個案例` : '';
+  const list = $('#caseList'); list.innerHTML='';
+  $('#emptyState').classList.toggle('hidden', cases.length>0);
+  for(const c of cases){
+    const [label, style] = STATUS_STYLE[c.overall_status] || STATUS_STYLE.active;
+    const pending = countPending(c);
+    const card = el('div','card bg-white rounded-2xl border border-navy/10 p-5 flex flex-col');
+    card.innerHTML = `
+      <div class="flex items-start justify-between gap-2 mb-2">
+        <h3 class="font-bold text-navy leading-snug">${c.is_demo?'<span class="badge bg-tealgreen text-white mr-1">示範</span>':''}${escapeHtml(c.fields['case.title']?.value||'未命名案例')}</h3>
+        <span class="badge ${style} whitespace-nowrap">${label}</span>
+      </div>
+      <div class="text-sm text-navy/55 mb-1">${escapeHtml(c.fields['case.organization_name']?.value||'')}</div>
+      <div class="text-xs text-navy/40 mb-4">職務：${escapeHtml(c.fields['case.job_title_working']?.value||'—')}</div>
+      <div class="mt-auto">
+        <div class="flex items-center justify-between text-[11px] text-navy/50 mb-1">
+          <span>完成度 ${progressOf(c)}%</span>
+          <span>${pending?`${pending} 項待確認`:'無待確認'}</span>
+        </div>
+        <div class="h-1.5 bg-navy/10 rounded-full overflow-hidden mb-4">
+          <div class="h-full bg-tealgreen" style="width:${progressOf(c)}%"></div>
+        </div>
+        <div class="flex gap-2">
+          <a href="./case.html?caseId=${c.case_id}" class="flex-1 text-center bg-navy text-ivory py-2 rounded-lg text-sm font-semibold hover:bg-tealdeep">繼續</a>
+          <button data-del="${c.case_id}" class="px-3 py-2 rounded-lg text-navy/40 hover:text-accent hover:bg-accent/10" title="刪除案例"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+        </div>
+      </div>`;
+    list.appendChild(card);
+  }
+  list.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{
+    if(confirm('確定刪除此案例？此動作無法復原。')){ deleteCase(b.dataset.del); render(); }
+  }));
+  if(window.lucide) lucide.createIcons();
+}
+
+function escapeHtml(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+// ── 建立案例對話框 ──
+const dialog = $('#caseDialog');
+function buildForm(){
+  const wrap = $('#caseFormFields'); wrap.innerHTML='';
+  for(const f of CASE_FIELDS){
+    const row = el('div');
+    row.innerHTML = `<label class="block text-sm font-semibold text-navy mb-1">${f.name}${f.required?' <span class="text-accent">*</span>':''}</label>`;
+    if(f.type==='multiselect'){
+      const box = el('div','flex flex-wrap gap-2');
+      f.options.forEach(opt=>{
+        const id = f.id+'::'+opt;
+        box.innerHTML += `<label class="inline-flex items-center gap-1.5 text-sm bg-mist/50 border border-navy/10 rounded-full px-3 py-1.5 cursor-pointer"><input type="checkbox" name="${f.id}" value="${opt}" class="accent-tealgreen"> ${opt}</label>`;
+      });
+      row.appendChild(box);
+    } else {
+      row.innerHTML += `<input name="${f.id}" class="w-full border border-navy/15 rounded-lg px-3 py-2 focus:outline-none focus:border-tealgreen" placeholder="${f.help||''}">`;
+    }
+    if(f.help && f.type!=='multiselect') row.innerHTML += `<p class="text-xs text-navy/40 mt-1">${f.help}</p>`;
+    wrap.appendChild(row);
+  }
+}
+function openDialog(){ buildForm(); dialog.showModal(); }
+$('#newCaseBtn').addEventListener('click', openDialog);
+
+// 導覽模式：一鍵灌入乾淨的示範案例（每次覆蓋，確保每場 demo 起點一致）
+$('#seedDemoBtn').addEventListener('click', ()=>{
+  location.href='./case.html?caseId='+seedDemoCase();
+});
+// 示範②：停在基礎確認，導覽時現場按「完整度檢查」才會跳出權責矛盾
+$('#seedContraBtn').addEventListener('click', ()=>{
+  location.href='./case.html?caseId='+seedContradictionCase();
+});
+document.querySelectorAll('.newCaseBtn2').forEach(b=>b.addEventListener('click', openDialog));
+
+$('#caseForm').addEventListener('submit',(e)=>{
+  if(e.submitter && e.submitter.value==='cancel') return;
+  const fd = new FormData(e.target);
+  const values = {};
+  for(const f of CASE_FIELDS){
+    if(f.type==='multiselect') values[f.id] = fd.getAll(f.id);
+    else values[f.id] = (fd.get(f.id)||'').trim();
+  }
+  // 簡易必填檢查
+  const miss = CASE_FIELDS.filter(f=>f.required && (Array.isArray(values[f.id])?!values[f.id].length:!values[f.id]));
+  if(miss.length){ e.preventDefault(); alert('請填寫：'+miss.map(f=>f.name).join('、')); return; }
+  const c = createCase(values);
+  setTimeout(()=>{ location.href='./case.html?caseId='+c.case_id; }, 0);
+});
+
+paintIdentity();
+render();
+</script>
+</body>
+</html>

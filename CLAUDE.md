@@ -12,6 +12,40 @@ All UI text, comments, and product docs are in **Traditional Chinese** — match
 
 **Product direction (2026-07-16 repositioning)**: the product is being repositioned from "counsellor back-office" to a **modular career-tool platform** with three categories (職涯/生涯/組織), freemium funnel into paid courses, and member/EDM operations. **Read `PRD/Ormap_系統規格書_v4.0_2026-07-16.md` for product direction** (positioning, IA, roadmap, planned features like 履歷健檢/JD 評測/授權碼); `PRD/Ormap_系統規格書_v3.8_2026-07-16.md` remains the detailed technical current-state snapshot. Copy tone follows the brand doc essence in v4.0 §1 — 「先清醒,再勇敢」, supportive, never anxiety-selling.
 
+## Project-wide governance and cross-agent handoff (2026-07-20)
+
+Before planning or implementing homepage, platform, Dashboard, assessment-shell, content, course, paid-feature, or organization-side work, read these documents in order:
+
+1. `AGENTS.md` — mandatory repository-wide entry point for decision precedence, safety, file ownership, high-risk behavior protection, and completion reporting.
+2. `PRD/原味藍圖_跨代理協作契約_v1_2026-07-20.md` — neutral role model, product/technical dual acceptance, work-package contract, handoff format, and release gates. It is currently marked **提案／待使用者確認**; follow its non-conflicting safety and handoff rules, but do not claim that the proposal is already a final user decision.
+3. `PRD/原味藍圖_已知缺陷與風險登記簿.md` — concrete confirmed defects and risks, severity, state, expected owner, and acceptance conditions. A registered issue is not evidence that it has been fixed.
+4. `PRD/原味藍圖_跨代理交接與檔案占用表.md` — the current single-writer claim, handoff, and release table. Check and claim exact paths before any write.
+5. When touching TWA, HTI, reports, timeline, whiteboard, or shared styles: `PRD/原味藍圖_評測與白板介面保護清單_v1_2026-07-20.md` — initial protected query params, storage/data contracts, DOM hooks, global state, handlers, and regression boundaries. It is pending Claude technical confirmation.
+6. `原味藍圖_品牌與網站架構總綱.md` — governing brand, confirmed homepage copy, site inventory, decision states, naming/CTA rules, and unresolved product decisions.
+7. `PRD/原味藍圖_評測優先平台轉型與分階段開發藍圖_v1_2026-07-20.md` — current product priority, target IA, present-to-target Gap, staged migration, and delivery boundaries.
+8. `PRD/Ormap_系統規格書_v3.8_2026-07-16.md` — detailed technical current state.
+9. `PRD/Ormap_系統規格書_v4.0_2026-07-16.md` — earlier repositioning direction; use it where it does not conflict with newer decisions above.
+10. Tool-specific handover/data documents when touching TWA, HTI, reports, whiteboard, or job design.
+
+Current implementation priority is **assessment tools first → website content/Blog second → physical/live courses and externally handled consultation third**. The first assessment-platform focus is the **Job Design System**. Public `index.html` and the signed-in personal Dashboard have different responsibilities: Index remains a public brand/content/product entry even for signed-in users; Dashboard becomes a personal summary and routes to separate exploration/report areas.
+
+Current neutral collaboration handoff:
+
+- The user owns brand positioning, core promise, audiences, product/tool names, service scope, pricing, release status, primary CTAs, and page additions/removals. Do not infer these into final decisions.
+- Responsibilities are assigned by role and work package, not by permanent whole-repository ownership. The relevant roles are user/product decision maker, Product & Experience Owner, Engineering & Operations Owner, Module Owner, and Release Operator.
+- The current proposed capability-based default is: Codex focuses on product/IA, public-site UI/UX, content model, Index/Dashboard separation, Job Design experience, and cross-page product acceptance; Claude focuses on existing TWA/HTI and report-flow preservation, Auth/Firestore/security, CI/CD, technical acceptance, and deployment execution.
+- Product acceptance and technical acceptance are separate. Material cross-module changes require both when both domains are affected. Neither agent gains unilateral authority outside its assigned acceptance criteria.
+- Deployment access or execution does not grant authority to redefine product scope, brand, IA, copy, maturity labels, pricing, or release content. Formal release remains a user decision unless the user explicitly delegates it.
+- Do not have multiple agents edit the same file concurrently. Every work package must define the sole writer, affected files, module inputs/outputs, data and permissions, protected behavior, acceptance criteria, release scope, and handoff state.
+- Before writing, read and update `PRD/原味藍圖_跨代理交接與檔案占用表.md`. No current claim or uncertain state means read-only work only.
+- The current defect ledger records unresolved P1 access-control and authorization-semantic risks plus an index-versioning gap. Do not describe them as fixed, and do not change Rules or production data merely because they are documented; use a separately authorized security work package.
+- The interface protection list is an initial static inventory. Claude's next technical handoff is to verify missing hooks, `whiteboard_sessions` schema, mirror-mode event order, safe styling boundaries, and minimum regression cases before structural TWA/HTI/whiteboard restyling begins.
+- High-risk assessment, data, Auth, report, timeline, whiteboard, Rules, and deployment surfaces are protected by interface and regression evidence, not by permanent agent exclusion. A CSS or markup-only change can still require behavioral regression testing.
+- The canonical Hero source remains unresolved between formal `index.html` and `mockups/home-attractor.html`. Preserve both sources and do not merge, rewrite, or declare either one canonical until the user decides.
+- If this proposed collaboration contract conflicts with a current approved requirement or an identity-based responsibility statement in an older document, stop only the conflicting write scope, quote both sources, and return the decision to the user.
+- The current merge workflow deploys live Hosting on every push to `main`. Therefore merging an approved PR is the production-release action: user release approval must be recorded before merge, and there is no post-merge/pre-live approval checkpoint.
+- Keep recommendations, inferences, pending decisions, implemented state, and verified state explicitly separated. A mockup, Demo, route, or commented plan is not evidence that a feature is released.
+
 ## Tech stack
 
 Cloud-native, serverless, **no build step**. Everything runs on Google Cloud Platform via Firebase.

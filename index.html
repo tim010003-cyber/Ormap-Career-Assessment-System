@@ -52,7 +52,7 @@ tailwind.config = { theme: { extend: {
       <a href="#idea" class="hidden sm:inline hover:text-teal">理念</a>
       <a href="#method" class="hidden sm:inline hover:text-teal">建構方法</a>
       <a href="#tools" class="hidden md:inline hover:text-teal">探索工具</a>
-      <button id="googleLoginBtn" class="rounded-full bg-ink text-white px-5 py-2.5 hover:bg-teal transition-colors">使用 Google 登入</button>
+      <button id="googleLoginBtn" type="button" aria-live="polite" class="rounded-full bg-ink text-white px-5 py-2.5 hover:bg-teal transition-colors">使用 Google 登入</button>
     </nav>
   </div>
 </header>
@@ -304,32 +304,39 @@ tailwind.config = { theme: { extend: {
 <script>lucide.createIcons();</script>
 <script type="module">
 // ── Phase 9:Firebase 初始化由共用模組提供(勿複製初始化邏輯) ──
-// 登入與 redirect 行為與改版前完全一致:
-// 1. 已登入(或登入完成)→ onAuthStateChanged → 導向 dashboard.html
-// 2. 點擊登入 → signInWithPopup;失敗還原按鈕並提示
+// Index 永久維持公開：被動偵測到登入狀態時只更新入口，不自動轉址。
+// 使用者主動點擊登入或「進入我的空間」時，才前往 dashboard.html。
 import { auth } from './firebase-init.js';
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 const provider = new GoogleAuthProvider();
 const loginBtn = document.getElementById('googleLoginBtn');
 const loginBtnLabel = loginBtn.textContent;
+let currentUser = null;
 
 onAuthStateChanged(auth, (user) => {
-  if (user) {
-    window.location.href = 'dashboard.html';
-  }
+  currentUser = user;
+  loginBtn.disabled = false;
+  loginBtn.textContent = user ? '進入我的空間' : loginBtnLabel;
+  loginBtn.setAttribute('aria-label', user ? '進入我的個人空間' : '使用 Google 帳號登入');
 });
 
 loginBtn.addEventListener('click', async () => {
+  if (currentUser) {
+    window.location.assign('dashboard.html');
+    return;
+  }
+
   loginBtn.disabled = true;
   loginBtn.textContent = '身分驗證中…';
   try {
-    await signInWithPopup(auth, provider);
+    const credential = await signInWithPopup(auth, provider);
+    if (credential.user) window.location.assign('dashboard.html');
   } catch (error) {
     console.error("Login failed:", error);
     alert("登入失敗，請稍後再試。");
     loginBtn.disabled = false;
-    loginBtn.textContent = loginBtnLabel;
+    loginBtn.textContent = currentUser ? '進入我的空間' : loginBtnLabel;
   }
 });
 </script>

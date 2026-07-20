@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>原味藍圖｜原味吸引子</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@1.8.0"></script>
+<script>
+tailwind.config = { theme: { extend: {
+  colors: { paper:'#FBF8F2', ink:'#142033', teal:'#1E9188', clay:'#E88A55', mist:'#DCECEF', sand:'#EFE6D5' },
+  fontFamily: { sans:['"Noto Sans TC"','sans-serif'], serif:['"Noto Serif TC"','serif'] }
+}}}
+</script>
+<style>
+  html { scroll-behavior:smooth; }
+  body { background:#FBF8F2; color:#142033; }
+  body::before { content:""; position:fixed; inset:0; pointer-events:none; z-index:60; opacity:.025; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  a:focus-visible { outline:3px solid #1E9188; outline-offset:4px; border-radius:4px; }
+  .serif { font-family:"Noto Serif TC",serif; }
+  .trajectory { stroke-dasharray:980; stroke-dashoffset:980; animation:trace 3s cubic-bezier(.3,.1,.2,1) forwards; }
+  .t2 { animation-delay:.25s; } .t3 { animation-delay:.5s; } .t4 { animation-delay:.75s; }
+  .echo { opacity:0; animation:appear 1.2s ease 1.2s forwards; }
+  @keyframes trace { to { stroke-dashoffset:0; } }
+  @keyframes appear { to { opacity:1; } }
+  .tool-row { transition:background .2s ease,padding .2s ease; }
+  .tool-row:hover { background:rgba(220,236,239,.38); padding-inline:1rem; }
+  .field-ring { border:1px solid rgba(20,32,51,.10); border-radius:50%; }
+  @media (prefers-reduced-motion:reduce) {
+    html { scroll-behavior:auto; }
+    *,*::before,*::after { animation:none!important; transition:none!important; }
+    .trajectory { stroke-dashoffset:0; } .echo { opacity:1; }
+  }
+  @media (max-width:767px) {
+    .attractor-art { margin-inline:-1.5rem; }
+    main > section:first-child h1 { font-size:2rem; line-height:1.45; }
+    .tool-row:hover { padding-inline:0; }
+  }
+</style>
+</head>
+<body class="font-sans antialiased overflow-x-hidden">
+
+<div class="bg-ink text-white/85 text-[11px] text-center py-2 tracking-[.08em]">概念版本 01・原味吸引子</div>
+
+<header class="sticky top-0 z-40 bg-paper/90 backdrop-blur-md border-b border-ink/10">
+  <div class="max-w-[1360px] mx-auto px-6 lg:px-12 h-16 flex items-center justify-between">
+    <a href="#top" class="flex items-center gap-2.5" aria-label="回到原味藍圖首頁頂端">
+      <img src="../ormap-logo.png" alt="" class="h-8 w-8">
+      <span class="font-bold tracking-tight text-lg">原味藍圖</span>
+    </a>
+    <nav class="flex items-center gap-6 text-sm text-ink/65">
+      <a href="#idea" class="hidden sm:inline hover:text-teal">理念</a>
+      <a href="#method" class="hidden sm:inline hover:text-teal">建構方法</a>
+      <a href="#tools" class="hidden md:inline hover:text-teal">探索工具</a>
+      <a href="#tools" class="rounded-full bg-ink text-white px-5 py-2.5 hover:bg-teal">從我的問題開始</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <section class="relative overflow-hidden">
+    <div aria-hidden="true" class="field-ring absolute w-[48rem] h-[48rem] -right-[24rem] -top-[26rem]"></div>
+    <div class="max-w-[1360px] mx-auto px-6 lg:px-12 min-h-[700px] lg:min-h-[calc(100svh-6rem)] grid lg:grid-cols-12 items-center gap-5 py-12 lg:py-16">
+      <div class="lg:col-span-6 relative z-10">
+        <div class="flex items-center gap-3 text-teal text-xs sm:text-sm tracking-[.14em] mb-6"><span class="w-9 h-px bg-teal"></span>原味藍圖｜生涯探索與人生設計</div>
+        <h1 class="serif font-black text-[2.25rem] sm:text-5xl xl:text-[3.05rem] leading-[1.42] tracking-[-.035em] mb-6 max-w-[42rem]">
+          看懂自己的原味，<br><span class="text-teal">建構想要的人生藍圖。</span>
+        </h1>
+        <p class="text-lg sm:text-xl font-bold text-ink/85 leading-[1.8] max-w-[37rem] mb-6">整合你的特質、心理需求、價值、能力與經驗，透過有方向的投入與選擇，建構能帶你前進的優勢。</p>
+        <div class="space-y-4 text-[15px] sm:text-base text-ink/62 leading-[1.85] max-w-[37rem] mb-8">
+          <p>重新理解你的自然傾向、心理需求、價值、能力與經驗，找出能夠持續發展的優勢組合；也認真分析環境中的資源、限制、機會與風險，為想過的生活設計可行的方向。</p>
+          <p>未來可以有清楚的目標與計畫，也可以保留不只一條抵達的路。當現實改變，你仍能判斷、調整，繼續往想要的人生前進。</p>
+        </div>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-7">
+          <a href="#tools" class="inline-flex justify-center items-center gap-3 rounded-full bg-ink text-white font-bold px-7 py-4 hover:bg-teal">開始建構我的藍圖 <span aria-hidden="true">→</span></a>
+          <a href="#tools" class="inline-flex justify-center items-center gap-2 text-teal font-bold hover:text-ink">選擇探索工具 <span aria-hidden="true">↓</span></a>
+        </div>
+        <p class="mt-6 text-sm tracking-[.08em] text-ink/48">有方向地規劃，也有彈性地前進。</p>
+      </div>
+
+      <div class="lg:col-span-6 attractor-art relative">
+        <svg aria-hidden="true" viewBox="0 0 720 610" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto">
+          <defs>
+            <filter id="wash" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency=".018 .055" numOctaves="2" seed="9" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="6"/></filter>
+            <linearGradient id="warm" x1="180" y1="80" x2="650" y2="480"><stop stop-color="#F1C298"/><stop offset="1" stop-color="#E88A55" stop-opacity=".42"/></linearGradient>
+            <linearGradient id="cool" x1="90" y1="260" x2="680" y2="590"><stop stop-color="#B7D0D4"/><stop offset="1" stop-color="#537C89"/></linearGradient>
+          </defs>
+
+          <!-- 現實地景 -->
+          <path d="M30 284 C118 206 218 137 314 170 C390 196 424 254 520 232 C592 216 648 156 720 126 L720 410 L42 410 Z" fill="#DCECEF" opacity=".72" filter="url(#wash)"/>
+          <path d="M265 309 C352 230 425 139 526 166 C607 187 661 127 720 88 L720 415 L292 415 Z" fill="url(#warm)" opacity=".8" filter="url(#wash)"/>
+          <path d="M92 451 C206 358 327 330 418 368 C504 404 590 315 720 288 L720 610 L28 610 Z" fill="url(#cool)" opacity=".8" filter="url(#wash)"/>
+          <path d="M0 553 C111 481 212 462 312 512 C400 556 480 545 570 493 C632 457 681 458 720 472 L720 610 L0 610 Z" fill="#142033" opacity=".88" filter="url(#wash)"/>
+
+          <!-- 吸引場：不是物件，而是反覆形成的軌跡密度 -->
+          <g stroke="#142033" stroke-opacity=".11" stroke-width="1.2" class="echo">
+            <path d="M104 446 C66 345 144 254 247 276 C354 299 337 420 253 430 C164 442 131 354 193 314 C260 270 362 320 373 404 C383 487 473 509 539 452 C611 390 586 280 493 269 C404 258 368 345 421 407 C477 473 579 421 574 344 C569 270 485 232 420 274"/>
+            <path d="M119 457 C78 350 156 270 249 292 C343 314 329 405 252 419 C177 433 147 361 201 326 C262 287 347 330 358 405 C369 480 465 490 525 439 C588 386 568 299 490 285 C416 271 385 346 429 396 C475 448 556 413 558 350"/>
+            <path d="M135 468 C96 370 164 287 251 305 C331 322 316 394 252 407 C190 420 164 367 209 337 C259 304 332 338 343 404 C354 465 454 476 512 426 C565 380 545 314 486 302 C426 290 400 350 438 389"/>
+          </g>
+
+          <!-- 接近卻不完全重複的學習軌跡 -->
+          <path class="trajectory" d="M85 511 C126 463 104 398 133 348 C167 289 254 282 298 327 C343 374 306 431 252 429 C195 427 174 374 210 338 C251 297 331 322 350 390 C372 471 449 504 520 462 C599 415 597 315 527 280 C459 246 395 300 408 369 C421 439 508 459 556 408" stroke="#FBF8F2" stroke-width="8" stroke-linecap="round"/>
+          <path class="trajectory t2" d="M61 477 C105 446 100 383 141 340 C185 294 259 302 289 346 C320 392 283 420 247 410 C205 399 204 357 232 334 C270 303 329 339 336 396 C346 472 431 486 495 447 C559 407 572 334 527 302 C479 268 421 308 429 364 C438 419 496 435 536 402" stroke="#1E9188" stroke-width="4" stroke-linecap="round" stroke-opacity=".9"/>
+          <path class="trajectory t3" d="M119 537 C151 479 135 424 164 376 C194 327 257 323 283 360 C306 392 279 410 252 399 C225 388 226 360 246 345 C277 322 320 354 321 402 C323 455 394 466 445 438 C497 410 519 361 490 331 C461 301 423 331 439 370" stroke="#E88A55" stroke-width="3" stroke-linecap="round" stroke-dasharray="4 10"/>
+          <path class="trajectory t4" d="M31 546 C83 499 127 493 170 506 C219 521 252 493 271 458 C297 412 333 414 359 452 C390 499 449 522 502 493 C558 462 611 462 684 503" stroke="#79B8B0" stroke-width="4" stroke-linecap="round" stroke-dasharray="15 12"/>
+
+          <!-- 擾動、覺察與回饋 -->
+          <g class="echo"><circle cx="350" cy="390" r="6" fill="#FBF8F2" stroke="#E88A55" stroke-width="3"/><circle cx="408" cy="369" r="6" fill="#FBF8F2" stroke="#1E9188" stroke-width="3"/><circle cx="520" cy="462" r="5" fill="#79B8B0"/><path d="M575 252 q9 -9 18 0 q9 -9 18 0" stroke="#142033" stroke-opacity=".5" stroke-width="2" stroke-linecap="round"/><circle cx="608" cy="245" r="18" stroke="#E88A55" stroke-opacity=".35"/><circle cx="608" cy="245" r="4" fill="#E88A55"/><path d="M536 402 C566 354 583 302 602 257" stroke="#1E9188" stroke-opacity=".34" stroke-width="2" stroke-dasharray="7 9"/><path d="M556 408 C602 372 624 316 614 262" stroke="#FBF8F2" stroke-opacity=".45" stroke-width="2" stroke-dasharray="3 9"/></g>
+        </svg>
+        <p class="absolute right-5 bottom-2 text-[10px] tracking-[.16em] text-white/70">方向與目標可以清楚・抵達的路不只一條</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="idea" class="border-y border-ink/10 bg-mist/25">
+    <div class="max-w-5xl mx-auto px-6 py-20 lg:py-24 grid lg:grid-cols-12 gap-12">
+      <div class="lg:col-span-7">
+        <p class="text-xs tracking-[.18em] text-teal font-bold mb-5">原味不是一個固定答案</p>
+        <h2 class="serif text-3xl sm:text-4xl font-black leading-snug mb-7">它是一股會學習、<br>也會演化的內在吸引力</h2>
+        <p class="text-ink/65 text-lg leading-[2]">每一次覺察，讓你更能辨認什麼反覆牽引自己；每一次嘗試，帶回新的真實資料；每一次調整，讓你在變動裡仍保有可辨認的自己。</p>
+      </div>
+      <div class="lg:col-span-5 lg:border-l lg:border-ink/10 lg:pl-10 space-y-8">
+        <div><p class="font-bold text-teal mb-2">不是固定本質</p><p class="text-sm text-ink/60 leading-relaxed">原味會在新的角色、關係與環境中持續長出新的表達方式。</p></div>
+        <div><p class="font-bold text-teal mb-2">有目標，也保留彈性</p><p class="text-sm text-ink/60 leading-relaxed">藍圖建立清楚目標與策略，也為不同途徑、節奏與環境變化保留調整空間。</p></div>
+        <div><p class="font-bold text-teal mb-2">不是什麼都可以</p><p class="text-sm text-ink/60 leading-relaxed">仍需要研究現實、辨認代價，並為選擇與行動承擔責任。</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="method" class="py-20 lg:py-28 relative overflow-hidden">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="max-w-xl mb-14">
+        <p class="text-xs tracking-[.18em] text-teal font-bold mb-5">一個會學習的循環</p>
+        <h2 class="serif text-3xl sm:text-4xl font-black mb-5">不是四個完成後就結束的步驟</h2>
+        <p class="text-ink/60 leading-relaxed">理解、研究、設計與行動會彼此回饋。每繞一圈，你都可能看見新的自己與新的現實。</p>
+      </div>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-10 relative">
+        <div aria-hidden="true" class="hidden lg:block absolute top-6 left-[8%] right-[8%] h-24 border-t border-r border-b border-teal/30 rounded-[50%]"></div>
+        <article class="relative"><span class="relative z-10 w-12 h-12 rounded-full bg-teal text-white flex items-center justify-center mb-5"><i data-lucide="fingerprint" class="w-5 h-5" aria-hidden="true"></i></span><p class="text-xs tracking-[.18em] text-teal font-bold mb-2">原味</p><h3 class="text-xl font-bold mb-3">辨認反覆牽引你的力量</h3><p class="text-sm text-ink/55 leading-relaxed">理解特質、需求、價值、喜惡、天賦與既有優勢。</p></article>
+        <article class="relative"><span class="relative z-10 w-12 h-12 rounded-full bg-mist text-ink flex items-center justify-center mb-5"><i data-lucide="scan-search" class="w-5 h-5" aria-hidden="true"></i></span><p class="text-xs tracking-[.18em] text-teal font-bold mb-2">清醒</p><h3 class="text-xl font-bold mb-3">閱讀你所在的現實場域</h3><p class="text-sm text-ink/55 leading-relaxed">研究環境的機會、限制、資源、代價與仍待確認的資訊。</p></article>
+        <article class="relative"><span class="relative z-10 w-12 h-12 rounded-full bg-ink text-white flex items-center justify-center mb-5"><i data-lucide="map" class="w-5 h-5" aria-hidden="true"></i></span><p class="text-xs tracking-[.18em] text-ink/60 font-bold mb-2">藍圖</p><h3 class="text-xl font-bold mb-3">形成暫時可行的設計</h3><p class="text-sm text-ink/55 leading-relaxed">不是預測終點，而是增加成功條件、降低可降低的風險。</p></article>
+        <article class="relative"><span class="relative z-10 w-12 h-12 rounded-full bg-clay text-ink flex items-center justify-center mb-5"><i data-lucide="footprints" class="w-5 h-5" aria-hidden="true"></i></span><p class="text-xs tracking-[.18em] text-clay font-bold mb-2">勇敢</p><h3 class="text-xl font-bold mb-3">行動，讓系統獲得回饋</h3><p class="text-sm text-ink/55 leading-relaxed">用承擔得起的嘗試學習，再把真實回饋帶回下一圈。</p></article>
+      </div>
+      <p class="serif text-xl sm:text-2xl text-center mt-20">清醒讓勇敢不盲目；勇敢讓清醒不只停在理解。</p>
+    </div>
+  </section>
+
+  <section id="tools" class="py-20 lg:py-24 bg-sand/45 border-y border-ink/10">
+    <div class="max-w-5xl mx-auto px-6">
+      <div class="max-w-2xl mb-12"><p class="text-xs tracking-[.18em] text-teal font-bold mb-5">從一個還沒說清楚的問題開始</p><h2 class="serif text-3xl sm:text-4xl font-black mb-5">每項工具，都是觀看自己的不同角度</h2><p class="text-ink/60 leading-relaxed">不必依照固定順序完成。從現在最需要理解的地方進入，再決定下一個值得探索的問題。</p></div>
+
+      <div class="border-t border-ink/15">
+        <a href="../tools/twa.html" class="tool-row grid md:grid-cols-12 gap-3 md:gap-7 py-7 border-b border-ink/15 items-center">
+          <div class="md:col-span-4"><p class="text-xs text-teal mb-2">已上線・免費</p><h3 class="text-xl font-black">工作價值羅盤</h3></div><p class="md:col-span-6 text-sm text-ink/60 leading-relaxed">我需要什麼樣的工作環境，才能讓重要需求獲得支持？</p><span class="md:col-span-2 md:text-right font-bold">開始使用 →</span>
+        </a>
+        <a href="../tools/hti.html" class="tool-row grid md:grid-cols-12 gap-3 md:gap-7 py-7 border-b border-ink/15 items-center">
+          <div class="md:col-span-4"><p class="text-xs text-teal mb-2">已上線・免費</p><h3 class="text-xl font-black">何倫興趣與行動風格</h3></div><p class="md:col-span-6 text-sm text-ink/60 leading-relaxed">我容易被什麼吸引，又習慣如何投入與恢復能量？</p><span class="md:col-span-2 md:text-right font-bold">開始使用 →</span>
+        </a>
+        <div class="grid md:grid-cols-12 gap-3 md:gap-7 py-6 border-b border-ink/10 items-center opacity-65"><div class="md:col-span-4"><p class="text-xs mb-2">開發中</p><h3 class="text-lg font-bold">人生角色地圖</h3></div><p class="md:col-span-8 text-sm leading-relaxed">工作如何放回完整的人生角色與生活配置？</p></div>
+        <div class="grid md:grid-cols-12 gap-3 md:gap-7 py-6 border-b border-ink/10 items-center opacity-55"><div class="md:col-span-4"><p class="text-xs mb-2">規劃中</p><h3 class="text-lg font-bold">履歷定位診斷</h3></div><p class="md:col-span-8 text-sm leading-relaxed">哪些經驗、能力與方向仍沒有被說清楚？</p></div>
+        <div class="grid md:grid-cols-12 gap-3 md:gap-7 py-6 border-b border-ink/10 items-center opacity-55"><div class="md:col-span-4"><p class="text-xs mb-2">規劃中</p><h3 class="text-lg font-bold">職缺分析系統</h3></div><p class="md:col-span-8 text-sm leading-relaxed">眼前的工作機會提供了什麼資訊，還需要確認什麼？</p></div>
+      </div>
+
+      <div class="mt-20 bg-ink text-white px-7 py-9 sm:p-10 grid md:grid-cols-12 gap-8 items-center">
+        <div class="md:col-span-8"><p class="text-xs tracking-[.16em] text-clay mb-3">當你開始影響他人</p><h3 class="serif text-2xl sm:text-3xl font-black mb-4">職務設計系統</h3><p class="text-white/65 leading-relaxed">把對人的理解轉成更合理的工作、人才標準與甄選流程；給主管、HR 與企業主。</p></div><div class="md:col-span-4 md:text-right"><span class="inline-block text-xs rounded-full bg-clay/20 text-clay px-4 py-2">課程／顧問配套</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-24 lg:py-28 bg-ink text-white">
+    <div class="max-w-3xl mx-auto px-6 text-center">
+      <p class="text-xs tracking-[.2em] text-clay mb-6">先清醒，再勇敢</p>
+      <h2 class="serif text-3xl sm:text-4xl font-black leading-snug mb-7">你說不準是否會成功，<br>但也說不準不會成功。</h2>
+      <p class="text-white/65 leading-[2] mb-10">藍圖把理解轉成目標、策略與行動；在持續投入、分析與調整中，提高想要結果發生的條件，建構想要的人生。</p>
+      <a href="#tools" class="inline-flex items-center gap-3 rounded-full bg-clay text-ink font-bold px-8 py-4 hover:bg-paper">從我的問題開始 <span aria-hidden="true">→</span></a>
+    </div>
+  </section>
+</main>
+
+<footer class="bg-ink border-t border-white/10 text-white/45 py-9">
+  <div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between gap-4 text-sm"><p>© 2026 原味藍圖 Ormap</p><p>概念設計稿・尚未移植至正式網站</p></div>
+</footer>
+<script>lucide.createIcons();</script>
+</body>
+</html>

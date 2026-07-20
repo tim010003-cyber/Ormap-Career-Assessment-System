@@ -130,7 +130,7 @@
 | 低 | A8/A10/A11/A13/A14/A15 | DOM 重複、unsubscribe、dead code、firebase.json ignore 漏檔等 |
 | 文件化即可 | A16/A18 | TWA/HTI 資料形狀差異、白板標注本機性質 |
 
-**流程債**:OneDrive 工作目錄風險(中長期)、SYNC_GUIDE「一次性事項」陷阱(xlsx 落後手改 JSON,下次 sync 會蓋回)、PRD v3.7 docx 已由 v3.8/v4.0 接替(docx 封存不再維護)。
+**流程債**:~~OneDrive 工作目錄風險(中長期)~~(✅ 2026-07-18 已遷至 `C:\Projects\Ormap-Career-Assessment-System`,確認在 OneDrive 同步範圍外)、SYNC_GUIDE「一次性事項」陷阱(xlsx 落後手改 JSON,下次 sync 會蓋回)、PRD v3.7 docx 已由 v3.8/v4.0 接替(docx 封存不再維護)。
 
 ---
 

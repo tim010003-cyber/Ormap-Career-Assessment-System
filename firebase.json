@@ -11,7 +11,9 @@
       "sync_*.py",
       "PRD/**",
       "**/*.md",
-      "**/*.xlsx"
+      "**/*.xlsx",
+      "mockups/**",
+      "tools/job-design/**"
     ]
   },
   "firestore": {

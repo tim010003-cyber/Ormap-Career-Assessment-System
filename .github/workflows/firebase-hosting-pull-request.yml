@@ -1,0 +1,48 @@
+# 開 PR 時自動部署到 Firebase Hosting 的「預覽頻道」（preview channel），不影響正式站。
+#
+# 為什麼要有這支：
+#   firebase-hosting-merge.yml 是「push 到 main 就直接上 live」。
+#   在只有那支的情況下，任何 merge 都等同上線，沒有任何人工檢查點。
+#   有了本檔，流程變成：開分支 → 開 PR → 自動產生預覽網址 → 審核 → merge → 才上線。
+#
+# 產生的預覽網址會由 action 自動貼在 PR 的留言區，7 天後自動過期。
+# 使用與 merge 工作流程相同的 secret：FIREBASE_SERVICE_ACCOUNT_CAREERVALUE_ORMAP
+#
+# 注意：預覽頻道與正式站共用同一份 firebase.json，因此 ignore 清單（含 mockups/**、
+#      tools/job-design/**）在預覽站同樣生效。若需要預覽被排除的頁面，請在本機以
+#      `firebase serve` 或 `npx serve .` 檢視。
+#
+# 建立日期：2026-07-20（跨代理協作前置工作①）
+name: Deploy preview to Firebase Hosting on PR
+
+on:
+  pull_request:
+    branches:
+      - main
+
+# 同一個 PR 連續推送時，取消前一次還在跑的部署，只保留最新版本
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  checks: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  build_and_preview:
+    # 來自 fork 的 PR 拿不到 repo secrets，直接跳過以免整條 workflow 紅燈。
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 純靜態站，無 build 步驟（與 merge 工作流程保持一致）。
+      - name: Deploy to Firebase Hosting (preview channel)
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CAREERVALUE_ORMAP }}
+          projectId: careervalue-ormap
+          expires: 7d

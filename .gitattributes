@@ -1,3 +1,9 @@
 # Auto detect text files and perform LF normalization
 * text=auto eol=lf
-*.html binary
+
+# HTML 以「文字」處理，讓 git 能產生行級 diff。
+# 這裡曾經是 `*.html binary`，代價是每一次頁面改動都看不到差異，只能整檔重讀
+# （index.html 27KB、report.html 92KB），跨代理協作時無法審查「到底動了哪裡」。
+# 改回 text 後，diff 會變長但可讀；審查品質優先於 diff 長度。
+# 2026-07-20（跨代理協作前置工作②）
+*.html text eol=lf diff

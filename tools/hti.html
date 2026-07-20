@@ -655,14 +655,36 @@
         const _mirrorSid    = _isMirrorMode ? new URLSearchParams(window.location.search).get('sid') : null;
         const _loadId       = new URLSearchParams(window.location.search).get('loadId');
         window._wbActiveId  = null;
-        if (_isWbMode || _isMirrorMode) localStorage.removeItem('hti_progress_v4');
+
+        // ⭐ SEC-007：草稿必須綁定使用者。
+        //   舊版用固定 key 'hti_progress_v4'，共用裝置上後登入者會被提示還原
+        //   前一位使用者的作答；若接受並存檔，該作答會以「後登入者」的 uid 與
+        //   email 寫入 assessments，造成資料錯誤歸戶。
+        //   改為 key 綁 uid。因 uid 要到 onAuthStateChanged 才確定，草稿的
+        //   讀取與還原提示一併延後到登入之後（見 maybeOfferRestore）。
+        const HTI_DRAFT_PREFIX = 'hti_progress_v4::';
+        const HTI_LEGACY_KEY   = 'hti_progress_v4';
+        window._htiUid = null;
+        function htiDraftKey() {
+            return window._htiUid ? HTI_DRAFT_PREFIX + window._htiUid : null;
+        }
+        function clearHtiDraft() {
+            const k = htiDraftKey();
+            if (k) localStorage.removeItem(k);
+        }
+        // 未綁定 uid 的舊草稿無法確認歸屬，一律清除（不沿用，以免正是要修的外洩情境）。
+        localStorage.removeItem(HTI_LEGACY_KEY);
+
+        if (_isWbMode || _isMirrorMode) clearHtiDraft();
         // ⭐ Phase 8 / S2：以此重測模式 — 清掉舊草稿，用 banner 顯示前次分數作為參考
         // HTI 結構（state.selectedIds + state.userMotives）無法從最終分數反推，故重做但顯示參考
-        if (_loadId) localStorage.removeItem('hti_progress_v4');
+        if (_loadId) clearHtiDraft();
 
         function saveProgress() {
             if (_isMirrorMode) return; // 鏡像模式：只讀，不存進度
-            localStorage.setItem('hti_progress_v4', JSON.stringify(state));
+            const k = htiDraftKey();
+            if (!k) { window._wbDebouncedSync?.(); return; } // 尚未登入 → 不落地草稿
+            localStorage.setItem(k, JSON.stringify(state));
             const toast = document.getElementById('toast-save');
             if (toast) {
                 toast.classList.add('show');
@@ -672,19 +694,31 @@
             window._wbDebouncedSync?.(); // ⭐ 白板廣播
         }
 
+        // ⭐ SEC-007：此處不再讀取草稿——onload 時 uid 尚未確定，讀了就會跨帳號。
+        //   一律先渲染市集；還原提示改由 maybeOfferRestore() 在登入後決定。
         function restoreProgress() {
-            if (_isWbMode || _isMirrorMode) { renderMarket(); return; } // WB/鏡像：不恢復舊進度
-            const saved = localStorage.getItem('hti_progress_v4');
-            if (saved) {
+            renderMarket();
+        }
+
+        /** 登入後才呼叫：確認 uid 後才讀取並提示還原該使用者自己的草稿。 */
+        window.maybeOfferRestore = function(uid) {
+            window._htiUid = uid || null;
+            if (_isWbMode || _isMirrorMode || _loadId) return; // 這三種模式本就不還原
+            const k = htiDraftKey();
+            if (!k) return;
+            try {
+                const saved = localStorage.getItem(k);
+                if (!saved) return;
                 const parsed = JSON.parse(saved);
                 if (parsed.selectedIds && parsed.selectedIds.length > 0) {
                     window.tempSavedState = parsed;
                     document.getElementById('restore-modal').classList.remove('hidden-stage');
-                    return;
                 }
+            } catch (e) {
+                console.warn('[HTI] 草稿解析失敗，已忽略:', e);
+                clearHtiDraft();
             }
-            renderMarket();
-        }
+        };
 
         function confirmRestore(isContinue) {
             document.getElementById('restore-modal').classList.add('hidden-stage');
@@ -699,7 +733,7 @@
                     renderMarket();
                 }
             } else {
-                localStorage.removeItem('hti_progress_v4');
+                clearHtiDraft();
                 state = { stage: 1, selectedIds: [], userMotives: {} };
                 renderMarket();
             }
@@ -707,7 +741,7 @@
 
         function clearSaveAndRestart() {
             if(confirm("確定要清除所有紀錄並重新開始嗎？")) {
-                localStorage.removeItem('hti_progress_v4');
+                clearHtiDraft();
                 location.reload();
             }
         }
@@ -1182,6 +1216,10 @@
                 window.currentUserEmail = user.email || "未提供信箱";
                 window.currentUserName = user.displayName || "Ormap 探索者";
 
+                // ⭐ SEC-007：uid 確定後才讀取／提示還原「本人」的草稿。
+                //   restoreProgress()（onload）已先渲染市集，此處只負責疊上還原提示。
+                window.maybeOfferRestore?.(user.uid);
+
                 const avatar = document.getElementById('nav-user-avatar');
                 const avatarLanding = document.getElementById('nav-user-avatar-landing');
                 if (avatar) { avatar.src = user.photoURL || ''; avatar.classList.remove('hidden'); }
@@ -1348,7 +1386,7 @@
 
                     // 提示成功，並清除暫存紀錄
                     alert("✨ 恭喜！測驗已完成，您的專屬特質報告已成功儲存至個人儀表板！");
-                    localStorage.removeItem('hti_progress_v4');
+                    clearHtiDraft();
 
                     // ⭐ 白板模式完課：清除 whiteboard_active，讓 Dashboard 橫幅消失
                     try { await deleteDoc(doc(db, 'whiteboard_active', userUid)); } catch(e) {}

@@ -18,42 +18,20 @@ html,body{ height:100%; overflow:hidden; }
 @keyframes dp{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
 
 #mirror-scroll{ position:absolute;inset:0;overflow-y:auto;z-index:1;background:#f8fafc; }
-#anno-canvas{ position:absolute;inset:0;z-index:10;pointer-events:none; }
-#anno-canvas.draw{ pointer-events:auto; }
 
-.m-section{ padding:14px 18px;border-bottom:1px solid #e2e8f0; }
-.m-cat-header{ font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;margin-bottom:8px;display:flex;align-items:center;gap:6px; }
-.m-need-row{ display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:8px 10px;background:white;border-radius:10px;border:1px solid #e2e8f0;transition:border-color .2s; }
-.m-need-row.top{ border-color:#b2dfdb;background:#f0fdf4; }
-.m-need-name{ font-size:12px;font-weight:700;color:#334155;width:68px;flex-shrink:0;line-height:1.3; }
-.m-bars{ flex:1;display:flex;flex-direction:column;gap:3px; }
-.m-bar-row{ display:flex;align-items:center;gap:5px; }
-.m-bar-label{ font-size:9px;font-weight:900;width:12px; }
-.m-bar-track{ flex:1;height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden; }
-.m-bar-ideal{ height:100%;background:#0d9488;border-radius:3px;transition:width .5s ease; }
-.m-bar-curr{ height:100%;background:#94a3b8;border-radius:3px;transition:width .5s ease; }
-.m-bar-val{ font-size:10px;font-weight:900;width:12px;text-align:right; }
-.m-delta{ font-size:10px;font-weight:900;width:22px;text-align:right; }
-
+/* 2026-07-20 移除：畫布標注系統（#anno-canvas、.c-dot、.w-btn、.tool-sep、.sticky-*）
+   與舊版側欄鏡像樣式（.m-* 全系列）。前者從未有任何 UI 可觸發（currentTool 恆為
+   'pointer'，onDown 立即 return），後者的 renderTWA/renderHTI 早已移除。
+   保留 .tool-btn — 仍用於 nav 的面板收合按鈕。 */
 .tool-btn{ width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;color:#64748b;border:none;background:transparent; }
 .tool-btn:hover{ background:#f1f5f9;color:#0d9488; }
 .tool-btn.active{ background:#0d9488;color:white; }
-.c-dot{ width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s; }
-.c-dot:hover{ transform:scale(1.2); }.c-dot.active{ border-color:#0f172a;transform:scale(1.1); }
-.w-btn{ width:28px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;border:none;background:transparent; }
-.w-btn:hover{ background:#f1f5f9; }.w-btn.active{ background:#e0f2f1; }
-.tool-sep{ width:28px;height:1px;background:#e2e8f0;margin:2px auto; }
 
 .side-panel{ width:240px;min-width:240px;background:white;border-left:1px solid #e2e8f0;display:flex;flex-direction:column;overflow:hidden;transition:width .2s,min-width .2s; }
 .side-panel.collapsed{ width:0!important;min-width:0!important; }
 .panel-tab{ padding:10px 12px;font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;color:#94a3b8;white-space:nowrap; }
 .panel-tab.active{ color:#0d9488;border-bottom-color:#0d9488; }
 .s-badge{ display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700; }
-
-.sticky-el{ position:absolute;width:156px;min-height:92px;border-radius:12px;padding:9px;cursor:move;box-shadow:2px 4px 14px rgba(0,0,0,.12);z-index:20;user-select:none; }
-.sticky-el textarea{ background:transparent;border:none;outline:none;width:100%;min-height:60px;resize:none;font-family:'Noto Sans TC',sans-serif;font-size:12px;line-height:1.6;color:#1e293b;cursor:text; }
-.sticky-del{ position:absolute;top:4px;right:5px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .2s;font-size:9px;color:#334155;font-weight:900; }
-.sticky-el:hover .sticky-del{ opacity:1; }
 
 .wb-toast{ position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0f172a;color:white;font-size:13px;font-weight:700;padding:9px 18px;border-radius:20px;box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:9999;transition:opacity .3s;white-space:nowrap; }
 
@@ -177,7 +155,6 @@ html,body{ height:100%; overflow:hidden; }
         allow="same-origin">
       </iframe>
 
-      <canvas id="anno-canvas"></canvas>
       </div><!-- inner relative wrapper -->
     </div>
 
@@ -242,10 +219,8 @@ const provider = new GoogleAuthProvider();
 
 let currentUser=null, userRole=null, sessionId=new URLSearchParams(location.search).get('session'), sessionData=null;
 let twaMatrix=null, htiActivities=null;
-let currentTool='pointer', currentColor='#ef4444', currentWidth=2;
-let isDrawing=false, drawPts=[], localStrokes=[];
 let selectedTool='TWA', panelOpen=true;
-let annoCanvas, actx, unsubs=[];
+let unsubs=[];
 
 onAuthStateChanged(auth, async user => {
   // 學員未登入 + 有 session → 顯示學員歡迎登入頁，不跳去 index
@@ -336,7 +311,7 @@ async function initSession(){
     }
     hideLoading();
     document.getElementById('wb-app').classList.remove('hidden');
-    initCanvas(); setupUI(); subSession();
+    setupUI(); subSession();
     // ⭐ Fix: 移除 subAssessment() — 舊架構遺留，已由 iframe mirror 模式取代
     if(!location.search.includes('session=')) history.replaceState({},'',`${location.pathname}?session=${sessionId}`);
     lucide.createIcons();
@@ -363,70 +338,8 @@ function showStuInfo(){
   document.getElementById('stu-email').textContent=sessionData.studentEmail||'';
 }
 
-function initCanvas(){
-  annoCanvas=document.getElementById('anno-canvas'); actx=annoCanvas.getContext('2d');
-  resizeCanvas(); window.addEventListener('resize',resizeCanvas);
-  annoCanvas.addEventListener('mousedown',onDown); annoCanvas.addEventListener('mousemove',onMove);
-  annoCanvas.addEventListener('mouseup',onUp); annoCanvas.addEventListener('mouseleave',onUp);
-  annoCanvas.addEventListener('touchstart',e=>{e.preventDefault();onDown(e.touches[0]);},{passive:false});
-  annoCanvas.addEventListener('touchmove',e=>{e.preventDefault();onMove(e.touches[0]);},{passive:false});
-  annoCanvas.addEventListener('touchend',e=>{e.preventDefault();onUp(e.changedTouches[0]);},{passive:false});
-  annoCanvas.addEventListener('click',onClick);
-}
-function resizeCanvas(){ if(!annoCanvas)return; const p=annoCanvas.parentElement; annoCanvas.width=p.offsetWidth; annoCanvas.height=p.offsetHeight; redraw(); }
-function getXY(e){ const r=annoCanvas.getBoundingClientRect(); return{x:(e.clientX-r.left)*(annoCanvas.width/r.width),y:(e.clientY-r.top)*(annoCanvas.height/r.height)}; }
-
-window.setTool=function(t){
-  currentTool=t;
-  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById(`tool-${t}`)?.classList.add('active');
-  const d=['pen','highlight','eraser'].includes(t);
-  annoCanvas.classList.toggle('draw',d);
-  annoCanvas.style.cursor=d?(t==='eraser'?'cell':'crosshair'):'default';
-};
-window.setColor=function(c){ currentColor=c; document.querySelectorAll('.c-dot').forEach(b=>b.classList.remove('active')); document.getElementById(`cd-${c.replace('#','')}`)?.classList.add('active'); };
-window.setWidth=function(w){ currentWidth=w; document.querySelectorAll('.w-btn').forEach(b=>b.classList.remove('active')); document.getElementById(`w-${w}`)?.classList.add('active'); };
 window.togglePanel=function(){ panelOpen=!panelOpen; document.getElementById('side-panel').classList.toggle('collapsed',!panelOpen); };
 window.switchTab=function(t){ ['info','notes'].forEach(x=>{ document.getElementById(`tab-${x}`).classList.toggle('active',x===t); document.getElementById(`panel-${x}`).classList.toggle('hidden',x!==t); }); };
-
-function onDown(e){ if(!['pen','highlight','eraser'].includes(currentTool))return; const p=getXY(e); isDrawing=true; drawPts=[p]; }
-function onMove(e){
-  if(!isDrawing)return; const p=getXY(e); drawPts.push(p);
-  if(currentTool==='eraser'){ actx.save(); actx.globalCompositeOperation='destination-out'; actx.beginPath(); actx.arc(p.x,p.y,currentWidth*7,0,Math.PI*2); actx.fill(); actx.restore(); return; }
-  redraw(); renderPath(actx,drawPts,sColor(),sWidth(),currentTool==='highlight');
-}
-function onUp(e){
-  if(!isDrawing)return; isDrawing=false;
-  if(drawPts.length>=2&&currentTool!=='eraser') localStrokes.push({pts:[...drawPts],color:sColor(),width:sWidth(),isHL:currentTool==='highlight'});
-  drawPts=[]; redraw();
-}
-function onClick(e){ if(currentTool==='sticky'){ const p=getXY(e); spawnSticky(p.x,p.y); } }
-function sColor(){ return currentTool==='highlight'?hexA(currentColor,.35):currentColor; }
-function sWidth(){ return currentTool==='highlight'?currentWidth*5:currentWidth; }
-
-function renderPath(ctx,pts,color,width,isHL){
-  if(!pts||pts.length<2)return;
-  ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=width; ctx.lineCap='round'; ctx.lineJoin='round';
-  if(isHL) ctx.globalAlpha=.42;
-  ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
-  for(let i=1;i<pts.length-1;i++){ const mx=(pts[i].x+pts[i+1].x)/2,my=(pts[i].y+pts[i+1].y)/2; ctx.quadraticCurveTo(pts[i].x,pts[i].y,mx,my); }
-  ctx.lineTo(pts[pts.length-1].x,pts[pts.length-1].y); ctx.stroke(); ctx.restore();
-}
-function redraw(){ if(!actx)return; actx.clearRect(0,0,annoCanvas.width,annoCanvas.height); localStrokes.forEach(s=>renderPath(actx,s.pts,s.color,s.width,s.isHL)); }
-window.clearAnno=function(){ if(!confirm('清除所有標注？'))return; localStrokes=[]; redraw(); document.querySelectorAll('.sticky-el').forEach(e=>e.remove()); toast('標注已清除'); };
-
-function spawnSticky(x,y){
-  const el=document.createElement('div'); el.className='sticky-el'; el.style.cssText=`left:${x}px;top:${y}px;background:#fef9c3;`;
-  const del=document.createElement('div'); del.className='sticky-del'; del.textContent='✕'; del.onclick=()=>el.remove();
-  const ta=document.createElement('textarea'); ta.placeholder='備註...';
-  el.appendChild(del); el.appendChild(ta);
-  let drag=false,ox=0,oy=0;
-  el.addEventListener('mousedown',ev=>{ if(ev.target===ta||ev.target===del)return; drag=true; ox=ev.clientX-el.offsetLeft; oy=ev.clientY-el.offsetTop; el.style.zIndex=25; });
-  document.addEventListener('mousemove',ev=>{ if(!drag)return; el.style.left=`${ev.clientX-ox}px`; el.style.top=`${ev.clientY-oy}px`; });
-  document.addEventListener('mouseup',()=>{ if(!drag)return; drag=false; el.style.zIndex=20; });
-  annoCanvas.parentElement.appendChild(el);
-  setTimeout(()=>ta.focus(),50);
-}
 
 function subSession(){
   const u=onSnapshot(doc(db,'whiteboard_sessions',sessionId),snap=>{
@@ -611,11 +524,18 @@ window.saveMemo = async function() {
   }
 };
 
-function hexA(hex,a){ const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return `rgba(${r},${g},${b},${a})`; }
 window.copyInvitePanel=function(){ navigator.clipboard.writeText(buildUrl()).then(()=>toast('連結已複製！')); };
 window.copyMainInvite=function(){ navigator.clipboard.writeText(buildUrl()).then(()=>toast('連結已複製！')); };
 
 function toast(msg){ const t=document.createElement('div'); t.className='wb-toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>{ t.style.opacity='0'; },2000); setTimeout(()=>t.remove(),2400); }
+
+// ⭐ SEC-006：HTML 跳脫。凡是來自 URL 參數、Firestore 或 Auth 的字串，
+//    在以樣板字串組成 innerHTML 前都必須先經過本函式。
+function escHtml(s){
+  return String(s ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
 
 // ══ 學員歡迎頁（學員打開白板連結時看到的畫面）══════════════════
 async function showStudentWelcome(sData) {
@@ -624,11 +544,20 @@ async function showStudentWelcome(sData) {
     try {
       const snap = await getDoc(doc(db, 'whiteboard_sessions', sessionId));
       if (snap.exists()) sData = snap.data();
-    } catch(e) {}
+    } catch(e) {
+      // ⭐ SEC-006：原本為空 catch，讀取失敗會靜默退回 URL 參數，
+      //    使錯誤的 session 連結看起來完全正常。至少留下軌跡。
+      console.warn('[whiteboard] 讀取 session 失敗，改用 URL 參數顯示:', e);
+    }
   }
 
-  const counselorName = sData?.counselorName || new URLSearchParams(location.search).get('c') || '您的諮詢師';
-  const tool = sData?.toolType || new URLSearchParams(location.search).get('t') || 'TWA';
+  // ⭐ SEC-006：counselorName 與 tool 可由 URL 參數 (?c= / ?t=) 完全控制，
+  //    且下方以樣板字串插入 DOM（同時進入屬性語境與文字語境）。
+  //    counselorName 一律跳脫；tool 收斂為白名單，因它還會參與 CSS 色碼組字串。
+  const rawCounselorName = sData?.counselorName || new URLSearchParams(location.search).get('c') || '您的諮詢師';
+  const counselorName = escHtml(String(rawCounselorName).slice(0, 60));
+  const rawTool = sData?.toolType || new URLSearchParams(location.search).get('t') || 'TWA';
+  const tool = rawTool === 'HTI' ? 'HTI' : 'TWA';   // 白名單，非 HTI 一律視為 TWA
   const toolName = tool === 'HTI' ? 'HTI 何倫特質解析' : 'TWA 工作價值觀評測';
   const toolColor = tool === 'HTI' ? '#f97316' : '#0d9488';
 
@@ -651,7 +580,7 @@ async function showStudentWelcome(sData) {
       <div style="background:linear-gradient(135deg,${toolColor},${tool==='HTI'?'#ea580c':'#0f766e'});padding:32px 28px;text-align:center;position:relative;overflow:hidden;">
         <div style="position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.12) 1px,transparent 1px);background-size:20px 20px;"></div>
         <div style="position:relative;">
-          <div style="width:56px;height:56px;border-radius:16px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.3);font-size:22px;font-weight:900;color:white;">${counselorName.charAt(0).toUpperCase()}</div>
+          <div style="width:56px;height:56px;border-radius:16px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.3);font-size:22px;font-weight:900;color:white;">${escHtml(String(rawCounselorName).charAt(0).toUpperCase())}</div>
           <p style="color:rgba(255,255,255,.8);font-size:12px;font-weight:700;margin-bottom:4px;">${counselorName} 邀請你</p>
           <h1 style="color:white;font-size:20px;font-weight:900;margin:0;">${toolName}</h1>
         </div>
@@ -682,10 +611,10 @@ async function showStudentWelcome(sData) {
         ${currentUser ? `
         <!-- Already logged in -->
         <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f1f5f9;border-radius:12px;margin-bottom:14px;">
-          <img src="${currentUser.photoURL||''}" style="width:32px;height:32px;border-radius:50%;border:1px solid #e2e8f0;" onerror="this.style.display='none'">
+          <img src="${escHtml(currentUser.photoURL||'')}" style="width:32px;height:32px;border-radius:50%;border:1px solid #e2e8f0;" onerror="this.style.display='none'">
           <div style="flex:1;min-width:0;">
-            <p style="font-size:12px;font-weight:700;color:#0f172a;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${currentUser.displayName||''}</p>
-            <p style="font-size:10px;color:#94a3b8;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${currentUser.email}</p>
+            <p style="font-size:12px;font-weight:700;color:#0f172a;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(currentUser.displayName||'')}</p>
+            <p style="font-size:10px;color:#94a3b8;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(currentUser.email||'')}</p>
           </div>
         </div>
         <button id="student-start-btn" onclick="studentStartAssessment()" style="width:100%;padding:14px;background:${toolColor};color:white;border:none;border-radius:16px;font-size:14px;font-weight:900;cursor:pointer;transition:all .15s;font-family:Noto Sans TC,sans-serif;">
@@ -713,7 +642,10 @@ async function showStudentWelcome(sData) {
   lucide.createIcons();
 
   // Store session data for later use
-  window._pendingSession = { sessionId, sessionData: sData, tool, counselorName };
+  // ⚠️ 這裡刻意存「未跳脫」的原字串：counselorName 之後會寫入
+  //    whiteboard_active/{uid}.counselorName（Firestore 資料，非 HTML）。
+  //    存跳脫後的版本會把 &amp; 之類的實體污染進資料庫。
+  window._pendingSession = { sessionId, sessionData: sData, tool, counselorName: rawCounselorName };
 }
 
 window.studentLogin = async function() {

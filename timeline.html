@@ -160,6 +160,14 @@ function getDateStr(record) {
     : '未知';
 }
 
+// ⭐ SEC-006：HTML 跳脫。凡是來自 Firestore 的字串，在以樣板字串
+//    組成 innerHTML 前都必須先經過本函式（與 report.html 的 escHtml 一致）。
+function escHtml(s) {
+  return String(s ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 // 取前五名需求（依 scores 排序）
 function getTop5(scores) {
   if (!scores) return [];
@@ -216,9 +224,9 @@ function renderTimeline(records) {
     header.style.borderBottom = '0.5px solid #e2e8f0';
     header.innerHTML = `
       <div class="flex items-center gap-3 flex-wrap">
-        <span class="text-sm font-bold text-slate-700">${dateStr}</span>
+        <span class="text-sm font-bold text-slate-700">${escHtml(dateStr)}</span>
         <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full"
-          style="background:${style.bg}; color:${style.text};">${focusType}</span>
+          style="background:${style.bg}; color:${style.text};">${escHtml(focusType)}</span>
         ${isLatest ? '<span class="text-[10px] font-bold px-2 py-0.5 bg-primary text-white rounded-full">最新</span>' : ''}
         ${isOldest && !isLatest ? '<span class="text-[10px] text-slate-400">最早</span>' : ''}
       </div>
@@ -275,7 +283,7 @@ function renderTimeline(records) {
       const row = document.createElement('div');
       row.className = 'flex items-center gap-3';
       row.innerHTML = `
-        <span class="text-xs text-slate-600 flex-shrink-0" style="width:72px;">${name}</span>
+        <span class="text-xs text-slate-600 flex-shrink-0" style="width:72px;">${escHtml(name)}</span>
         <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
           <div class="h-full rounded-full transition-all" style="width:${barWidth}%; background:${style.bar};"></div>
         </div>
@@ -298,7 +306,7 @@ function renderTimeline(records) {
           <div class="flex flex-wrap gap-2">
             ${dropped.map(t => `
               <span class="text-[11px] px-2.5 py-1 bg-red-50 text-red-500 border border-red-100 rounded-full flex items-center gap-1">
-                ${t.name} <span class="font-bold">${t.score}分</span> ↓退
+                ${escHtml(t.name)} <span class="font-bold">${escHtml(t.score)}分</span> ↓退
               </span>
             `).join('')}
           </div>

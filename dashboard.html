@@ -3,150 +3,504 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>我的空間｜原味藍圖</title>
+<meta name="description" content="原味藍圖個人空間：整理探索進度、評測報告與下一步。">
+<title>我的原味藍圖｜個人空間</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="brand.css">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
 tailwind.config = {
-  theme: { extend: { colors: { primary: '#0d9488', secondary: '#0f172a' } } }
+  theme: { extend: { colors: { primary: '#1E9188', secondary: '#142033' } } }
 }
 </script>
 <script src="https://unpkg.com/lucide@1.8.0"></script>
-</head>
-<body class="bg-slate-50 min-h-screen font-sans antialiased text-slate-900">
+<style>
+  :root {
+    --space-paper: #fbf8f2;
+    --space-paper-deep: #f3ede2;
+    --space-ink: #142033;
+    --space-muted: #66707d;
+    --space-teal: #1e9188;
+    --space-teal-dark: #14756f;
+    --space-clay: #e88a55;
+    --space-mist: #dcecef;
+    --space-line: rgba(20, 32, 51, .12);
+  }
 
-<!-- Navbar -->
-<nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
-  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="flex justify-between h-16 items-center">
-      <a href="index.html" aria-label="回到原味藍圖品牌首頁" class="flex items-center gap-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-2">
-        <img src="./ormap-logo.png" alt="" class="w-8 h-8 object-contain">
-        <span class="text-xl font-bold tracking-tight text-secondary">原味藍圖 <span class="text-xs text-primary font-bold ml-1">我的空間</span></span>
-      </a>
-      <div class="flex items-center gap-3">
-        <a href="index.html"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 text-slate-500 text-xs font-bold rounded-xl hover:bg-slate-100 hover:text-primary transition-all focus:outline-none focus:ring-2 focus:ring-primary/30">
-          <i data-lucide="home" class="w-3.5 h-3.5" aria-hidden="true"></i>
-          <span class="hidden sm:inline">品牌首頁</span>
-        </a>
-        <a id="adminLink" href="admin.html"
-          class="hidden items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-xl hover:bg-primary hover:text-white transition-all">
-          <i data-lucide="shield" class="w-3.5 h-3.5"></i>
-          後台管理
-        </a>
-        <div id="userInfo" class="hidden flex items-center gap-3">
-          <img id="userPhoto" src="" alt="Avatar" class="w-8 h-8 rounded-full border border-slate-200">
-          <span id="userName" class="text-sm font-medium text-slate-700 hidden md:block">載入中...</span>
-          <button id="logoutBtn" type="button" aria-label="登出" title="登出" class="p-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors focus:outline-none focus:ring-2 focus:ring-red-200">
-            <i data-lucide="log-out" class="w-4 h-4" aria-hidden="true"></i>
-          </button>
-        </div>
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 8% 4%, rgba(220, 236, 239, .82), transparent 25rem),
+      radial-gradient(circle at 96% 24%, rgba(232, 138, 85, .10), transparent 28rem),
+      var(--space-paper);
+    color: var(--space-ink);
+    font-family: "Noto Sans TC", system-ui, sans-serif;
+    line-height: 1.75;
+    letter-spacing: .012em;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  * { box-sizing: border-box; }
+  .hidden { display: none !important; }
+  .space-serif { font-family: "Noto Serif TC", serif; }
+  .space-shell { width: min(100% - 2rem, 74rem); margin-inline: auto; }
+  .space-skip {
+    position: fixed;
+    left: 1rem;
+    top: 1rem;
+    z-index: 100;
+    transform: translateY(-180%);
+    border-radius: .75rem;
+    background: var(--space-ink);
+    color: white;
+    padding: .7rem 1rem;
+  }
+  .space-skip:focus { transform: translateY(0); }
+
+  .space-nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    border-bottom: 1px solid var(--space-line);
+    background: rgba(251, 248, 242, .92);
+    backdrop-filter: blur(16px);
+  }
+  .space-nav__inner {
+    min-height: 4.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .space-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: .75rem;
+    color: inherit;
+    text-decoration: none;
+  }
+  .space-brand img { width: 2.15rem; height: 2.15rem; object-fit: contain; }
+  .space-brand strong { display: block; font-size: .98rem; line-height: 1.25; }
+  .space-brand small { display: block; color: var(--space-muted); font-size: .68rem; letter-spacing: .08em; }
+  .space-nav__actions { display: flex; align-items: center; gap: .55rem; }
+  .space-nav__link,
+  .space-icon-button {
+    min-height: 2.55rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--space-muted);
+    font: inherit;
+    font-size: .78rem;
+    font-weight: 800;
+    text-decoration: none;
+    cursor: pointer;
+    transition: .2s ease;
+  }
+  .space-nav__link { padding: .5rem .85rem; }
+  .space-icon-button { width: 2.55rem; padding: 0; }
+  .space-nav__link:hover,
+  .space-icon-button:hover { border-color: var(--space-line); background: white; color: var(--space-teal-dark); }
+  .space-user { display: flex; align-items: center; gap: .6rem; }
+  .space-user img { width: 2rem; height: 2rem; border-radius: 50%; border: 1px solid var(--space-line); object-fit: cover; }
+  .space-user span { max-width: 8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .8rem; font-weight: 700; }
+
+  .space-main { padding-block: clamp(2rem, 5vw, 4.5rem) 5rem; }
+  .space-hero {
+    position: relative;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(17rem, .65fr);
+    gap: clamp(2rem, 5vw, 5rem);
+    align-items: end;
+    border: 1px solid rgba(20, 32, 51, .1);
+    border-radius: clamp(1.5rem, 4vw, 2.6rem);
+    background: linear-gradient(135deg, rgba(255,255,255,.82), rgba(243,237,226,.78));
+    padding: clamp(1.6rem, 5vw, 4rem);
+    box-shadow: 0 24px 70px rgba(20, 32, 51, .08);
+  }
+  .space-hero::before {
+    content: "";
+    position: absolute;
+    width: 22rem;
+    height: 22rem;
+    right: -7rem;
+    top: -10rem;
+    border-radius: 50%;
+    border: 1px solid rgba(30,145,136,.18);
+    box-shadow: 0 0 0 3rem rgba(30,145,136,.03), 0 0 0 6rem rgba(30,145,136,.025);
+  }
+  .space-eyebrow {
+    margin: 0 0 .85rem;
+    color: var(--space-teal-dark);
+    font-size: .72rem;
+    font-weight: 900;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+  }
+  .space-hero h1 {
+    max-width: 13ch;
+    margin: 0;
+    font-size: clamp(2.35rem, 6vw, 5rem);
+    line-height: 1.14;
+    letter-spacing: -.055em;
+    text-wrap: balance;
+  }
+  .space-hero h1 span { color: var(--space-teal-dark); }
+  .space-hero__lead { max-width: 38rem; margin: 1.4rem 0 0; color: var(--space-muted); font-size: clamp(1rem, 2vw, 1.12rem); }
+  .space-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.6rem; }
+  .space-button {
+    min-height: 3rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    border: 1px solid var(--space-ink);
+    border-radius: 999px;
+    background: var(--space-ink);
+    color: white;
+    padding: .68rem 1.15rem;
+    font-size: .88rem;
+    font-weight: 900;
+    text-decoration: none;
+    transition: .2s ease;
+  }
+  .space-button:hover { border-color: var(--space-teal-dark); background: var(--space-teal-dark); transform: translateY(-1px); }
+  .space-button--ghost { background: transparent; color: var(--space-ink); border-color: var(--space-line); }
+  .space-button--ghost:hover { background: white; color: var(--space-teal-dark); }
+  .space-hero__aside { position: relative; z-index: 1; }
+  .space-hero__note {
+    margin: 0 0 1.1rem;
+    color: var(--space-muted);
+    font-size: .78rem;
+    font-weight: 700;
+  }
+  .space-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: .55rem; }
+  .space-stat {
+    min-height: 6.2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border: 1px solid var(--space-line);
+    border-radius: 1.2rem;
+    background: rgba(255,255,255,.72);
+    padding: .9rem;
+  }
+  .space-stat strong { font-family: "Noto Serif TC", serif; font-size: 1.7rem; line-height: 1; }
+  .space-stat span { color: var(--space-muted); font-size: .7rem; font-weight: 800; }
+
+  .space-section { margin-top: clamp(3rem, 7vw, 5.5rem); }
+  .space-section__head { display: flex; align-items: end; justify-content: space-between; gap: 1.5rem; margin-bottom: 1.4rem; }
+  .space-section__head h2 { margin: 0; font-size: clamp(1.65rem, 3vw, 2.45rem); line-height: 1.25; letter-spacing: -.035em; }
+  .space-section__head p { max-width: 36rem; margin: .55rem 0 0; color: var(--space-muted); }
+  .space-section__meta { flex: 0 0 auto; color: var(--space-muted); font-size: .75rem; font-weight: 800; }
+
+  .space-blueprint-layout { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(18rem, .55fr); gap: 1rem; }
+  .space-panel {
+    border: 1px solid var(--space-line);
+    border-radius: 1.6rem;
+    background: rgba(255,255,255,.7);
+    padding: clamp(1.25rem, 3vw, 2rem);
+    box-shadow: 0 18px 45px rgba(20,32,51,.045);
+  }
+  .space-panel--ink { background: var(--space-ink); color: white; }
+  .space-panel__top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .space-panel__label { color: var(--space-teal-dark); font-size: .72rem; font-weight: 900; letter-spacing: .13em; }
+  .space-panel--ink .space-panel__label { color: #8dd2cd; }
+  .space-status {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    border-radius: 999px;
+    background: var(--space-paper-deep);
+    color: var(--space-muted);
+    padding: .3rem .65rem;
+    font-size: .68rem;
+    font-weight: 900;
+  }
+  .space-status--live { background: rgba(30,145,136,.12); color: var(--space-teal-dark); }
+  .space-status--future { background: rgba(255,255,255,.1); color: rgba(255,255,255,.72); }
+
+  .blueprint-list { display: grid; gap: .75rem; margin-top: 1.25rem; }
+  .blueprint-tool {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1rem;
+    border: 1px solid var(--space-line);
+    border-radius: 1.25rem;
+    background: rgba(251,248,242,.78);
+    color: inherit;
+    padding: 1rem;
+    text-decoration: none;
+    transition: .2s ease;
+  }
+  a.blueprint-tool:hover { border-color: rgba(30,145,136,.5); background: white; transform: translateY(-2px); }
+  .blueprint-tool__icon {
+    width: 2.8rem;
+    height: 2.8rem;
+    display: grid;
+    place-items: center;
+    border-radius: 1rem;
+    background: var(--space-mist);
+    color: var(--space-teal-dark);
+  }
+  .blueprint-tool--hti .blueprint-tool__icon { background: #f8e5d9; color: #a65325; }
+  .blueprint-tool--future { opacity: .72; }
+  .blueprint-tool__name { margin: 0; font-size: .98rem; font-weight: 900; }
+  .blueprint-tool__desc { margin: .12rem 0 0; color: var(--space-muted); font-size: .75rem; line-height: 1.55; }
+  .blueprint-tool__state { text-align: right; color: var(--space-muted); font-size: .68rem; font-weight: 900; }
+  .blueprint-tool__state[data-complete="true"] { color: var(--space-teal-dark); }
+
+  .identity-card h3 { margin: 1rem 0 .65rem; font-size: 1.6rem; line-height: 1.35; }
+  .identity-card > p { margin: 0; color: rgba(255,255,255,.68); font-size: .88rem; }
+  .identity-lines { display: grid; gap: .65rem; margin-top: 1.4rem; }
+  .identity-line { display: flex; justify-content: space-between; gap: 1rem; border-top: 1px solid rgba(255,255,255,.12); padding-top: .65rem; }
+  .identity-line span { color: rgba(255,255,255,.52); font-size: .72rem; }
+  .identity-line strong { color: rgba(255,255,255,.84); font-size: .74rem; text-align: right; }
+  .identity-note { margin-top: 1.2rem; border-radius: 1rem; background: rgba(255,255,255,.07); padding: .85rem 1rem; color: rgba(255,255,255,.62); font-size: .7rem; line-height: 1.65; }
+
+  .space-latest { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1.5rem; align-items: center; }
+  .space-latest__title { margin: .35rem 0 .4rem; font-size: clamp(1.25rem, 3vw, 1.8rem); }
+  .space-latest__summary { max-width: 42rem; margin: 0; color: var(--space-muted); }
+  .space-latest__date { color: var(--space-muted); font-size: .74rem; font-weight: 800; }
+
+  .space-empty {
+    display: grid;
+    place-items: center;
+    min-height: 15rem;
+    border: 1px dashed rgba(20,32,51,.2);
+    border-radius: 1.6rem;
+    background: rgba(255,255,255,.35);
+    padding: 2rem;
+    text-align: center;
+  }
+  .space-empty h3 { margin: .75rem 0 .25rem; font-size: 1.2rem; }
+  .space-empty p { max-width: 32rem; margin: 0 0 1rem; color: var(--space-muted); }
+  .space-loading { display: grid; gap: .75rem; }
+  .space-skeleton { height: 7rem; border-radius: 1.4rem; background: linear-gradient(90deg, rgba(20,32,51,.06), rgba(255,255,255,.7), rgba(20,32,51,.06)); background-size: 200% 100%; animation: space-loading 1.4s linear infinite; }
+  @keyframes space-loading { to { background-position: -200% 0; } }
+
+  .records-grid { display: grid; gap: .8rem; }
+  .report-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: center;
+    border: 1px solid var(--space-line);
+    border-radius: 1.35rem;
+    background: rgba(255,255,255,.78);
+    padding: 1rem;
+    box-shadow: 0 10px 28px rgba(20,32,51,.035);
+  }
+  .report-card__mark { width: 3rem; height: 3rem; display: grid; place-items: center; border-radius: 1rem; background: var(--space-paper-deep); color: var(--space-teal-dark); }
+  .report-card__meta { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; color: var(--space-muted); font-size: .67rem; font-weight: 800; }
+  .report-card__code { border-radius: 999px; background: var(--space-mist); color: var(--space-teal-dark); padding: .2rem .5rem; letter-spacing: .08em; }
+  .report-card h3 { margin: .28rem 0 .1rem; font-size: 1rem; }
+  .report-card p { max-width: 36rem; margin: 0; color: var(--space-muted); font-size: .76rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .report-card__actions { display: flex; flex-wrap: wrap; justify-content: end; gap: .45rem; }
+  .report-action {
+    min-height: 2.4rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .35rem;
+    border: 1px solid var(--space-line);
+    border-radius: 999px;
+    background: white;
+    color: var(--space-muted);
+    padding: .45rem .75rem;
+    font: inherit;
+    font-size: .7rem;
+    font-weight: 900;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .report-action:hover { border-color: rgba(30,145,136,.45); color: var(--space-teal-dark); }
+  .report-action--primary { border-color: var(--space-ink); background: var(--space-ink); color: white; }
+  .report-action--primary:hover { background: var(--space-teal-dark); color: white; }
+  .report-action--danger { color: #b4534b; }
+
+  .space-lower-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .space-feature { min-height: 18rem; display: flex; flex-direction: column; justify-content: space-between; }
+  .space-feature h3 { max-width: 18ch; margin: .65rem 0; font-size: 1.55rem; line-height: 1.4; }
+  .space-feature p { margin: 0; color: var(--space-muted); }
+  .space-feature__foot { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-top: 2rem; }
+  .space-feature__foot small { max-width: 25rem; color: var(--space-muted); }
+  .space-panel--ink .space-feature p,
+  .space-panel--ink .space-feature__foot small { color: rgba(255,255,255,.64); }
+  .space-panel--ink .space-button--ghost { border-color: rgba(255,255,255,.22); color: white; }
+  .space-panel--ink .space-button--ghost:hover { background: white; color: var(--space-ink); }
+
+  .space-modal { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; background: rgba(20,32,51,.48); backdrop-filter: blur(8px); padding: 1rem; }
+  .space-modal__card { width: min(100%, 28rem); border: 1px solid rgba(255,255,255,.4); border-radius: 1.6rem; background: var(--space-paper); padding: 2rem; box-shadow: 0 28px 80px rgba(20,32,51,.28); }
+
+  @media (max-width: 900px) {
+    .space-hero,
+    .space-blueprint-layout { grid-template-columns: 1fr; }
+    .space-hero__aside { max-width: 34rem; }
+    .space-lower-grid { grid-template-columns: 1fr; }
+    .report-card { grid-template-columns: auto minmax(0, 1fr); }
+    .report-card__actions { grid-column: 1 / -1; justify-content: start; padding-left: 4rem; }
+  }
+  @media (max-width: 640px) {
+    .space-shell { width: min(100% - 1.25rem, 74rem); }
+    .space-nav__link span,
+    .space-user span { display: none; }
+    .space-brand small { display: none; }
+    .space-hero { padding: 1.4rem; }
+    .space-hero h1 { font-size: 2.45rem; }
+    .space-stats { grid-template-columns: 1fr; }
+    .space-stat { min-height: auto; flex-direction: row; align-items: center; }
+    .space-section__head { display: block; }
+    .space-section__meta { display: inline-block; margin-top: .8rem; }
+    .space-latest { grid-template-columns: 1fr; }
+    .blueprint-tool { grid-template-columns: auto minmax(0, 1fr); }
+    .blueprint-tool__state { grid-column: 2; text-align: left; }
+    .report-card { grid-template-columns: 1fr; }
+    .report-card__mark { width: 2.6rem; height: 2.6rem; }
+    .report-card__actions { grid-column: auto; padding-left: 0; }
+    .report-action { flex: 1 1 auto; }
+  }
+</style>
+</head>
+<body>
+<a class="space-skip" href="#mainContentArea">跳到主要內容</a>
+
+<nav class="space-nav" aria-label="個人空間導覽">
+  <div class="space-shell space-nav__inner">
+    <a href="index.html" aria-label="回到原味藍圖品牌首頁" class="space-brand">
+      <img src="ormap-logo.png" alt="">
+      <span><strong>原味藍圖</strong><small>MY BLUEPRINT SPACE</small></span>
+    </a>
+    <div class="space-nav__actions">
+      <a href="index.html" class="space-nav__link"><i data-lucide="home" class="w-4 h-4" aria-hidden="true"></i><span>品牌首頁</span></a>
+      <a id="adminLink" href="admin.html" class="space-nav__link hidden"><i data-lucide="shield" class="w-4 h-4" aria-hidden="true"></i><span>後台管理</span></a>
+      <div id="userInfo" class="space-user hidden">
+        <img id="userPhoto" src="" alt="使用者頭像">
+        <span id="userName">載入中...</span>
+        <button id="logoutBtn" type="button" class="space-icon-button" aria-label="登出" title="登出"><i data-lucide="log-out" class="w-4 h-4" aria-hidden="true"></i></button>
       </div>
     </div>
   </div>
 </nav>
 
-<main class="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-  <header class="mb-10">
-    <h1 class="text-3xl font-extrabold text-secondary mb-2">歡迎回來，探索者！</h1>
-    <p class="text-slate-500">在這裡查看你的職涯評測紀錄，追蹤每一次的成長軌跡。</p>
+<main id="mainContentArea" class="space-shell space-main" tabindex="-1">
+  <header class="space-hero">
+    <div>
+      <p class="space-eyebrow">回到你的個人空間</p>
+      <h1 class="space-serif">歡迎回來，<span id="welcomeName">探索者</span>。</h1>
+      <p class="space-hero__lead">這裡不是一張成績單，而是你持續理解自己、收藏洞察、準備下一次行動的地方。</p>
+      <div class="space-actions">
+        <a class="space-button" href="#blueprint"><i data-lucide="map" class="w-4 h-4" aria-hidden="true"></i>打開我的藍圖</a>
+        <a class="space-button space-button--ghost" href="#reports">查看報告收藏室</a>
+      </div>
+    </div>
+    <div class="space-hero__aside" aria-label="個人空間摘要">
+      <p class="space-hero__note">你的藍圖會隨每一次探索慢慢亮起。</p>
+      <div class="space-stats">
+        <div class="space-stat"><strong id="blueprintLitCount">0</strong><span>已點亮工具</span></div>
+        <div class="space-stat"><strong id="recordStat">0</strong><span>收藏報告</span></div>
+        <div class="space-stat"><strong id="latestStat">—</strong><span>最近探索</span></div>
+      </div>
+    </div>
   </header>
 
-  <!-- 開始新的評測 -->
-  <section class="mb-12">
-    <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400 mb-4">開始新的評測</h2>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-      <a href="tools/twa.html" class="group p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:border-primary hover:shadow-md transition-all">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-4">
-            <div class="w-12 h-12 bg-teal-50 text-primary rounded-xl flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
-              <i data-lucide="compass" class="w-6 h-6"></i>
-            </div>
-            <div>
-              <h3 class="font-bold text-lg text-secondary">TWA 工作價值觀評測</h3>
-              <p class="text-sm text-slate-500">開啟一份全新的職涯覺察地圖</p>
-            </div>
+  <section id="blueprint" class="space-section" aria-labelledby="blueprintTitle">
+    <div class="space-section__head">
+      <div><p class="space-eyebrow">My original blueprint</p><h2 id="blueprintTitle" class="space-serif">我的原味藍圖</h2><p>從不同角度理解工作需求與行動風格；每一份報告都是一塊拼圖，不替你決定唯一答案。</p></div>
+      <span class="space-section__meta">個人藍圖盤 · 第一版雛形</span>
+    </div>
+    <div class="space-blueprint-layout">
+      <div class="space-panel">
+        <div class="space-panel__top"><span class="space-panel__label">探索拼圖</span><span class="space-status space-status--live">2 項工具已開放</span></div>
+        <div class="blueprint-list">
+          <a href="tools/twa.html" class="blueprint-tool">
+            <span class="blueprint-tool__icon"><i data-lucide="compass" class="w-5 h-5" aria-hidden="true"></i></span>
+            <span><span class="blueprint-tool__name">工作價值羅盤</span><span class="blueprint-tool__desc">比較現況與理想，釐清你真正在意的工作需求。</span></span>
+            <span id="twaBlueprintStatus" class="blueprint-tool__state" data-complete="false">尚未探索</span>
+          </a>
+          <a href="tools/hti.html" class="blueprint-tool blueprint-tool--hti">
+            <span class="blueprint-tool__icon"><i data-lucide="sparkles" class="w-5 h-5" aria-hidden="true"></i></span>
+            <span><span class="blueprint-tool__name">何倫興趣與行動風格</span><span class="blueprint-tool__desc">從活動偏好與投入動機，看見你的特質組合。</span></span>
+            <span id="htiBlueprintStatus" class="blueprint-tool__state" data-complete="false">尚未探索</span>
+          </a>
+          <div class="blueprint-tool blueprint-tool--future" aria-label="微型探索工具規劃中">
+            <span class="blueprint-tool__icon"><i data-lucide="lightbulb" class="w-5 h-5" aria-hidden="true"></i></span>
+            <span><span class="blueprint-tool__name">微型探索</span><span class="blueprint-tool__desc">未來提供免費或低門檻的小練習，幫助你找到適合的正式工具。</span></span>
+            <span class="blueprint-tool__state">規劃中</span>
           </div>
-          <i data-lucide="chevron-right" class="w-5 h-5 text-slate-300 group-hover:text-primary transition-colors"></i>
         </div>
-      </a>
+      </div>
 
-      <a href="tools/hti.html" class="group p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:border-orange-500 hover:shadow-md transition-all">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-4">
-            <div class="w-12 h-12 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center group-hover:bg-orange-500 group-hover:text-white transition-colors">
-              <i data-lucide="cpu" class="w-6 h-6"></i>
-            </div>
-            <div>
-              <h3 class="font-bold text-lg text-secondary">HTI 何倫特質解析</h3>
-              <p class="text-sm text-slate-500">探索你的天賦特質與原動力</p>
-            </div>
-          </div>
-          <i data-lucide="chevron-right" class="w-5 h-5 text-slate-300 group-hover:text-orange-500 transition-colors"></i>
+      <aside class="space-panel space-panel--ink identity-card" aria-labelledby="identityTitle">
+        <div class="space-panel__top"><span class="space-panel__label">你的自我定義</span><span class="space-status space-status--future">規劃中</span></div>
+        <h3 id="identityTitle" class="space-serif">這個空間，會慢慢長得像你。</h3>
+        <p>未來你可以用喜歡的稱呼、生命格言、重視的價值與身分角色，練習拼湊「我是誰」。</p>
+        <div class="identity-lines" aria-label="未來個人檔案欄位示意">
+          <div class="identity-line"><span>喜歡的稱呼</span><strong>尚未開放設定</strong></div>
+          <div class="identity-line"><span>生命格言</span><strong>留給未來的你</strong></div>
+          <div class="identity-line"><span>重視的價值</span><strong>由你自己定義</strong></div>
+          <div class="identity-line"><span>目前角色</span><strong>可以持續調整</strong></div>
         </div>
-      </a>
-
+        <div class="identity-note">此區目前只呈現產品方向，不會蒐集或儲存新資料。個人檔案與性別友善欄位將在用途、最小必要資料及隱私同意確認後另行設計。</div>
+      </aside>
     </div>
   </section>
 
-  <!-- TWA 成長軌跡入口（有兩筆以上才顯示）-->
-  <div id="timelineEntrance" class="hidden mb-8">
-    <a href="timeline.html"
-      class="flex items-center gap-4 p-5 bg-gradient-to-r from-teal-50 to-white border border-teal-100 rounded-2xl hover:border-primary hover:shadow-md transition-all group">
-      <div class="w-11 h-11 bg-primary text-white rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-        <i data-lucide="trending-up" class="w-5 h-5"></i>
-      </div>
-      <div class="flex-1 min-w-0">
-        <h3 class="font-bold text-secondary">TWA 工作價值觀成長軌跡</h3>
-        <p id="timelineSubtitle" class="text-sm text-slate-500 mt-0.5"></p>
-      </div>
-      <i data-lucide="chevron-right" class="w-5 h-5 text-slate-300 group-hover:text-primary transition-colors flex-shrink-0"></i>
-    </a>
-  </div>
-
-  <!-- 歷史測驗紀錄 -->
-  <section>
-    <div class="flex items-center justify-between mb-6">
-      <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400">歷史測驗紀錄</h2>
-      <span id="recordCount" class="px-2 py-1 bg-slate-200 text-slate-600 text-xs font-bold rounded-full">0</span>
+  <section id="latestReportSection" class="space-section hidden" aria-labelledby="latestReportHeading">
+    <div class="space-section__head"><div><p class="space-eyebrow">Continue from here</p><h2 id="latestReportHeading" class="space-serif">接續最近一次探索</h2></div></div>
+    <div class="space-panel space-latest">
+      <div><span id="latestReportDate" class="space-latest__date"></span><h3 id="latestReportTitle" class="space-latest__title space-serif"></h3><p id="latestReportSummary" class="space-latest__summary"></p></div>
+      <a id="latestReportLink" class="space-button" href="#">打開這份報告<i data-lucide="arrow-up-right" class="w-4 h-4" aria-hidden="true"></i></a>
     </div>
+  </section>
 
-    <div id="loadingState" class="space-y-4">
-      <div class="h-24 bg-slate-200 animate-pulse rounded-2xl"></div>
+  <section id="reports" class="space-section" aria-labelledby="reportsTitle">
+    <div class="space-section__head">
+      <div><p class="space-eyebrow">Report collection</p><h2 id="reportsTitle" class="space-serif">報告收藏室</h2><p>保留不同階段的自己。未來的複測與付費解鎖規則尚未接入；目前沿用既有評測流程。</p></div>
+      <span id="recordCount" class="space-section__meta">0 份報告</span>
     </div>
-
-    <div id="emptyState" class="hidden py-20 text-center">
-      <div class="mb-4 text-slate-300 flex justify-center">
-        <i data-lucide="folder-open" class="w-16 h-16"></i>
-      </div>
-      <h3 class="text-lg font-medium text-slate-600">目前還沒有任何紀錄</h3>
-      <p class="text-slate-400 mb-6">點擊上方工具卡片，開始你的第一次測驗吧！</p>
+    <div id="loadingState" class="space-loading" aria-live="polite"><div class="space-skeleton"></div><div class="space-skeleton"></div></div>
+    <div id="emptyState" class="space-empty hidden">
+      <div><i data-lucide="folder-open" class="w-12 h-12 mx-auto text-slate-300" aria-hidden="true"></i><h3>你的第一張藍圖還沒展開</h3><p>先從工作價值羅盤或何倫興趣與行動風格開始，完成後報告會收藏在這裡。</p><a class="space-button" href="#blueprint">選擇探索工具</a></div>
     </div>
+    <div id="recordsContainer" class="records-grid"></div>
+  </section>
 
-    <div id="recordsContainer" class="grid grid-cols-1 gap-4"></div>
+  <section class="space-section space-lower-grid" aria-label="下一步與未來內容">
+    <div class="space-panel space-feature">
+      <div><span class="space-panel__label">內容書房</span><h3 class="space-serif">讓文章陪你把報告讀進生活裡。</h3><p>內容中心目前是公開網站骨架；個人化推薦與收藏尚未接入。</p></div>
+      <div class="space-feature__foot"><small>未來可依探索主題推薦文章，但不會把規劃中功能寫成已可使用。</small><a class="space-button space-button--ghost" href="blog.html">前往內容中心</a></div>
+    </div>
+    <div class="space-panel space-panel--ink space-feature">
+      <div><span class="space-panel__label">看見時間裡的變化</span><h3 class="space-serif">當你想再理解自己，回來看看曾經點亮的選擇。</h3><p>工作價值羅盤完成兩次後，可比較不同階段的需求變化。</p></div>
+      <div class="space-feature__foot"><small id="timelineSubtitle">目前需要至少兩份工作價值羅盤紀錄。</small><a id="timelineEntrance" class="space-button space-button--ghost hidden" href="timeline.html">查看成長軌跡</a></div>
+    </div>
   </section>
 </main>
 
-<!-- 授權確認 Modal -->
-<div id="authModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center px-4">
-  <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8">
+<div id="authModal" class="space-modal hidden" role="dialog" aria-modal="true" aria-labelledby="authModal-title">
+  <div class="space-modal__card">
     <div id="authModal-icon" class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"></div>
     <h3 id="authModal-title" class="text-xl font-black text-center text-slate-800 mb-3"></h3>
     <p id="authModal-desc" class="text-slate-500 text-center text-sm leading-relaxed mb-8"></p>
     <div class="flex gap-3">
-      <button onclick="closeAuthModal()"
-        class="flex-1 px-4 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-all">
-        取消
-      </button>
-      <button id="authModal-confirm" class="flex-1 px-4 py-3 rounded-2xl font-bold text-white transition-all">
-        確認
-      </button>
+      <button type="button" onclick="closeAuthModal()" class="flex-1 px-4 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-50">取消</button>
+      <button type="button" id="authModal-confirm" class="flex-1 px-4 py-3 rounded-2xl font-bold text-white">確認</button>
     </div>
   </div>
 </div>
 
 <script type="module">
-// ── Phase 9：Firebase 初始化改由共用模組提供 ──
 import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { collection, query, where, orderBy, getDocs, deleteDoc, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
@@ -156,132 +510,150 @@ const container = document.getElementById('recordsContainer');
 const loadingState = document.getElementById('loadingState');
 const emptyState = document.getElementById('emptyState');
 const recordCount = document.getElementById('recordCount');
+let assessmentRecords = [];
+
+const TOOL_COPY = {
+  TWA: { title: '工作價值羅盤', short: '工作價值', path: 'tools/twa.html', icon: 'compass' },
+  HTI: { title: '何倫興趣與行動風格', short: '行動風格', path: 'tools/hti.html', icon: 'sparkles' }
+};
 
 onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    document.getElementById('userInfo').classList.remove('hidden');
-    document.getElementById('userPhoto').src = user.photoURL || '';
-    // ⭐ A10：displayName 缺失時退回 email，避免顯示字面 "null"
-    document.getElementById('userName').innerText = user.displayName || user.email || '';
-    // ⭐ Phase 7.3+7.4：諮詢師才看得到「後台管理」按鈕
-    if (await isCounselor(db, user.uid)) {
-      const adminLink = document.getElementById('adminLink');
-      if (adminLink) {
-        adminLink.classList.remove('hidden');
-        adminLink.classList.add('flex');
-      }
-    }
-    fetchAssessments(user.uid);
-  } else {
-    window.location.href = 'index.html';
+  if (!user) { window.location.href = 'index.html'; return; }
+
+  const displayName = (user.displayName || '').trim();
+  document.getElementById('userInfo').classList.remove('hidden');
+  document.getElementById('userPhoto').src = user.photoURL || 'ormap-logo.png';
+  document.getElementById('userName').innerText = displayName || user.email || '';
+  document.getElementById('welcomeName').innerText = displayName || '探索者';
+
+  if (await isCounselor(db, user.uid)) {
+    document.getElementById('adminLink')?.classList.remove('hidden');
   }
+
+  fetchAssessments(user.uid);
 });
 
 async function fetchAssessments(uid) {
   try {
-    const q = query(
-      collection(db, "assessments"),
-      where("uid", "==", uid),
-      orderBy("createdAt", "desc")
-    );
+    const q = query(collection(db, 'assessments'), where('uid', '==', uid), orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
+    assessmentRecords = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     loadingState.classList.add('hidden');
-
-    if (snapshot.empty) {
-      emptyState.classList.remove('hidden');
-      return;
-    }
-
-    const allRecords = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-    recordCount.innerText = allRecords.length;
-
-    // 檢查 TWA 筆數：2 筆以上才顯示成長軌跡入口
-    const twaRecords = allRecords.filter(r => r.toolType === 'TWA');
-    if (twaRecords.length >= 2) {
-      document.getElementById('timelineEntrance').classList.remove('hidden');
-      const oldest = twaRecords[twaRecords.length - 1]?.createdAt?.toDate
-        ? twaRecords[twaRecords.length - 1].createdAt.toDate().toLocaleDateString('zh-TW') : '';
-      const newest = twaRecords[0]?.createdAt?.toDate
-        ? twaRecords[0].createdAt.toDate().toLocaleDateString('zh-TW') : '';
-      document.getElementById('timelineSubtitle').innerText =
-        `共 ${twaRecords.length} 次施測・${oldest} ～ ${newest}`;
-    }
-
-    allRecords.forEach(r => renderCard(r.id, r));
-    lucide.createIcons();
+    renderDashboardState();
   } catch (err) {
     console.error(err);
     loadingState.classList.add('hidden');
+    emptyState.classList.remove('hidden');
+    emptyState.querySelector('h3').innerText = '暫時無法讀取報告';
+    emptyState.querySelector('p').innerText = '請稍後重新整理；你的評測資料不會因此被刪除。';
+    emptyState.querySelector('a').classList.add('hidden');
+    lucide.createIcons();
   }
 }
 
+function renderDashboardState() {
+  container.innerHTML = '';
+  const total = assessmentRecords.length;
+  const twaRecords = assessmentRecords.filter(r => r.toolType === 'TWA');
+  const htiRecords = assessmentRecords.filter(r => r.toolType === 'HTI');
+  const litCount = Number(twaRecords.length > 0) + Number(htiRecords.length > 0);
+
+  recordCount.innerText = `${total} 份報告`;
+  document.getElementById('recordStat').innerText = String(total);
+  document.getElementById('blueprintLitCount').innerText = String(litCount);
+  setBlueprintStatus('twaBlueprintStatus', twaRecords.length);
+  setBlueprintStatus('htiBlueprintStatus', htiRecords.length);
+  updateTimeline(twaRecords);
+
+  if (total === 0) {
+    emptyState.classList.remove('hidden');
+    document.getElementById('latestReportSection').classList.add('hidden');
+    document.getElementById('latestStat').innerText = '—';
+  } else {
+    emptyState.classList.add('hidden');
+    assessmentRecords.forEach(r => renderCard(r.id, r));
+    updateLatestReport(assessmentRecords[0]);
+  }
+  lucide.createIcons();
+}
+
+function setBlueprintStatus(id, count) {
+  const element = document.getElementById(id);
+  element.dataset.complete = count > 0 ? 'true' : 'false';
+  element.innerText = count > 0 ? `已點亮 · ${count} 份報告` : '尚未探索';
+}
+
+function updateTimeline(twaRecords) {
+  const entrance = document.getElementById('timelineEntrance');
+  const subtitle = document.getElementById('timelineSubtitle');
+  if (twaRecords.length >= 2) {
+    entrance.classList.remove('hidden');
+    const oldest = getDate(twaRecords[twaRecords.length - 1]);
+    const newest = getDate(twaRecords[0]);
+    subtitle.innerText = `共 ${twaRecords.length} 次探索 · ${oldest} ～ ${newest}`;
+  } else {
+    entrance.classList.add('hidden');
+    subtitle.innerText = twaRecords.length === 1
+      ? '再完成一次工作價值羅盤，就能比較不同階段的變化。'
+      : '目前需要至少兩份工作價值羅盤紀錄。';
+  }
+}
+
+function updateLatestReport(record) {
+  const tool = TOOL_COPY[record.toolType] || { title: '探索報告', short: '探索' };
+  document.getElementById('latestReportSection').classList.remove('hidden');
+  document.getElementById('latestReportDate').innerText = `最近完成 · ${getDate(record)}`;
+  document.getElementById('latestReportTitle').innerText = tool.title;
+  document.getElementById('latestReportSummary').innerText = record.summary?.text || '這份報告已收藏在你的個人空間，可以隨時回來重新閱讀。';
+  document.getElementById('latestReportLink').href = `report.html?id=${encodeURIComponent(record.id)}`;
+  document.getElementById('latestStat').innerText = tool.short;
+}
+
+function getDate(record) {
+  return record.createdAt?.toDate ? record.createdAt.toDate().toLocaleDateString('zh-TW') : '日期未記錄';
+}
+
+function escHtml(value) {
+  return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function renderCard(docId, data) {
-  const date = data.createdAt?.toDate
-    ? data.createdAt.toDate().toLocaleDateString('zh-TW') : '未知日期';
-
-  const card = document.createElement('div');
-  card.id = `card-${docId}`;
-  card.className = "group bg-white p-5 rounded-2xl border border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between hover:shadow-md transition-all gap-4";
-
-  const isHTI = data.toolType === 'HTI';
-  const isTWA = data.toolType === 'TWA';
-  const toolTitle = isHTI ? 'HTI 何倫特質解析' : 'TWA 工作價值觀評測';
-  const summaryText = data.summary?.text || '已完成評測';
-  const reportLink = `report.html?id=${docId}`;
-  const retestLink = isHTI ? `tools/hti.html?loadId=${docId}` : `tools/twa.html?loadId=${docId}`;
+  const tool = TOOL_COPY[data.toolType] || { title: '探索報告', path: 'tools.html', icon: 'file-text' };
+  const summaryText = data.summary?.text || '已完成探索';
+  const safeDocId = encodeURIComponent(docId);
+  const reportLink = `report.html?id=${encodeURIComponent(docId)}`;
+  const retestLink = `${tool.path}?loadId=${encodeURIComponent(docId)}`;
   const isAuthorized = data.counselorAccess === true;
 
+  const card = document.createElement('article');
+  card.id = `card-${safeDocId}`;
+  card.className = 'report-card';
   card.innerHTML = `
-    <div class="flex items-center gap-4">
-      <div class="w-10 h-10 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center group-hover:bg-teal-50 group-hover:text-primary transition-colors">
-        <i data-lucide="file-text" class="w-5 h-5"></i>
-      </div>
-      <div>
-        <div class="flex items-center gap-2">
-          <span class="text-xs font-bold px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] tracking-widest uppercase">${data.toolType || '評測'}</span>
-          <span class="text-xs text-slate-400">${date}</span>
-        </div>
-        <h4 class="font-bold text-secondary text-base">${toolTitle}</h4>
-        <p class="text-sm text-slate-400 truncate max-w-xs">${summaryText}</p>
-      </div>
+    <div class="report-card__mark"><i data-lucide="${escHtml(tool.icon)}" class="w-5 h-5" aria-hidden="true"></i></div>
+    <div class="min-w-0">
+      <div class="report-card__meta"><span class="report-card__code">${escHtml(data.toolType || 'TOOL')}</span><span>${escHtml(getDate(data))}</span></div>
+      <h3>${escHtml(tool.title)}</h3>
+      <p>${escHtml(summaryText)}</p>
     </div>
-    <div class="flex items-center gap-2 justify-end w-full lg:w-auto flex-wrap">
-      <button onclick="confirmDeleteReport('${docId}')"
-        class="px-3 py-2 bg-white text-red-400 border border-red-100 text-sm font-bold rounded-xl hover:bg-red-50 hover:text-red-600 transition-colors flex items-center gap-1"
-        title="刪除紀錄">
-        <i data-lucide="trash-2" class="w-4 h-4"></i>
-      </button>
+    <div class="report-card__actions">
+      <button type="button" onclick="confirmDeleteReport(decodeURIComponent('${safeDocId}'))" class="report-action report-action--danger" title="刪除紀錄" aria-label="刪除這份報告"><i data-lucide="trash-2" class="w-3.5 h-3.5" aria-hidden="true"></i></button>
       ${renderAuthBtn(docId, isAuthorized)}
-      <a href="${retestLink}"
-        class="px-3 py-2 bg-teal-50 text-primary border border-teal-100 text-sm font-bold rounded-xl hover:bg-teal-100 transition-colors shadow-sm flex items-center gap-1">
-        <i data-lucide="rotate-ccw" class="w-4 h-4"></i> 以此重測
-      </a>
-      <a href="${reportLink}"
-        class="px-4 py-2 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-primary transition-colors shadow-sm">
-        查看報告
-      </a>
-    </div>
-  `;
-
+      <a href="${retestLink}" class="report-action"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5" aria-hidden="true"></i>再次探索</a>
+      <a href="${reportLink}" class="report-action report-action--primary">查看報告</a>
+    </div>`;
   container.appendChild(card);
 }
 
 function renderAuthBtn(docId, isAuthorized) {
+  const safeDocId = encodeURIComponent(docId);
   if (isAuthorized) {
-    return `<button id="auth-btn-${docId}" onclick="confirmToggleAccess('${docId}', true)"
-      class="px-3 py-2 bg-teal-50 text-primary border border-teal-200 text-sm font-bold rounded-xl hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors flex items-center gap-1">
-      <i data-lucide="shield-check" class="w-4 h-4"></i><span>已授權</span>
-    </button>`;
-  } else {
-    return `<button id="auth-btn-${docId}" onclick="confirmToggleAccess('${docId}', false)"
-      class="px-3 py-2 bg-white text-slate-400 border border-slate-200 text-sm font-bold rounded-xl hover:bg-teal-50 hover:text-primary hover:border-teal-200 transition-colors flex items-center gap-1">
-      <i data-lucide="shield-off" class="w-4 h-4"></i><span>授權</span>
-    </button>`;
+    return `<button type="button" id="auth-btn-${safeDocId}" onclick="confirmToggleAccess(decodeURIComponent('${safeDocId}'), true)" class="report-action"><i data-lucide="shield-check" class="w-3.5 h-3.5" aria-hidden="true"></i><span>已授權</span></button>`;
   }
+  return `<button type="button" id="auth-btn-${safeDocId}" onclick="confirmToggleAccess(decodeURIComponent('${safeDocId}'), false)" class="report-action"><i data-lucide="shield-off" class="w-3.5 h-3.5" aria-hidden="true"></i><span>報告授權</span></button>`;
 }
 
-// ── Modal ──────────────────────────────────────────────
-let _pendingAction = null;
+let pendingAction = null;
 
 window.confirmToggleAccess = (docId, isCurrentlyAuthorized) => {
   const icon = document.getElementById('authModal-icon');
@@ -290,73 +662,74 @@ window.confirmToggleAccess = (docId, isCurrentlyAuthorized) => {
   const confirmBtn = document.getElementById('authModal-confirm');
 
   if (isCurrentlyAuthorized) {
-    icon.className = "w-14 h-14 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-5";
+    icon.className = 'w-14 h-14 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-5';
     icon.innerHTML = '<i data-lucide="shield-off" class="w-7 h-7"></i>';
-    title.innerText = '取消授權諮詢師查看？';
-    desc.innerText = '取消後，諮詢師將無法查看此份報告。你可以隨時重新開啟授權。';
-    confirmBtn.className = "flex-1 px-4 py-3 rounded-2xl font-bold text-white bg-red-500 hover:bg-red-600 transition-all";
-    confirmBtn.innerText = '確認取消授權';
+    title.innerText = '取消諮詢師查看權限？';
+    desc.innerText = '取消後，具備系統資格的諮詢師將無法查看此份報告。你可以之後重新開啟。';
+    confirmBtn.className = 'flex-1 px-4 py-3 rounded-2xl font-bold text-white bg-red-500 hover:bg-red-600';
+    confirmBtn.innerText = '確認取消';
   } else {
-    icon.className = "w-14 h-14 rounded-2xl bg-teal-50 text-primary flex items-center justify-center mx-auto mb-5";
+    icon.className = 'w-14 h-14 rounded-2xl bg-teal-50 text-primary flex items-center justify-center mx-auto mb-5';
     icon.innerHTML = '<i data-lucide="shield-check" class="w-7 h-7"></i>';
-    title.innerText = '授權諮詢師查看此報告？';
-    desc.innerText = '開啟後，具備資格的諮詢師可查看這份報告。你的個人資料將受到保護，且可隨時取消授權。';
-    confirmBtn.className = "flex-1 px-4 py-3 rounded-2xl font-bold text-white bg-primary hover:bg-teal-700 transition-all";
-    confirmBtn.innerText = '確認授權';
+    title.innerText = '開啟諮詢師查看權限？';
+    desc.innerText = '此功能只適用於目前系統內具備資格的諮詢師，不代表已建立諮詢關係，也不會新增討論紀錄。';
+    confirmBtn.className = 'flex-1 px-4 py-3 rounded-2xl font-bold text-white bg-primary hover:bg-teal-700';
+    confirmBtn.innerText = '確認開啟';
   }
 
-  _pendingAction = () => executeToggleAccess(docId, isCurrentlyAuthorized);
+  pendingAction = () => executeToggleAccess(docId, isCurrentlyAuthorized);
   document.getElementById('authModal').classList.remove('hidden');
   lucide.createIcons();
 };
 
 window.closeAuthModal = () => {
   document.getElementById('authModal').classList.add('hidden');
-  _pendingAction = null;
+  pendingAction = null;
 };
 
 document.getElementById('authModal-confirm').addEventListener('click', () => {
-  if (_pendingAction) { _pendingAction(); closeAuthModal(); }
+  if (pendingAction) { pendingAction(); window.closeAuthModal(); }
 });
 
-document.getElementById('authModal').addEventListener('click', (e) => {
-  if (e.target === document.getElementById('authModal')) closeAuthModal();
+document.getElementById('authModal').addEventListener('click', (event) => {
+  if (event.target === document.getElementById('authModal')) window.closeAuthModal();
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !document.getElementById('authModal').classList.contains('hidden')) window.closeAuthModal();
 });
 
 async function executeToggleAccess(docId, isCurrentlyAuthorized) {
   const newState = !isCurrentlyAuthorized;
   try {
-    await updateDoc(doc(db, "assessments", docId), { counselorAccess: newState });
-    const btn = document.getElementById(`auth-btn-${docId}`);
+    await updateDoc(doc(db, 'assessments', docId), { counselorAccess: newState });
+    const record = assessmentRecords.find(item => item.id === docId);
+    if (record) record.counselorAccess = newState;
+    const btn = document.getElementById(`auth-btn-${encodeURIComponent(docId)}`);
     if (btn) { btn.outerHTML = renderAuthBtn(docId, newState); lucide.createIcons(); }
   } catch (err) {
     console.error(err);
-    alert("操作失敗，請稍後再試。");
+    alert('操作失敗，請稍後再試。');
   }
 }
 
-// ── 刪除 ──────────────────────────────────────────────
 window.confirmDeleteReport = (docId) => {
-  if (!confirm("確定要刪除這筆測驗紀錄嗎？刪除後將無法恢復。")) return;
+  if (!confirm('確定要刪除這筆測驗紀錄嗎？刪除後將無法恢復。')) return;
   deleteReport(docId);
 };
 
 async function deleteReport(docId) {
   try {
-    await deleteDoc(doc(db, "assessments", docId));
-    document.getElementById(`card-${docId}`)?.remove();
-    const current = parseInt(recordCount.innerText) - 1;
-    recordCount.innerText = Math.max(current, 0);
-    if (current <= 0) emptyState.classList.remove('hidden');
+    await deleteDoc(doc(db, 'assessments', docId));
+    assessmentRecords = assessmentRecords.filter(item => item.id !== docId);
+    renderDashboardState();
   } catch (err) {
     console.error(err);
-    alert("刪除失敗，請稍後再試。");
+    alert('刪除失敗，請稍後再試。');
   }
 }
 
 document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
-
-
 lucide.createIcons();
 </script>
 </body>

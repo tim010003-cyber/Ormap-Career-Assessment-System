@@ -440,7 +440,7 @@ const blockC = {
 
 // ================= HTI 渲染引擎（原封不動）=================
 function renderHTIReport(data) {
-  document.title = "何倫特質解析報告 | 原味藍圖";
+  document.title = "何倫興趣與行動風格報告 | 原味藍圖";
   document.getElementById('top-badge').innerText = "HTI ASSESSMENT";
   document.getElementById('top-badge').className = "text-[10px] font-black text-orange-600 uppercase tracking-widest bg-orange-50 px-3 py-1 rounded-full border border-orange-100";
 
@@ -501,7 +501,7 @@ function renderHTIReport(data) {
       <div class="absolute top-0 left-0 w-full h-3 bg-orange-500"></div>
       <div class="text-center mb-8">
         <div class="text-orange-500 font-black tracking-[0.4em] uppercase text-[10px] mb-4">PERSONAL ENERGY MATRIX</div>
-        <h2 class="text-3xl lg:text-5xl font-black text-slate-800 mb-4 tracking-tight uppercase">何倫特質解析報告</h2>
+        <h2 class="text-3xl lg:text-5xl font-black text-slate-800 mb-4 tracking-tight">何倫興趣與行動風格報告</h2>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white/60 p-6 rounded-3xl border border-white">
         <div>
@@ -623,7 +623,7 @@ function renderHTIReport(data) {
 
 // ================= TWA 渲染引擎（全新）=================
 function renderTWAReport(data, matrix) {
-  document.title = "職涯需求覺察報告 | 原味藍圖";
+  document.title = "工作價值羅盤報告 | 原味藍圖";
 
   const dateStr = data.createdAt ? data.createdAt.toDate().toLocaleDateString('zh-TW') : new Date().toLocaleDateString('zh-TW');
   const userName = data.clientInfo?.name || data.name || "探索者";
@@ -804,7 +804,7 @@ function renderTwaHero(userName, dateStr, goal) {
       '<div class="absolute top-0 left-0 w-full h-3 bg-teal-600"></div>' +
       '<div class="text-center mb-8">' +
         '<div class="text-teal-600 font-black tracking-[0.4em] uppercase text-[10px] mb-4">Discovery Insight Report 2026</div>' +
-        '<h2 class="text-3xl lg:text-5xl font-black text-slate-800 mb-4 tracking-tight uppercase">職涯需求覺察報告</h2>' +
+        '<h2 class="text-3xl lg:text-5xl font-black text-slate-800 mb-4 tracking-tight">工作價值羅盤報告</h2>' +
       '</div>' +
       '<div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white/60 p-6 rounded-3xl border border-white">' +
         '<div>' +

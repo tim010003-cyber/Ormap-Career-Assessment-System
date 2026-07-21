@@ -46,6 +46,102 @@ Current neutral collaboration handoff:
 - The current merge workflow deploys live Hosting on every push to `main`. Therefore merging an approved PR is the production-release action: user release approval must be recorded before merge, and there is no post-merge/pre-live approval checkpoint.
 - Keep recommendations, inferences, pending decisions, implemented state, and verified state explicitly separated. A mockup, Demo, route, or commented plan is not evidence that a feature is released.
 
+### Current handoff: ASSESSMENT-TECH-REVIEW-004
+
+**Requested by the user on 2026-07-21.** Codex has completed `ASSESSMENT-SHELL-003`; Claude is asked to perform the technical regression review before any release. Read these first:
+
+1. `PRD/原味藍圖_TWA與HTI架構與文案盤點_v1_2026-07-21.md`, especially §§4.4, 5.4, 8.
+2. `PRD/原味藍圖_評測與白板介面保護清單_v1_2026-07-20.md`, especially §9A.
+3. `PRD/原味藍圖_跨代理交接與檔案占用表.md`, rows `ASSESSMENT-SHELL-003` and `ASSESSMENT-TECH-REVIEW-004`.
+
+What changed:
+
+- `tools/twa.html`: the duplicate Hero/value/motivation/SOP/prepare Landing sections are visually hidden, but their DOM, IDs, JSON rendering, and handlers remain. A compact assessment entry now leads directly into identity, ready prompt, and the existing assessment.
+- `tools/hti.html`: the original long Landing remains in a hidden layer with all `lp-*` hooks. A short loading state is shown, then the existing order is `loadData()` → `restoreProgress()` → `startAssessment()`, so the user enters stage 1 without a second start click.
+- No assessment JSON, questions, scoring, result rendering, draft key, Auth, Firestore, Rules, report, Dashboard, or deployment logic was intentionally changed.
+
+Claude's review scope:
+
+1. Start read-only. Confirm the diff is limited to presentation, HTI entry sequencing, and handoff documentation.
+2. Verify TWA normal flow, draft save/restore, `?loadId=`, completion, report creation, redirect to Dashboard, wb, and mirror behavior.
+3. Verify HTI data loading, automatic stage-1 entry, uid-bound draft restore, stage 1/2/3, tie handling, report generation/save, `?loadId=`, Dashboard redirect, wb, and mirror behavior.
+4. Confirm hidden Landing hooks still render without exceptions and do not become focusable or visible to assistive technology.
+5. Check console errors, mobile layout, keyboard focus, reduced motion, failed JSON loading, unauthenticated redirect, and signed-in behavior. Browser, login, Emulator, or external-environment actions still require the applicable user authorization and exact target scope.
+6. If a regression is caused by `ASSESSMENT-SHELL-003`, claim only `tools/twa.html` and/or `tools/hti.html`, make the smallest fix, and record evidence. Do not redesign the public pages or rewrite product copy during technical review.
+7. If an unrelated pre-existing defect is found, add evidence to the defect ledger instead of expanding this work package.
+
+Release and Git constraints:
+
+- Do not change assessment data, Auth, Firestore, Rules, report schemas, pricing, product names, or public-page copy under this review without a separate authorized work package.
+- Do not blanket-stage the current dirty worktree; unrelated `tools/job-design/*`, `.claude/settings.local.json`, and other existing changes belong to other work packages.
+- Do not merge to `main` or deploy. The user must review the result and approve release before merge because merging `main` triggers live Hosting.
+
+Required handoff result: completed cases, failed cases with reproduction evidence, files changed, unchanged protected areas, console/runtime observations, items not tested, and a clear recommendation of `可進預覽` or `不可進預覽`.
+
+### Current release coordination: RELEASE-PREVIEW-005
+
+**User request, 2026-07-21:** collect all local work completed today, perform the required Claude technical checks, upload only reviewed changes to a GitHub branch, and provide a Firebase PR-preview URL. Do not merge to `main` or deploy live until the user explicitly approves after preview.
+
+Confirmed repository state at handoff:
+
+- Current branch: `chore/remove-whiteboard`, tracking `origin/chore/remove-whiteboard` at `be88a04`.
+- `origin/main` is still at `12c8eb0`; therefore the live site is not expected to contain the local 2026-07-21 work from this worktree.
+- The branch already contains three commits not in `main`: whiteboard phase-1 removal (`bd68331`), governance/glossary/backlog preservation (`9f28f1e`), and Dashboard brand navigation (`be88a04`). Include these in the PR scope summary.
+- The worktree also has uncommitted Codex public-site/assessment work and separate Claude-owned `tools/job-design/*` work. Never blanket-stage the worktree.
+- `.claude/settings.local.json` is local-only and must not be committed.
+
+Codex site/content/assessment commit whitelist:
+
+```text
+AGENTS.md
+CLAUDE.md
+brand.css
+index.html
+about.html
+blog.html
+tools.html
+courses.html
+services.html
+organizations.html
+tools/twa-intro.html
+tools/hti-intro.html
+tools/twa.html
+tools/hti.html
+原味藍圖_品牌與網站架構總綱.md
+PRD/README.md
+PRD/原味藍圖_公開網站文案盤點與調整表_v1_2026-07-21.md
+PRD/原味藍圖_TWA與HTI架構與文案盤點_v1_2026-07-21.md
+PRD/原味藍圖_跨代理交接與檔案占用表.md
+```
+
+Separate Claude Job Design commit candidates — review and test these as their own commit; include them in the preview only if Claude considers the feature ready for user review:
+
+```text
+tools/job-design/case.html
+tools/job-design/index.html
+tools/job-design/jd-fields.js
+tools/job-design/jd-mock-ai.js
+tools/job-design/jd-seed.js
+tools/job-design/jd-store.js
+tools/job-design/jd-word.js
+```
+
+Important Hosting evidence: `.github/workflows/firebase-hosting-pull-request.yml` still comments that `tools/job-design/**` is ignored, but the actual `firebase.json` ignore list does **not** contain `tools/job-design/**`. The actual configuration wins. If Job Design files are committed, they will be present on PR preview and later on live Hosting. Report this explicitly before merge.
+
+Required order:
+
+1. Preserve all existing changes; no reset, checkout, overwrite, or bulk formatting.
+2. Complete `ASSESSMENT-TECH-REVIEW-004` first. If it fails, do not create a release candidate; make only an authorized minimal regression fix and re-run affected cases.
+3. Validate public Index/opening, all six public skeleton pages, both tool intro pages, Dashboard navigation, TWA/HTI entry reduction, local links, responsive layout, keyboard focus, console, and reduced motion. Browser/login actions require the applicable user authorization and exact target scope.
+4. Review the Job Design diff separately. Decide `ready for this preview` or `hold locally`; do not infer that the Demo is ready merely because files exist.
+5. Stage the Codex whitelist explicitly and inspect `git diff --cached --name-status`; commit it separately from Job Design.
+6. If Job Design is ready, stage only its candidate list, inspect staged diff, and create a second commit. Never stage `.claude/settings.local.json`.
+7. Push a non-main integration branch and open a PR targeting `main`. The PR automatically creates a seven-day Firebase Hosting preview channel.
+8. Report the PR URL, preview URL, exact commits/files, test results, failed/not-tested items, and whether Job Design is included.
+9. Stop at preview. Do not merge. Merging to `main` triggers live deployment immediately and requires a separate explicit user approval.
+
+Minimum release recommendation must be one of: `不可進預覽`, `可進預覽但不可合併`, or `可請使用者決定是否合併`. Never describe a preview-only result as live-verified.
+
 ## Tech stack
 
 Cloud-native, serverless, **no build step**. Everything runs on Google Cloud Platform via Firebase.

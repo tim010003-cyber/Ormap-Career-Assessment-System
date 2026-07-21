@@ -74,13 +74,53 @@
             40%  { box-shadow: 0 0 0 8px rgba(249,115,22,.08); }
             100% { outline-color: #f97316; box-shadow: 0 0 0 4px rgba(249,115,22,.06); }
         }
+        /* 公開說明已移至 hti-intro.html。原 Landing DOM 與 lp-* hook 保留，
+           供既有 JSON render 與後續安全遷移使用，但不再重複呈現。 */
+        .hti-legacy-landing { display: none !important; }
+        .hti-entry-loader {
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #f0fdfa, #ffffff 58%, #fff7ed);
+        }
+        .hti-entry-loader__card {
+            width: min(100%, 34rem);
+            padding: clamp(2rem, 6vw, 3.5rem);
+            border: 1px solid rgba(13, 148, 136, .16);
+            border-radius: 2rem;
+            background: rgba(255,255,255,.86);
+            box-shadow: 0 28px 70px -48px rgba(15,23,42,.65);
+            text-align: center;
+        }
+        .hti-entry-loader__logo { width: 3rem; height: 3rem; margin: 0 auto 1.25rem; object-fit: contain; }
+        .hti-entry-loader__eyebrow { color: #0d9488; font-size: .7rem; font-weight: 900; letter-spacing: .18em; text-transform: uppercase; }
+        .hti-entry-loader h1 { margin: .7rem 0 .8rem; color: #0f172a; font-size: clamp(1.75rem, 5vw, 2.5rem); line-height: 1.35; }
+        .hti-entry-loader p { margin: 0; color: #64748b; line-height: 1.85; }
+        .hti-entry-loader__pulse { width: 2.4rem; height: .25rem; margin: 1.5rem auto; overflow: hidden; border-radius: 999px; background: #ccfbf1; }
+        .hti-entry-loader__pulse::after { content: ""; display: block; width: 55%; height: 100%; border-radius: inherit; background: #0d9488; animation: hti-entry-loading 1s ease-in-out infinite alternate; }
+        .hti-entry-loader a { color: #0f766e; font-size: .78rem; font-weight: 900; text-decoration: none; }
+        @keyframes hti-entry-loading { from { transform: translateX(-15%); } to { transform: translateX(95%); } }
+        @media (prefers-reduced-motion: reduce) {
+            .hti-entry-loader__pulse::after { width: 100%; animation: none; transform: none; }
+        }
         /* ===== END 白板鏡像模式 ===== */
     </style>
 </head>
 <body class="antialiased overflow-x-hidden">
 
     <div id="view-landing" style="display: block;">
-            <nav class="fixed top-0 left-0 right-0 z-[100] bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm h-16 flex items-center">
+        <section class="hti-entry-loader" aria-labelledby="hti-entry-title">
+            <div class="hti-entry-loader__card">
+                <img class="hti-entry-loader__logo" src="../ormap-logo.png" alt="">
+                <p class="hti-entry-loader__eyebrow">何倫興趣與行動風格 · HTI</p>
+                <h1 id="hti-entry-title">正在準備你的活動選擇</h1>
+                <p>資料完成載入後，會直接進入第一階段，不需要再次閱讀工具介紹或多按一次開始。</p>
+                <div class="hti-entry-loader__pulse" aria-hidden="true"></div>
+                <a href="hti-intro.html">回看工具介紹 →</a>
+            </div>
+        </section>
+            <nav class="hti-legacy-landing fixed top-0 left-0 right-0 z-[100] bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm h-16 flex items-center">
         <div class="max-w-7xl mx-auto px-6 w-full flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <a href="../dashboard.html" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
@@ -106,10 +146,10 @@
             </div>
         </div>
     </nav>
-    <main class="pt-16">
+    <main class="hti-legacy-landing pt-16">
         <section class="max-w-7xl mx-auto px-4 py-20 fade-in text-center">
             <div id="lp-hero-badge" class="mb-6 inline-block text-primary text-xs font-black tracking-[0.3em] uppercase">Holland Trait Indicator</div>
-            <h1 id="lp-hero-title" class="text-5xl md:text-7xl font-black text-black mb-6 leading-tight">何倫特質解析系統</h1>
+            <h2 id="lp-hero-title" class="text-5xl md:text-7xl font-black text-black mb-6 leading-tight">何倫特質解析系統</h2>
             <h2 id="lp-hero-subtitle" class="text-2xl md:text-3xl font-bold text-primary mb-12">找回你不費力的人生原動力</h2>
             <div class="max-w-4xl mx-auto space-y-6 text-slate-500 text-lg text-justify-c md:text-center px-4">
                 <p id="lp-hero-desc">職能決定你能不能勝任，但特質決定你能走多遠。原味藍圖 重新打造「何倫職業興趣理論」，建構深度覺察的應用系統 HTI (Holland Trait Indicator) / 何倫特質解析系統，幫助你重新找回你最天然的特質。</p>
@@ -303,7 +343,7 @@
         </section>
     </main>
 
-    <footer class="py-20 text-center border-t border-slate-100 bg-white">
+    <footer class="hti-legacy-landing py-20 text-center border-t border-slate-100 bg-white">
         <p class="text-[10px] text-slate-400 font-bold tracking-[0.4em] uppercase">© 2026 ORMAP | HOLLAND TRAIT INDICATOR SYSTEM</p>
     </footer>
     </div>
@@ -1170,7 +1210,10 @@
 
         window.onload = async function() {
             const ok = await loadData();
-            if (ok) restoreProgress();
+            if (ok) {
+                restoreProgress();
+                startAssessment();
+            }
         };
     </script>
 <script type="module">

@@ -631,6 +631,47 @@
             border-top: 8px solid #f8fafc;
         }
 
+        /* 公開說明已移至 twa-intro.html；保留 DOM hook 供既有 JSON render，
+           但評測頁只呈現操作所需內容。 */
+        #hero-section,
+        #value-intro-section,
+        #motivation-section,
+        #sop-section,
+        #prepare-section {
+            display: none !important;
+        }
+
+        .assessment-entry {
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 2.5rem;
+            padding: clamp(1.5rem, 4vw, 2.5rem);
+            border: 1px solid rgba(13, 148, 136, .18);
+            border-radius: 1.75rem;
+            background: linear-gradient(135deg, rgba(240, 253, 250, .96), rgba(255, 255, 255, .98) 58%, rgba(255, 247, 237, .82));
+            box-shadow: 0 24px 55px -48px rgba(15, 23, 42, .65);
+        }
+        .assessment-entry::after {
+            content: "";
+            position: absolute;
+            width: 15rem;
+            height: 15rem;
+            right: -8rem;
+            top: -9rem;
+            border: 1px solid rgba(13, 148, 136, .18);
+            border-radius: 50%;
+            box-shadow: 0 0 0 2.5rem rgba(204, 251, 241, .24), 0 0 0 5rem rgba(255, 237, 213, .18);
+            pointer-events: none;
+        }
+        .assessment-entry__inner { position: relative; z-index: 1; max-width: 48rem; }
+        .assessment-entry__eyebrow { margin-bottom: .65rem; color: #0d9488; font-size: .7rem; font-weight: 900; letter-spacing: .18em; text-transform: uppercase; }
+        .assessment-entry h1 { margin: 0; color: #0f172a; font-size: clamp(1.8rem, 4vw, 2.75rem); font-weight: 900; line-height: 1.35; letter-spacing: -.02em; }
+        .assessment-entry__lead { margin: 1rem 0 0; max-width: 42rem; color: #64748b; font-size: .95rem; line-height: 1.9; }
+        .assessment-entry__meta { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: 1.25rem; }
+        .assessment-entry__meta span { padding: .38rem .72rem; border-radius: 999px; background: rgba(255,255,255,.82); color: #475569; font-size: .72rem; font-weight: 800; border: 1px solid rgba(148,163,184,.22); }
+        .assessment-entry__link { display: inline-flex; margin-top: 1.2rem; color: #0f766e; font-size: .78rem; font-weight: 900; text-decoration: none; }
+        .assessment-entry__link:hover { color: #0f172a; }
+
         /* Mirror 模式：所有 stage 強制展開，保留視覺引導但不 gate */
         body.mirror-mode .stage.locked {
             opacity: 1;
@@ -761,6 +802,16 @@
             <h2 id="pc-title" class="text-2xl lg:text-3xl font-black text-slate-800 tracking-tight leading-tight mb-2">&nbsp;</h2>
         </div>
         <div id="pc-items" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+    </section>
+
+    <section class="assessment-entry no-print" id="assessment-entry-section" aria-labelledby="assessment-entry-title">
+        <div class="assessment-entry__inner">
+            <p class="assessment-entry__eyebrow">工作價值羅盤 · 評測</p>
+            <h1 id="assessment-entry-title">接下來，專心看見你的工作需求</h1>
+            <p class="assessment-entry__lead">工具理念與完整方法已留在公開介紹頁。這裡只保留開始作答需要的資訊：先寫下目前背景，再逐項比較現況、理想與真正想保留的工作條件。</p>
+            <div class="assessment-entry__meta" aria-label="評測方式摘要"><span>現況與理想</span><span>環境指標</span><span>有限預算取捨</span><span>可中途續寫</span></div>
+            <a class="assessment-entry__link" href="twa-intro.html">需要時，回看工具介紹 →</a>
+        </div>
     </section>
 
     <!-- Identity -->

@@ -20,11 +20,34 @@ tailwind.config = { theme: { extend: {
   h1,h2,.serif{font-family:"Noto Serif TC",serif;}
   .col-raw{background:#F4F1EA;} .col-ai{background:#EAF5F3;} .col-inf{background:#FDF3EA;}
   .badge{font-size:11px;padding:2px 9px;border-radius:999px;font-weight:600;}
-  .step.active{background:#142033;color:#FBF8F2;}
-  .step.done .dot{background:#1E9188;}
-  .step.locked{opacity:.45;}
   textarea{resize:vertical;}
   [contenteditable]:focus{outline:2px solid #1E918855;border-radius:6px;}
+
+  /* ── 思考頁：呼吸感 ── */
+  .stage{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;font-size:13px;
+         color:#14203399;white-space:nowrap;transition:background .15s ease,color .15s ease;}
+  .stage.on{background:#142033;color:#FBF8F2;font-weight:600;}
+  .stage.done{color:#136E68;}
+  .stage:not(.locked){cursor:pointer;}
+  .stage.locked{opacity:.4;}
+  .stage-sep{flex:1;height:1px;background:#14203320;min-width:12px;}
+
+  .qlist{counter-reset:q;}
+  .qitem{display:flex;gap:14px;margin-bottom:18px;font-size:17px;line-height:2;color:#142033cc;}
+  .qitem::before{counter-increment:q;content:counter(q);flex:none;width:26px;height:26px;margin-top:8px;
+                 border-radius:50%;background:#DCECEF;color:#136E68;font-size:12px;font-weight:700;
+                 display:grid;place-items:center;font-family:"Noto Sans TC",sans-serif;}
+
+  .answer{width:100%;border:1px solid #14203322;border-radius:14px;padding:18px 20px;
+          font-size:16px;line-height:1.95;background:#fff;min-height:220px;}
+  .answer:focus{outline:none;border-color:#1E9188;box-shadow:0 0 0 4px #1E918818;}
+  .answer::placeholder{color:#14203355;}
+
+  details.ref{border:1px solid #14203318;border-radius:12px;background:#fff;}
+  details.ref>summary{cursor:pointer;list-style:none;padding:10px 14px;font-size:12.5px;color:#136E68;font-weight:600;}
+  details.ref>summary::-webkit-details-marker{display:none}
+  details.ref[open]>summary{border-bottom:1px solid #14203312;}
+  details.ref .body{padding:12px 14px;font-size:13px;line-height:1.8;color:#142033aa;}
 </style>
 </head>
 <body class="min-h-screen font-sans">
@@ -48,14 +71,15 @@ tailwind.config = { theme: { extend: {
   </div>
 </header>
 
-<div class="max-w-6xl mx-auto px-5 py-7 grid lg:grid-cols-[220px_1fr] gap-7">
-  <!-- 模組步進器 -->
-  <aside class="lg:sticky lg:top-24 self-start">
-    <nav id="stepper" class="space-y-1.5"></nav>
-    <div id="closedBanner" class="hidden mt-5 p-3 rounded-xl bg-navy/5 border border-navy/10 text-xs text-navy/60"></div>
-  </aside>
+<!-- 頂部流程進度 -->
+<div class="border-b border-navy/10 bg-white/70 backdrop-blur sticky top-16 z-20">
+  <div class="max-w-3xl mx-auto px-5 py-4">
+    <nav id="stageBar"></nav>
+  </div>
+</div>
 
-  <!-- 模組內容 -->
+<div class="max-w-3xl mx-auto px-5 py-10">
+  <div id="closedBanner" class="hidden mb-6 p-4 rounded-xl bg-navy/5 border border-navy/10 text-sm text-navy/60"></div>
   <main id="moduleArea" class="min-w-0"></main>
 </div>
 
@@ -101,28 +125,148 @@ function moduleUnlocked(m){
   return S.getModuleStatus(c,prev)==='confirmed';
 }
 
-// ── 步進器 ──
-function renderStepper(){
-  const nav=$('#stepper'); nav.innerHTML='';
-  if(c.path_type==='full_design'){
-    nav.appendChild(el('div','mb-2 px-3 py-2 rounded-lg bg-accent/10 border border-accent/25 text-[11px] text-accent font-semibold','已改走完整職務設計（路徑 A）'));
-  }
-  flow().forEach((m,i)=>{
-    const meta=F.MODULE_META[m];
-    const st=S.getModuleStatus(c,m);
-    const unlocked=moduleUnlocked(m);
-    const cls=['step w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 text-sm'];
-    if(m===currentModule)cls.push('active');
-    if(st==='confirmed')cls.push('done');
-    if(!unlocked)cls.push('locked');
-    const b=el('button',cls.join(' '));
-    b.innerHTML=`<span class="dot w-2 h-2 rounded-full ${st==='confirmed'?'bg-tealgreen':'bg-navy/25'} shrink-0"></span>
-      <span class="flex-1"><span class="block font-semibold leading-tight">${meta.title}</span><span class="block text-[11px] opacity-60 leading-tight">${F.partLabel(m,c.path_type)||meta.part}</span></span>
-      ${st==='confirmed'?'<i data-lucide="check" class="w-3.5 h-3.5 text-tealgreen"></i>':(!unlocked?'<i data-lucide="lock" class="w-3.5 h-3.5"></i>':'')}`;
-    b.addEventListener('click',()=>{ if(!unlocked){alert('請先完成並確認上一個模組。');return;} currentModule=m; c.current_module=m; save(); render(); });
-    nav.appendChild(b);
+/* ══════════ 階段 × 步驟 模型 ══════════
+   階段（頂部大流程）：思考階段各自一站，三份正式文件與下載合併成「產出文件」。
+   步驟（階段內）：一次只顯示一步，避免使用者一往下拉就看到別題。 */
+
+const DOC_MODULES=['m4','m5','m6','output'];
+
+function stages(){
+  const think=flow().filter(m=>!DOC_MODULES.includes(m));
+  return [...think.map(m=>({key:m,title:F.MODULE_META[m].title,modules:[m]})),
+          {key:'docs',title:'產出文件',modules:DOC_MODULES}];
+}
+const stageOf=(m)=>stages().find(s=>s.modules.includes(m));
+
+/** 一個模組內的步驟清單 */
+function stepsOf(mod){
+  if(mod==='m1') return F.M1_CHAPTERS.map(ch=>({title:ch.title,kind:'m1ch',data:ch}));
+  if(mod==='m2') return F.M2_PARTS.map(p=>({title:p.title,kind:'m2part',data:p}));
+  if(mod==='m3') return [
+    ...F.m3Sections().map(s=>({title:s.title,kind:'m3sec',data:s})),
+    ...F.MATURITY_DIMENSIONS.map(d=>({title:d.name,kind:'m3dim',data:d})),
+    {title:'彙整五個維度',kind:'m3agg'},
+  ];
+  return [{title:F.MODULE_META[mod].title,kind:'single'}];
+}
+
+function cursor(mod){
+  const st=c.modules[mod]; const n=stepsOf(mod).length;
+  return Math.min(Math.max(st?.cursor||0,0),n-1);
+}
+function setCursor(mod,i){
+  if(!c.modules[mod])c.modules[mod]={structured_values:{}};
+  c.modules[mod].cursor=Math.max(0,Math.min(i,stepsOf(mod).length-1));
+  save();
+}
+
+// ── 頂部階段列 ──
+function renderStageBar(){
+  const bar=$('#stageBar'); bar.innerHTML='';
+  const list=stages();
+  const curStage=stageOf(currentModule);
+
+  const row=el('div','flex items-center gap-1 overflow-x-auto');
+  list.forEach((s,i)=>{
+    if(i>0)row.appendChild(el('div','stage-sep'));
+    const allDone=s.modules.every(m=>S.getModuleStatus(c,m)==='confirmed');
+    const unlocked=moduleUnlocked(s.modules[0]);
+    const on=curStage&&curStage.key===s.key;
+    const b=el('button',`stage ${on?'on':''} ${allDone?'done':''} ${unlocked?'':'locked'}`);
+    const dot = allDone&&!on
+      ? `<span class="w-5 h-5 rounded-full bg-tealgreen text-white grid place-items-center shrink-0"><i data-lucide="check" class="w-3 h-3"></i></span>`
+      : `<span class="w-5 h-5 rounded-full ${on?'bg-ivory/25':'bg-navy/10'} grid place-items-center text-[11px] font-bold shrink-0">${i+1}</span>`;
+    b.innerHTML=`${dot}<span>${s.title}</span>`;
+    if(unlocked)b.addEventListener('click',()=>{ goModule(s.modules[0]); });
+    row.appendChild(b);
   });
+  bar.appendChild(row);
+
+  // 階段內步驟指示
+  const steps=stepsOf(currentModule);
+  if(steps.length>1){
+    const i=cursor(currentModule);
+    const sub=el('div','flex items-center gap-2 mt-3');
+    sub.innerHTML=`<span class="text-xs text-navy/45 shrink-0">第 ${i+1} / ${steps.length} 題</span>`;
+    const dots=el('div','flex items-center gap-1 flex-wrap');
+    steps.forEach((s,k)=>{
+      const d=el('button',`h-1.5 rounded-full transition-all ${k===i?'w-6 bg-navy':'w-1.5 bg-navy/20 hover:bg-navy/40'}`);
+      d.title=`${k+1}. ${s.title}`;
+      d.addEventListener('click',()=>{setCursor(currentModule,k);render();});
+      dots.appendChild(d);
+    });
+    sub.appendChild(dots);
+    bar.appendChild(sub);
+  }
   if(window.lucide)lucide.createIcons();
+}
+
+function goModule(m){
+  if(!moduleUnlocked(m)){alert('請先完成前一個階段。');return;}
+  currentModule=m; c.current_module=m; save(); render();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/** 一頁一題的底部導覽 */
+function stepNav(area,mod,{onNext,nextLabel,nextEnabled=true}={}){
+  const steps=stepsOf(mod), i=cursor(mod);
+  const wrap=el('div','flex items-center justify-between gap-3 mt-10 pt-6 border-t border-navy/10');
+  const prev=el('button','inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-navy/60 hover:bg-navy/5 disabled:opacity-30',
+    '<i data-lucide="arrow-left" class="w-4 h-4"></i>上一題');
+  prev.disabled=i===0;
+  prev.addEventListener('click',()=>{setCursor(mod,i-1);render();window.scrollTo({top:0,behavior:'smooth'});});
+  wrap.appendChild(prev);
+
+  const isLast=i===steps.length-1;
+  const label=nextLabel||(isLast?'完成這個階段':'下一題');
+  const next=el('button',`inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg font-semibold ${nextEnabled?'bg-navy text-ivory hover:bg-tealdeep':'bg-navy/15 text-navy/40 cursor-not-allowed'}`,
+    `${label}<i data-lucide="arrow-right" class="w-4 h-4"></i>`);
+  next.disabled=!nextEnabled;
+  next.addEventListener('click',()=>{
+    if(onNext&&isLast){onNext();return;}
+    if(isLast)return;
+    setCursor(mod,i+1);render();window.scrollTo({top:0,behavior:'smooth'});
+  });
+  wrap.appendChild(next);
+  area.appendChild(wrap);
+}
+
+/** 思考頁共用標頭：只放標題，不放邊界說明 */
+function thinkHeader(area,{eyebrow,title,icon}){
+  area.appendChild(el('header','mb-8',
+    `<div class="flex items-center gap-2 mb-2">
+       ${icon?`<i data-lucide="${icon}" class="w-4 h-4 text-tealgreen"></i>`:''}
+       <span class="text-[11px] tracking-[2px] text-tealdeep font-bold">${esc(eyebrow||'')}</span>
+     </div>
+     <h1 class="text-2xl font-black text-navy leading-snug">${esc(title)}</h1>`));
+}
+
+/** 核心引導問題（畫面上只留這個） */
+function questionBlock(area,questions){
+  const box=el('div','qlist mb-8');
+  questions.forEach(q=>box.appendChild(el('div','qitem',esc(q))));
+  area.appendChild(box);
+}
+
+/** 口述回應區 */
+function answerBlock(area,fieldId,placeholder){
+  const wrap=el('div','mb-2');
+  wrap.appendChild(el('div','flex items-center gap-1.5 mb-2',
+    '<i data-lucide="pencil-line" class="w-4 h-4 text-navy/35"></i><span class="text-sm font-semibold text-navy/70">你的回應</span>'));
+  const ta=el('textarea','answer');
+  ta.placeholder=placeholder||'用說的就好，不需要先整理成條列。';
+  ta.value=c.fields[fieldId]?.value||''; ta.disabled=readOnly();
+  ta.addEventListener('input',()=>{S.saveField(c,fieldId,ta.value,'user_input');save();});
+  wrap.appendChild(ta);
+  area.appendChild(wrap);
+  return ta;
+}
+
+/** 可收合的參考資料（預設收起，避免增加閱讀負荷） */
+function refBlock(area,label,html){
+  const d=el('details','ref mb-6');
+  d.innerHTML=`<summary><i data-lucide="book-open" class="w-3.5 h-3.5 inline-block align--2 mr-1"></i>${esc(label)}</summary><div class="body">${html}</div>`;
+  area.appendChild(d);
 }
 
 // ── 存取狀態 / 倒數 ──
@@ -159,9 +303,9 @@ const readOnly=()=>S.isClosed(c);
 function render(){
   $('#hCaseTitle').textContent=c.fields['case.title']?.value||'案例';
   $('#hCaseSub').textContent=(c.fields['case.organization_name']?.value||'')+' · '+(c.fields['case.job_title_working']?.value||'');
-  paintIdentity(); renderStepper(); renderAccess();
+  paintIdentity(); renderStageBar(); renderAccess();
   const area=$('#moduleArea'); area.innerHTML='';
-  const R={existing:renderExisting, m1:renderPathAStub, m2:renderPathAStub, m3:renderM3, m4:renderM4, m5:renderM5, m6:renderM6, output:renderOutput};
+  const R={existing:renderExisting, m1:renderM1, m2:renderM2, m3:renderM3, m4:renderM4, m5:renderM5, m6:renderM6, output:renderOutput};
   (R[currentModule]||renderExisting)(area);
   if(window.lucide)lucide.createIcons();
 }
@@ -169,7 +313,7 @@ function render(){
 function moduleHeader(area,m,extra){
   const meta=F.MODULE_META[m];
   area.appendChild(el('div','mb-5',`
-    <div class="text-[12px] tracking-[2px] text-tealdeep font-semibold mb-1">${F.partLabel(m,c.path_type)||meta.part}</div>
+    <div class="text-[12px] tracking-[2px] text-tealdeep font-semibold mb-1">${F.groupLabel(m)}</div>
     <h1 class="text-2xl font-black text-navy">${meta.title}</h1>
     <p class="text-navy/55 mt-1">${meta.subtitle}</p>${extra||''}`));
 }
@@ -198,28 +342,190 @@ function inputCard(field, value, onInput){
   return card;
 }
 
-// ═══════════ 路徑 A 前置模組（原型未開放）═══════════
-function renderPathAStub(area){
-  const m=currentModule;
-  moduleHeader(area,m);
-  const detail={
-    m1:{ why:'先確認「問題是什麼」，而不是直接假設缺人。',
-         does:['區分事實、感受、推論與資訊缺口','拆分混在一起的問題並排優先順序','判斷投入狀態：進入解法設計／先補資訊／暫緩／不投入'],
-         guard:'「缺人」在這裡只能是假設，不能當成自動結論。' },
-    m2:{ why:'確認要不要用「增加人力」來解這個問題。',
-         does:['盤點人力、流程、工具、管理與授權','比較流程制度／既有人員／外部資源／內部人力四類策略','界定主要負責、共同處理、組織責任與不該期待人才解決的範圍'],
-         guard:'流程、工具、管理或授權的問題，不得轉嫁成人才條件。' },
-  }[m];
-  area.appendChild(el('div','bg-white rounded-2xl border border-navy/10 p-5 mb-4',`
-    <div class="font-bold text-navy mb-1">這個模組在做什麼</div>
-    <p class="text-navy/70 text-sm mb-3">${detail.why}</p>
-    <ul class="text-sm text-navy/70 list-disc ml-5 space-y-1">${detail.does.map(d=>`<li>${d}</li>`).join('')}</ul>
-    <div class="mt-3 p-3 rounded-lg bg-mist/40 border border-navy/10 text-sm text-navy/70">
-      <span class="font-semibold text-tealdeep">專業邊界：</span>${detail.guard}
-    </div>`));
-  area.appendChild(el('div','p-4 rounded-xl bg-accent/10 border border-accent/30 text-sm text-navy/70',
-    '<span class="font-semibold text-accent">原型尚未開放：</span>路徑 A 的完整填寫流程（M1／M2）將在正式版提供。目前先示範「系統如何把你導向正確的路徑」，而不是讓你在錯的路徑上把文件做完。'));
+// ═══════════ M1 問題釐清（一頁一題）═══════════
+function m1State(){
+  c.modules.m1=c.modules.m1||{structured_values:{}};
+  c.modules.m1.chapters=c.modules.m1.chapters||{};
+  return c.modules.m1;
 }
+
+function renderM1(area){
+  const i=cursor('m1');
+  const ch=F.M1_CHAPTERS[i];
+  const st=m1State().chapters[ch.code]||null;
+  const allConfirmed=ch.outputs.every(o=>S.isConfirmed(c,o.id));
+
+  thinkHeader(area,{eyebrow:`問題釐清 · ${ch.code}`,title:ch.title,icon:'search'});
+  questionBlock(area,ch.questions);
+
+  if(ch.showProblemTypes){
+    refBlock(area,'參考：八種問題類型',
+      F.PROBLEM_TYPES.map(t=>`<div style="margin-bottom:6px"><b style="color:#136E68">${t.name}</b>　${esc(t.desc)}</div>`).join(''));
+  }
+
+  answerBlock(area,ch.rawId,ch.responseHint);
+
+  const aiRow=el('div','flex items-center gap-3 mt-5');
+  const aiBtn=el('button','inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-tealdeep disabled:opacity-40',
+    `<i data-lucide="sparkles" class="w-4 h-4"></i>${st?'重新整理':'請 AI 幫我整理'}`);
+  aiBtn.disabled=readOnly();
+  aiBtn.addEventListener('click',()=>{
+    const text=c.fields[ch.rawId]?.value;
+    if(!text||!text.trim()){alert('請先在回應區說說你的想法。');return;}
+    const r=AI.runM1Chapter(ch.code,text);
+    S.recordAiJob(c,r.task_code);
+    if(r.cannot_complete){alert(r.cannot_complete_reason);return;}
+    for(const[fid,v]of Object.entries(r.organized_content)){
+      const f=ch.outputs.find(o=>o.id===fid);
+      S.saveField(c,fid,v,f&&f.ai==='AI-I'?'ai_inference':'ai_organized',r.task_code);
+    }
+    m1State().chapters[ch.code]={inferences:r.inferences_requiring_confirmation,gaps:r.information_gaps,warnings:r.warnings};
+    save();render();
+  });
+  aiRow.appendChild(aiBtn);
+  if(allConfirmed)aiRow.appendChild(el('span','inline-flex items-center gap-1 text-sm text-tealdeep font-semibold',
+    '<i data-lucide="check-circle" class="w-4 h-4"></i>本題已確認'));
+  area.appendChild(aiRow);
+
+  if(st){
+    if(st.warnings?.length)area.appendChild(el('div','mt-6 p-3.5 rounded-xl bg-accent/8 border border-accent/20 text-sm text-navy/70 leading-relaxed',
+      st.warnings.map(w=>`<div class="flex gap-2"><i data-lucide="info" class="w-4 h-4 text-accent shrink-0 mt-1"></i><span>${esc(w)}</span></div>`).join('')));
+
+    area.appendChild(el('div','mt-8 mb-3 flex items-center gap-2',
+      '<i data-lucide="list-checks" class="w-4 h-4 text-tealgreen"></i><span class="text-sm font-bold text-navy">AI 整理結果，請逐項確認</span>'));
+    const outWrap=el('div','space-y-3'); area.appendChild(outWrap);
+    ch.outputs.forEach(o=>outWrap.appendChild(outputCard(o,st)));
+  }
+
+  const isLast=i===F.M1_CHAPTERS.length-1;
+  const allChaptersDone=F.M1_CHAPTERS.every(x=>x.outputs.every(o=>S.isConfirmed(c,o.id)));
+  stepNav(area,'m1',{
+    nextLabel:isLast?'完成問題釐清':'下一題',
+    nextEnabled:!isLast||allChaptersDone,
+    onNext:()=>{S.setModuleStatus(c,'m1','confirmed');goModule('m2');},
+  });
+}
+
+
+// ═══════════ M2 職務需求界定（勾選式作業 · 一頁一部分）═══════════
+function renderM2(area){
+  const i=cursor('m2');
+  const part=F.M2_PARTS[i];
+  const isLast=i===F.M2_PARTS.length-1;
+
+  thinkHeader(area,{eyebrow:`職務需求界定 · ${part.code}`,title:part.title,icon:'list-checks'});
+  if(part.note)area.appendChild(el('p','text-[15px] text-navy/60 leading-loose mb-7 -mt-4',esc(part.note)));
+
+  part.blocks.forEach(b=>area.appendChild(renderM2Block(b)));
+
+  // 最後一部分才做整理與交接
+  if(isLast){
+    const aiWrap=el('div','mt-10 pt-8 border-t border-navy/10');
+    aiWrap.appendChild(el('div','flex items-center gap-2 mb-4',
+      '<i data-lucide="sparkles" class="w-4 h-4 text-tealgreen"></i><span class="text-sm font-bold text-navy">整理勾選結果</span>'));
+    const aiBtn=el('button','inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-tealdeep',
+      '<i data-lucide="sparkles" class="w-4 h-4"></i>整理勾選結果');
+    aiBtn.disabled=readOnly();
+    aiWrap.appendChild(aiBtn);
+    const result=el('div','mt-5'); aiWrap.appendChild(result);
+    area.appendChild(aiWrap);
+
+    function paintM2(){
+      const checks={}; F.m2AllFieldIds().forEach(id=>checks[id]=c.fields[id]?.value);
+      const r=AI.runM2(checks); S.recordAiJob(c,'M2-01');
+      result.innerHTML='';
+      r.contradictions.forEach(x=>result.appendChild(el('div','rounded-xl bg-white border-2 border-accent p-5 mb-4',
+        `<div class="font-bold text-accent mb-2 flex items-center gap-1.5"><i data-lucide="alert-triangle" class="w-4 h-4"></i>勾選結果矛盾</div>
+         <p class="text-[15px] text-navy/75 leading-loose mb-1">${esc(x.message)}</p>
+         <p class="text-sm text-navy/55 leading-loose mb-3">${esc(x.detail)}</p>
+         <div class="p-3 rounded-lg bg-mist/50 border border-navy/10 text-sm text-navy/70 leading-loose"><b class="text-tealdeep">由你決定：</b>${esc(x.suggestion)}</div>`)));
+      if(r.warnings.length)result.appendChild(el('div','p-3.5 rounded-xl bg-accent/8 border border-accent/20 text-sm text-navy/70 leading-loose mb-4',
+        r.warnings.map(w=>`<div>${esc(w)}</div>`).join('')));
+      const oc=r.organized_content;
+      result.appendChild(el('div','bg-white rounded-xl border border-navy/10 p-5 mb-4',
+        `<div class="font-semibold text-navy mb-3 text-sm">整理結果</div>
+         <div class="text-sm space-y-2 text-navy/70 leading-relaxed">
+           <div><b class="text-tealdeep">環境盤點：</b>${oc.environment_summary.length?oc.environment_summary.length+' 項':'<span class="text-accent">未勾選</span>'}</div>
+           <div><b class="text-tealdeep">策略組合：</b>${oc.strategy_combination.length?oc.strategy_combination.map(esc).join('；'):'<span class="text-accent">未勾選</span>'}</div>
+           <div><b class="text-tealdeep">人力策略結論：</b>${oc.staffing_decision.map(esc).join('；')||'<span class="text-accent">未勾選</span>'}</div>
+           <div><b class="text-tealdeep">角色類型：</b>${oc.role_types.map(esc).join('；')||'<span class="text-accent">未勾選</span>'}</div>
+           <div><b class="text-tealdeep">待諮詢：</b>${oc.need_consult.length?oc.need_consult.length+' 項':'無'}</div>
+         </div>`));
+      refBlock(result,'交接至《職務與人才規格定位》',
+        F.M2_HANDOFF.map(h=>`<div style="margin-bottom:8px"><b style="color:#136E68">${h.to}</b><ul style="margin:4px 0 0 16px">${h.items.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')
+        +`<p style="color:#E88A55;margin-top:8px">${esc(F.M2_HANDOFF_NOTE)}</p>`);
+      const cf=el('button','bg-tealgreen text-white px-5 py-2.5 rounded-lg font-semibold','確認需求界定，進入職務與人才規格');
+      cf.disabled=readOnly();
+      cf.addEventListener('click',()=>{S.setModuleStatus(c,'m2','confirmed');goModule('m3');});
+      result.appendChild(cf);
+      if(window.lucide)lucide.createIcons();
+    }
+    aiBtn.addEventListener('click',paintM2);
+    if(S.getModuleStatus(c,'m2')==='confirmed')paintM2();
+  }
+
+  stepNav(area,'m2',{
+    nextLabel:isLast?'完成需求界定':'下一部分',
+    nextEnabled:!isLast||S.getModuleStatus(c,'m2')==='confirmed',
+    onNext:()=>goModule('m3'),
+  });
+}
+
+
+function renderM2Block(b){
+  const wrap=el('div','bg-white rounded-2xl border border-navy/10 p-5 mb-3');
+  if(b.title)wrap.appendChild(el('div','font-bold text-navy mb-1',b.title));
+  if(b.note)wrap.appendChild(el('p','text-xs text-navy/50 mb-2',esc(b.note)));
+
+  if(b.type==='checklist'){
+    const cur=c.fields[b.id]?.value||[];
+    b.options.forEach(opt=>{
+      const row=el('label','flex items-start gap-2 py-1.5 cursor-pointer hover:bg-mist/30 rounded px-1');
+      const chk=el('input'); chk.type='checkbox'; chk.className='accent-tealgreen w-4 h-4 mt-0.5 shrink-0';
+      chk.checked=cur.includes(opt); chk.disabled=readOnly();
+      chk.addEventListener('change',()=>{
+        const v=c.fields[b.id]?.value||[];
+        const next=chk.checked?[...v,opt]:v.filter(x=>x!==opt);
+        S.saveField(c,b.id,next,'user_input'); S.confirmField(c,b.id); save();
+      });
+      row.appendChild(chk);
+      row.appendChild(el('span','text-sm text-navy/75 leading-snug',esc(opt)));
+      wrap.appendChild(row);
+    });
+    return wrap;
+  }
+
+  // type === 'fields'
+  const grid=el('div','space-y-3');
+  (b.fields||[]).forEach(f=>{
+    const w=el('div');
+    w.innerHTML=`<label class="block text-sm font-semibold text-navy mb-1">${f.name}</label>${f.help?`<p class="text-xs text-navy/40 mb-1">${esc(f.help)}</p>`:''}`;
+    let inp;
+    if(f.type==='select'){
+      inp=el('select','w-full border border-navy/15 rounded-lg px-3 py-2 text-sm bg-white');
+      inp.innerHTML='<option value="">—</option>'+f.options.map(o=>`<option ${c.fields[f.id]?.value===o?'selected':''}>${o}</option>`).join('');
+    }else if(f.type==='list'){
+      inp=el('textarea','w-full border border-navy/15 rounded-lg px-3 py-2 text-sm min-h-[70px]');
+      inp.placeholder='一行一項'; inp.value=listToText(c.fields[f.id]?.value);
+    }else if(f.type==='textarea'){
+      inp=el('textarea','w-full border border-navy/15 rounded-lg px-3 py-2 text-sm min-h-[60px]');
+      inp.value=c.fields[f.id]?.value||'';
+    }else{
+      inp=el('input','w-full border border-navy/15 rounded-lg px-3 py-2 text-sm');
+      inp.value=c.fields[f.id]?.value||'';
+    }
+    inp.disabled=readOnly();
+    const upd=()=>{
+      const v=f.type==='list'?textToList(inp.value):inp.value;
+      S.saveField(c,f.id,v,'user_input'); S.confirmField(c,f.id); save();
+    };
+    inp.addEventListener('input',upd); inp.addEventListener('change',upd);
+    w.appendChild(inp); grid.appendChild(w);
+  });
+  wrap.appendChild(grid);
+  return wrap;
+}
+
 
 // ═══════════ existing 基礎確認 ═══════════
 function renderExisting(area){
@@ -235,7 +541,7 @@ function renderExisting(area){
   const panel=el('div','mt-5'); area.appendChild(panel);
   const btnRow=el('div','flex items-center gap-3');
   const chkBtn=el('button','inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2.5 rounded-lg font-semibold hover:bg-tealdeep',
-    '<i data-lucide="scan-search" class="w-4 h-4"></i>完整度檢查（PATH-01）');
+    '<i data-lucide="scan-search" class="w-4 h-4"></i>檢查資訊是否足夠');
   chkBtn.disabled=readOnly();
   btnRow.appendChild(chkBtn); panel.appendChild(btnRow);
   const result=el('div','mt-4'); panel.appendChild(result);
@@ -271,22 +577,22 @@ function renderExisting(area){
             <span class="font-semibold text-tealdeep">接下來由你決定：</span>${esc(x.suggestion)}
           </div>
           <div class="flex flex-wrap gap-2">
-            <button data-act="switch" class="bg-accent text-white px-4 py-2 rounded-lg text-sm font-semibold">改走完整職務設計（路徑 A）</button>
-            <button data-act="keep" class="bg-white border border-navy/20 text-navy px-4 py-2 rounded-lg text-sm font-semibold">維持路徑 B，列為待課堂討論</button>
+            <button data-act="switch" class="bg-accent text-white px-4 py-2 rounded-lg text-sm font-semibold">改走完整職務設計</button>
+            <button data-act="keep" class="bg-white border border-navy/20 text-navy px-4 py-2 rounded-lg text-sm font-semibold">維持職務優化，列為待課堂討論</button>
           </div>`;
         result.appendChild(panel);
         panel.querySelector('[data-act="switch"]').addEventListener('click',()=>{
           const reason=prompt('切換路徑的理由（會寫入稽核紀錄）：','責任與授權不相符，需先重新界定需求');
           if(reason===null)return;
           S.switchPath(c,'full_design',reason);
-          S.addDiscussionItem(c,{module:'existing',topic:'權責矛盾：被要求負責結果但無相應決定權',reason:'已據此改走完整職務設計（路徑 A）',by:'講師'});
+          S.addDiscussionItem(c,{module:'existing',topic:'權責矛盾：被要求負責結果但無相應決定權',reason:'已據此改走完整職務設計',by:'講師'});
           if(!c.modules.existing)c.modules.existing={structured_values:{}};
           c.modules.existing.contradiction_decision={choice:'switch_to_path_a',at:new Date().toISOString()};
           currentModule='m1'; c.current_module='m1'; save(); render();
         });
         panel.querySelector('[data-act="keep"]').addEventListener('click',()=>{
-          S.addDiscussionItem(c,{module:'existing',topic:'權責矛盾：被要求負責結果但無相應決定權',reason:'學員選擇維持路徑 B，此矛盾未解決，需課堂討論組織授權安排',by:'講師'});
-          S.addAuditEvent(c,'contradiction_deferred','維持路徑 B，矛盾列為待課堂討論');
+          S.addDiscussionItem(c,{module:'existing',topic:'權責矛盾：被要求負責結果但無相應決定權',reason:'學員選擇維持職務優化，此矛盾未解決，需課堂討論組織授權安排',by:'講師'});
+          S.addAuditEvent(c,'contradiction_deferred','維持職務優化，矛盾列為待課堂討論');
           if(!c.modules.existing)c.modules.existing={structured_values:{}};
           c.modules.existing.contradiction_decision={choice:'keep_path_b',at:new Date().toISOString()};
           save(); render();
@@ -297,7 +603,7 @@ function renderExisting(area){
     if(decided){
       const isSwitch=decided.choice==='switch_to_path_a';
       result.appendChild(el('div','p-3 rounded-xl bg-mist/50 border border-navy/15 text-sm text-navy/70 mb-3',
-        `<span class="font-semibold text-tealdeep">已由人決定：</span>${isSwitch?'改走完整職務設計（路徑 A）':'維持路徑 B，權責矛盾列為待課堂討論（會出現在最終文件的待確認事項）'}`));
+        `<span class="font-semibold text-tealdeep">已由人決定：</span>${isSwitch?'改走完整職務設計':'維持職務優化，權責矛盾列為待課堂討論（會出現在最終文件的待確認事項）'}`));
     }
     const blockedByContradiction=r.contradictions.length && !decided;
     if(r.organized_content.readiness==='ready' && !blockedByContradiction){
@@ -314,7 +620,7 @@ function renderExisting(area){
   });
 }
 
-// ═══════════ M3 職務與人才規格（完整規格：五章 14 節）═══════════
+// ═══════════ M3 職務與人才規格（一頁一題）═══════════
 function m3State(){
   c.modules.m3=c.modules.m3||{structured_values:{}};
   c.modules.m3.sections=c.modules.m3.sections||{};
@@ -322,79 +628,38 @@ function m3State(){
 }
 
 function renderM3(area){
-  moduleHeader(area,'m3');
+  const steps=stepsOf('m3'), i=cursor('m3'), step=steps[i];
 
-  // 章節進度條
-  const secs=F.m3Sections();
-  const doneCount=secs.filter(s=>s.outputs.every(o=>S.isConfirmed(c,o.id))).length;
-  area.appendChild(el('div','mb-5 p-4 rounded-xl bg-white border border-navy/10',
-    `<div class="flex items-center justify-between text-sm mb-2">
-       <span class="font-semibold text-navy">章節進度</span>
-       <span class="text-navy/50">${doneCount} / ${secs.length} 節已確認 ${S.isConfirmed(c,'m3.maturity_anchors')?'· 第五章已確認':'· 第五章未確認'}</span>
-     </div>
-     <div class="h-1.5 bg-navy/10 rounded-full overflow-hidden"><div class="h-full bg-tealgreen" style="width:${Math.round(doneCount/secs.length*100)}%"></div></div>`));
+  if(step.kind==='m3sec') renderSection(area,step.data);
+  else if(step.kind==='m3dim') renderMaturityDim(area,step.data);
+  else renderMaturityAggregate(area);
 
-  F.M3_CHAPTERS.forEach(ch=>renderChapter(area,ch));
-  renderMaturityChapter(area);
-
-  // 完成 M3
+  const isLast=i===steps.length-1;
   const outputsOk=F.m3OutputFields().every(f=>S.isConfirmed(c,f.id));
   const maturityOk=S.isConfirmed(c,'m3.maturity_anchors');
-  const canFinish=outputsOk&&maturityOk;
-  const btn=el('button',`w-full py-3 rounded-xl font-bold shadow-lg sticky bottom-4 ${canFinish?'bg-navy text-ivory hover:bg-tealdeep':'bg-navy/20 text-navy/40 cursor-not-allowed'}`,
-    canFinish?'完成 M3，進入職務說明書':`尚有 ${secs.length-doneCount+(maturityOk?0:1)} 個區塊未確認`);
-  btn.disabled=!canFinish||readOnly();
-  btn.addEventListener('click',()=>{S.setModuleStatus(c,'m3','confirmed');currentModule='m4';c.current_module='m4';save();render();});
-  area.appendChild(btn);
+  stepNav(area,'m3',{
+    nextLabel:isLast?'完成規格，進入正式文件':'下一題',
+    nextEnabled:!isLast||(outputsOk&&maturityOk),
+    onNext:()=>{S.setModuleStatus(c,'m3','confirmed');goModule('m4');},
+  });
 }
 
-// ── 一個章節 ────────────────────────────────────────────
-function renderChapter(area,ch){
-  const wrap=el('section','mb-6');
-  wrap.appendChild(el('div','mb-3',
-    `<h2 class="text-lg font-black text-navy">${ch.title}</h2>
-     <p class="text-sm text-navy/55 mt-0.5">${ch.purpose}</p>`));
-  ch.sections.forEach(s=>wrap.appendChild(renderSection(s)));
-  area.appendChild(wrap);
-}
-
-// ── 一個小節：引導題 → 口述 → AI 產出 → 逐項確認 ──────────
-function renderSection(s){
+// ── 一個小節 ──
+function renderSection(area,s){
   const st=m3State().sections[s.code]||null;
-  const allConfirmed=s.outputs.every(o=>S.isConfirmed(c,o.id));
-  const card=el('div',`rounded-2xl border p-5 mb-3 ${allConfirmed?'border-tealgreen/40 bg-tealgreen/5':'border-navy/10 bg-white'}`);
+  const allConfirmed=F.sectionOutputs(s).every(o=>S.isConfirmed(c,o.id));
 
-  card.appendChild(el('div','flex items-start justify-between gap-2 mb-3',
-    `<div><div class="text-[11px] tracking-[2px] text-tealdeep font-bold">${s.code}</div>
-      <div class="font-bold text-navy text-[15px]">${s.title}</div></div>
-     ${allConfirmed?'<span class="badge bg-tealgreen text-white shrink-0">已確認</span>':''}`));
+  thinkHeader(area,{eyebrow:`職務與人才規格 · ${s.code}`,title:s.title,icon:'target'});
+  questionBlock(area,s.questions);
+  answerBlock(area,s.rawId,s.responseHint);
 
-  // 核心引導問題
-  card.appendChild(el('div','mb-3 p-3.5 rounded-xl bg-mist/40 border border-navy/10',
-    `<div class="text-xs font-bold text-tealdeep mb-1.5">核心引導問題</div>
-     <ol class="text-sm text-navy/75 space-y-1 list-decimal ml-4">${s.questions.map(q=>`<li>${esc(q)}</li>`).join('')}</ol>`));
-
-  // 專業邊界提醒
-  if(s.guard) card.appendChild(el('div','mb-3 text-xs text-accent flex gap-1.5',
-    `<i data-lucide="shield-alert" class="w-3.5 h-3.5 shrink-0 mt-0.5"></i><span><b>專業邊界：</b>${esc(s.guard)}</span>`));
-
-  // 口述回應區
-  const raw=c.fields[s.rawId]?.value||'';
-  const rawWrap=el('div','mb-3');
-  rawWrap.innerHTML=`<div class="text-xs font-semibold text-navy mb-1">回應區｜請直接口述</div>
-    <p class="text-xs text-navy/45 mb-1.5">${esc(s.responseHint)}</p>`;
-  const ta=el('textarea','w-full border border-navy/15 rounded-lg px-3 py-2 text-sm min-h-[90px] focus:outline-none focus:border-tealgreen');
-  ta.value=raw; ta.disabled=readOnly();
-  ta.addEventListener('input',()=>{S.saveField(c,s.rawId,ta.value,'user_input');save();});
-  rawWrap.appendChild(ta); card.appendChild(rawWrap);
-
-  // AI 整理按鈕
-  const aiBtn=el('button','inline-flex items-center gap-2 bg-navy text-ivory px-3.5 py-2 rounded-lg text-sm font-semibold hover:bg-tealdeep disabled:opacity-40',
-    `<i data-lucide="sparkles" class="w-3.5 h-3.5"></i>${st?'重新整理本節':'AI 整理本節'}（${s.task}）`);
+  const aiRow=el('div','flex items-center gap-3 mt-5');
+  const aiBtn=el('button','inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-tealdeep disabled:opacity-40',
+    `<i data-lucide="sparkles" class="w-4 h-4"></i>${st?'重新整理':'請 AI 幫我整理'}`);
   aiBtn.disabled=readOnly();
   aiBtn.addEventListener('click',()=>{
     const text=c.fields[s.rawId]?.value;
-    if(!text||!text.trim()){alert('請先在回應區口述本節內容。');return;}
+    if(!text||!text.trim()){alert('請先在回應區說說你的想法。');return;}
     const ctx={existing:{'existing.role_reason':c.fields['existing.role_reason']?.value}};
     if(s.isAnchor) ctx.anchorItems=anchorSourceItems(s.code);
     const r=AI.runSection(s.code,text,ctx);
@@ -403,24 +668,30 @@ function renderSection(s){
     for(const [fid,v] of Object.entries(r.organized_content)){
       S.saveField(c,fid,v,s.isAnchor?'ai_inference':'ai_organized',r.task_code);
     }
-    m3State().sections[s.code]={
-      inferences:r.inferences_requiring_confirmation,
-      gaps:r.information_gaps, warnings:r.warnings,
-    };
+    m3State().sections[s.code]={inferences:r.inferences_requiring_confirmation,gaps:r.information_gaps,warnings:r.warnings};
     save();render();
   });
-  card.appendChild(aiBtn);
+  aiRow.appendChild(aiBtn);
+  if(allConfirmed)aiRow.appendChild(el('span','inline-flex items-center gap-1 text-sm text-tealdeep font-semibold',
+    '<i data-lucide="check-circle" class="w-4 h-4"></i>本題已確認'));
+  area.appendChild(aiRow);
 
-  if(!st) return card;
+  if(!st) return;
 
-  // AI 提醒
-  if(st.warnings?.length) card.appendChild(el('div','mt-3 p-2.5 rounded-lg bg-accent/10 border border-accent/25 text-xs text-navy/70',
-    st.warnings.map(w=>`<div class="flex gap-1.5 mb-0.5"><i data-lucide="info" class="w-3.5 h-3.5 text-accent shrink-0 mt-0.5"></i>${esc(w)}</div>`).join('')));
+  if(st.warnings?.length)area.appendChild(el('div','mt-6 p-3.5 rounded-xl bg-accent/8 border border-accent/20 text-sm text-navy/70 leading-relaxed',
+    st.warnings.map(w=>`<div class="flex gap-2"><i data-lucide="info" class="w-4 h-4 text-accent shrink-0 mt-1"></i><span>${esc(w)}</span></div>`).join('')));
 
-  // 產出欄位逐項確認
-  const outWrap=el('div','mt-3 space-y-2.5'); card.appendChild(outWrap);
+  area.appendChild(el('div','mt-8 mb-3 flex items-center gap-2',
+    '<i data-lucide="list-checks" class="w-4 h-4 text-tealgreen"></i><span class="text-sm font-bold text-navy">AI 整理結果，請逐項確認</span>'));
+  const outWrap=el('div','space-y-3'); area.appendChild(outWrap);
   s.outputs.forEach(o=>outWrap.appendChild(outputCard(o,st)));
-  return card;
+
+  if(s.m5Outputs){
+    area.appendChild(el('div','mt-7 mb-3 flex items-center gap-2',
+      '<i data-lucide="clipboard-check" class="w-4 h-4 text-accent"></i><span class="text-sm font-bold text-navy">會用到甄選流程設計書的內容</span>'));
+    const m5Wrap=el('div','space-y-3'); area.appendChild(m5Wrap);
+    s.m5Outputs.forEach(o=>m5Wrap.appendChild(outputCard(o,st)));
+  }
 }
 
 /** 錨點小節的項目來源：取已確認的上游條目 */
@@ -432,7 +703,7 @@ function anchorSourceItems(sectionCode){
   return [];
 }
 
-// ── AI 產出欄位的確認卡 ──────────────────────────────────
+
 function outputCard(field,st){
   const fv=c.fields[field.id]; const confirmed=fv?.confirmed;
   const box=el('div',`rounded-xl border p-3.5 ${confirmed?'border-tealgreen/40 bg-white':'border-navy/12 bg-white'}`);
@@ -446,8 +717,12 @@ function outputCard(field,st){
        ${confirmed?'<span class="badge bg-tealgreen text-white">已確認</span>':''}
      </div>`));
 
-  if(field.rule) box.appendChild(el('p','text-[11px] text-navy/45 mb-2 leading-relaxed',
-    `<b class="text-tealdeep">轉換原則：</b>${esc(field.rule)}`));
+  // 轉換原則預設收起，需要時才展開，避免增加閱讀負荷
+  if(field.rule){
+    const d=el('details','ref mb-2');
+    d.innerHTML=`<summary>整理原則</summary><div class="body">${esc(field.rule)}</div>`;
+    box.appendChild(d);
+  }
 
   const body=el('div'); box.appendChild(body);
   const v=fv?.value;
@@ -461,6 +736,17 @@ function outputCard(field,st){
     body.appendChild(t);
   }else if(field.type==='textarea'){
     const t=el('textarea','w-full border border-navy/15 rounded-lg px-3 py-2 text-sm min-h-[60px] col-ai');
+    t.value=v||''; t.disabled=confirmed||readOnly();
+    t.addEventListener('input',()=>onChange(t.value));
+    body.appendChild(t);
+  }else if(field.type==='select'){
+    const sel=el('select','w-full border border-navy/15 rounded-lg px-3 py-2 text-sm bg-white col-ai');
+    sel.innerHTML='<option value="">—</option>'+(field.options||[]).map(o=>`<option ${v===o?'selected':''}>${o}</option>`).join('');
+    sel.disabled=confirmed||readOnly();
+    sel.addEventListener('change',()=>onChange(sel.value));
+    body.appendChild(sel);
+  }else if(field.type==='text'){
+    const t=el('input','w-full border border-navy/15 rounded-lg px-3 py-2 text-sm col-ai');
     t.value=v||''; t.disabled=confirmed||readOnly();
     t.addEventListener('input',()=>onChange(t.value));
     body.appendChild(t);
@@ -584,6 +870,15 @@ function anchorsEditor(field,anchors,disabled,onChange){
     head.appendChild(el('span','text-[11px] text-navy/40 shrink-0',field.itemName||'項目'));
     head.appendChild(nameInp); card.appendChild(head);
 
+    // 職能定義（表格三欄位）。L1–L5 每格本身就是行為特徵，不另立欄位。
+    const defRow=el('div','flex gap-2 items-center mb-1');
+    defRow.appendChild(el('span','text-[11px] text-navy/45 shrink-0 w-14','職能定義'));
+    const defInp=el('input','flex-1 border border-navy/15 rounded px-2 py-1 text-xs');
+    defInp.value=a.definition||''; defInp.disabled=disabled||readOnly();
+    defInp.addEventListener('input',()=>{anchors[i].definition=defInp.value;onChange(anchors);});
+    defRow.appendChild(defInp); card.appendChild(defRow);
+    card.appendChild(el('p','text-[11px] text-navy/40 mb-1',F.BARS_NOTE));
+
     F.LEVELS.forEach(L=>{
       const row=el('div','flex gap-2 items-start mb-1');
       row.appendChild(el('span','badge bg-mist text-tealdeep shrink-0 mt-1',L));
@@ -611,129 +906,124 @@ function anchorsEditor(field,anchors,disabled,onChange){
 }
 
 // ── 第五章：組織合作、溝通與人才成熟度 ────────────────────
-function renderMaturityChapter(area){
+// ── 第五章：一個成熟度維度一頁 ──
+function renderMaturityDim(area,d){
+  thinkHeader(area,{eyebrow:`人才成熟度 · ${d.code}`,title:d.name,icon:'trending-up'});
+  area.appendChild(el('p','text-[15px] text-navy/60 leading-loose mb-7 -mt-4',esc(d.definition)));
+
+  questionBlock(area,d.questions);
+
+  refBlock(area,'參考：這個維度的泛用五級',
+    F.LEVELS.map(L=>`<div style="margin-bottom:6px"><b style="color:#136E68">${L}</b>　${esc(d.generic[L])}</div>`).join(''));
+
+  answerBlock(area,'m3._raw_'+d.code.replace('.','_'),'請說明實際工作情境、期待行為及等級理由。');
+
+  if(d.note)area.appendChild(el('p','mt-4 text-sm text-navy/50 leading-loose flex gap-2',
+    `<i data-lucide="info" class="w-4 h-4 shrink-0 mt-1"></i><span>${esc(d.note)}</span>`));
+}
+
+// ── 5.6 彙整：五個維度一起確認 ──
+function renderMaturityAggregate(area){
   const st=m3State();
-  const wrap=el('section','mb-6');
-  wrap.appendChild(el('div','mb-3',
-    `<h2 class="text-lg font-black text-navy">第五章　組織合作、溝通與人才成熟度</h2>
-     <p class="text-sm text-navy/55 mt-0.5">五個維度、泛用五級參考。評估的是會隨經驗發展的心智成熟度，<b>不是用固定人格特質貼標籤</b>。等級越高不代表越適合。</p>`));
+  thinkHeader(area,{eyebrow:'人才成熟度 · 5.6',title:'彙整五個維度',icon:'layers'});
+  area.appendChild(el('p','text-[15px] text-navy/60 leading-loose mb-7 -mt-4',
+    '五個維度都會寫進職務說明書；等級進甄選流程設計書；最後再從中挑三個放進對外 JD。'));
 
-  F.MATURITY_DIMENSIONS.forEach(d=>{
-    const card=el('div','rounded-2xl border border-navy/10 bg-white p-5 mb-3');
-    card.appendChild(el('div','mb-2',
-      `<div class="text-[11px] tracking-[2px] text-tealdeep font-bold">${d.code}</div>
-       <div class="font-bold text-navy text-[15px]">${d.name}</div>
-       <p class="text-sm text-navy/60 mt-1">${esc(d.definition)}</p>`));
-
-    // 泛用五級參考（唯讀）
-    card.appendChild(el('div','mb-3 p-3 rounded-xl bg-mist/30 border border-navy/10',
-      `<div class="text-xs font-bold text-tealdeep mb-1.5">泛用五級參考</div>
-       ${F.LEVELS.map(L=>`<div class="text-xs text-navy/70 mb-0.5"><span class="badge bg-white text-tealdeep mr-1">${L}</span>${esc(d.generic[L])}</div>`).join('')}`));
-
-    card.appendChild(el('div','mb-3 p-3.5 rounded-xl bg-mist/40 border border-navy/10',
-      `<div class="text-xs font-bold text-tealdeep mb-1.5">核心引導問題</div>
-       <ol class="text-sm text-navy/75 space-y-1 list-decimal ml-4">${d.questions.map(q=>`<li>${esc(q)}</li>`).join('')}</ol>`));
-
-    if(d.note) card.appendChild(el('div','mb-2 text-xs text-accent flex gap-1.5',
-      `<i data-lucide="shield-alert" class="w-3.5 h-3.5 shrink-0 mt-0.5"></i>${esc(d.note)}`));
-
-    const rawId='m3._raw_'+d.code.replace('.','_');
-    const t=el('textarea','w-full border border-navy/15 rounded-lg px-3 py-2 text-sm min-h-[70px]');
-    t.placeholder='請說明實際工作情境、期待行為及等級理由。';
-    t.value=c.fields[rawId]?.value||''; t.disabled=readOnly();
-    t.addEventListener('input',()=>{S.saveField(c,rawId,t.value,'user_input');save();});
-    card.appendChild(el('div','text-xs font-semibold text-navy mb-1','回應區｜請直接口述'));
-    card.appendChild(t);
-    wrap.appendChild(card);
-  });
-
-  // AI 彙整產出
-  const genWrap=el('div','rounded-2xl border border-navy/10 bg-white p-5');
-  genWrap.appendChild(el('div','font-bold text-navy mb-1','5.6　AI 彙整產出'));
-  genWrap.appendChild(el('ul','text-[11px] text-navy/50 list-disc ml-4 mb-3 space-y-0.5',
-    F.MATURITY_RULES.map(r=>`<li>${esc(r)}</li>`).join('')));
-  const genBtn=el('button','inline-flex items-center gap-2 bg-tealgreen text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-40',
-    '<i data-lucide="layers" class="w-4 h-4"></i>彙整五維度錨點（M3-09）');
+  const genBtn=el('button','inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-tealdeep disabled:opacity-40',
+    '<i data-lucide="sparkles" class="w-4 h-4"></i>請 AI 幫我彙整');
   genBtn.disabled=readOnly();
   genBtn.addEventListener('click',()=>{
     const raws={};
     F.MATURITY_DIMENSIONS.forEach(d=>{raws[d.code]=c.fields['m3._raw_'+d.code.replace('.','_')]?.value||'';});
-    const r=AI.runMaturity(raws); S.recordAiJob(c,'M3-09');
+    const r=AI.runMaturity(raws,c.fields['m3.maturity_anchors']?.value||[]); S.recordAiJob(c,'M3-09');
     S.saveField(c,'m3.maturity_anchors',r.organized_content['m3.maturity_anchors'],'ai_inference','M3-09');
     st.sections['5.6']={inferences:r.inferences_requiring_confirmation,gaps:r.information_gaps,warnings:r.warnings};
     save();render();
   });
-  genWrap.appendChild(genBtn);
+  area.appendChild(genBtn);
 
   const mst=st.sections['5.6'];
-  if(mst){
-    if(mst.gaps?.length) mst.gaps.forEach(g=>genWrap.appendChild(
-      el('div','mt-2 text-[11px] text-navy/55 flex gap-1.5',`<i data-lucide="help-circle" class="w-3.5 h-3.5 shrink-0 mt-0.5"></i>缺口：${esc(g.message)}`)));
-    const anchors=c.fields['m3.maturity_anchors']?.value||[];
-    const confirmed=c.fields['m3.maturity_anchors']?.confirmed;
-    const box=el('div','mt-4 space-y-2'); genWrap.appendChild(box);
-    anchors.forEach((a,i)=>{
-      const card=el('div','border border-navy/12 rounded-xl p-3');
-      card.appendChild(el('div','font-semibold text-navy text-sm mb-2',esc(a.competency)));
-      // 為什麼需要（人工）
-      const whyWrap=el('div','mb-2');
-      whyWrap.innerHTML='<div class="text-[11px] font-semibold text-accent mb-1">為什麼需要這個範圍（人工填寫）</div>';
-      const why=el('input','w-full border border-navy/15 rounded px-2 py-1 text-xs');
-      why.value=a.why||''; why.disabled=confirmed||readOnly();
-      why.addEventListener('input',()=>{anchors[i].why=why.value;S.saveField(c,'m3.maturity_anchors',anchors,'ai_inference','M3-09');save();});
-      whyWrap.appendChild(why); card.appendChild(whyWrap);
-      F.LEVELS.forEach(L=>{
-        const row=el('div','flex gap-2 items-start mb-1');
-        row.appendChild(el('span','badge bg-mist text-tealdeep shrink-0 mt-1',L));
-        const ta2=el('textarea','flex-1 border border-navy/15 rounded px-2 py-1 text-xs min-h-[32px]');
-        ta2.value=a[L]||''; ta2.disabled=confirmed||readOnly();
-        ta2.addEventListener('input',()=>{anchors[i][L]=ta2.value;S.saveField(c,'m3.maturity_anchors',anchors,'ai_inference','M3-09');save();});
-        row.appendChild(ta2); card.appendChild(row);
-      });
-      const lv=el('div','flex flex-wrap gap-3 items-center mt-2 pt-2 border-t border-navy/10');
-      lv.appendChild(el('span','text-accent font-semibold text-xs','人工決定：'));
-      [['minimum_level','最低可接受'],['ideal_level','理想／最高需要']].forEach(([key,label])=>{
-        const w=el('label','flex items-center gap-1 text-xs');
-        w.appendChild(el('span','text-navy/60',label));
-        const sel=el('select','border border-navy/15 rounded px-2 py-1 bg-white text-xs');
-        sel.innerHTML='<option value="">—</option>'+F.LEVELS.map(L=>`<option ${a[key]===L?'selected':''}>${L}</option>`).join('');
-        sel.disabled=confirmed||readOnly();
-        sel.addEventListener('change',()=>{anchors[i][key]=sel.value;S.saveField(c,'m3.maturity_anchors',anchors,'ai_inference','M3-09');save();render();});
-        w.appendChild(sel); lv.appendChild(w);
-      });
-      card.appendChild(lv); box.appendChild(card);
+  if(!mst) return;
+
+  if(mst.warnings?.length)area.appendChild(el('div','mt-6 p-3.5 rounded-xl bg-accent/8 border border-accent/20 text-sm text-navy/70 leading-relaxed',
+    mst.warnings.map(w=>`<div class="flex gap-2 mb-1"><i data-lucide="info" class="w-4 h-4 text-accent shrink-0 mt-1"></i><span>${esc(w)}</span></div>`).join('')));
+  (mst.gaps||[]).forEach(g=>area.appendChild(el('div','mt-2 text-sm text-navy/55 flex gap-2',
+    `<i data-lucide="help-circle" class="w-4 h-4 shrink-0 mt-1"></i><span>${esc(g.message)}</span>`)));
+
+  const anchors=c.fields['m3.maturity_anchors']?.value||[];
+  const confirmed=c.fields['m3.maturity_anchors']?.confirmed;
+  const box=el('div','mt-7 space-y-3'); area.appendChild(box);
+
+  anchors.forEach((a,i)=>{
+    const card=el('div','border border-navy/12 rounded-xl p-4 bg-white');
+    const head=el('div','flex items-center justify-between gap-2 mb-3');
+    head.appendChild(el('span','font-bold text-navy',esc(a.competency)));
+    const selRow=el('label','flex items-center gap-1.5 cursor-pointer shrink-0');
+    const chk=el('input'); chk.type='checkbox'; chk.className='accent-accent w-4 h-4';
+    chk.checked=!!a.jd_selected; chk.disabled=confirmed||readOnly();
+    chk.addEventListener('change',()=>{anchors[i].jd_selected=chk.checked;S.saveField(c,'m3.maturity_anchors',anchors,'ai_inference','M3-09');save();render();});
+    selRow.appendChild(chk);
+    selRow.appendChild(el('span','text-xs text-accent font-semibold','放進對外 JD'));
+    head.appendChild(selRow); card.appendChild(head);
+
+    const fields=[
+      ['description','需要具備的內容與想法（會寫進職務說明書）','textarea'],
+      ['why','為什麼需要這個範圍','input'],
+    ];
+    fields.forEach(([key,label,type])=>{
+      const w=el('div','mb-3');
+      w.innerHTML=`<div class="text-xs font-semibold text-tealdeep mb-1.5">${label}</div>`;
+      const inp=el(type==='textarea'?'textarea':'input','w-full border border-navy/15 rounded-lg px-3 py-2 text-sm leading-relaxed'+(type==='textarea'?' min-h-[64px]':''));
+      inp.value=a[key]||''; inp.disabled=confirmed||readOnly();
+      inp.addEventListener('input',()=>{anchors[i][key]=inp.value;S.saveField(c,'m3.maturity_anchors',anchors,'ai_inference','M3-09');save();});
+      w.appendChild(inp); card.appendChild(w);
     });
-    const ready=anchors.length&&anchors.every(a=>a.minimum_level&&a.ideal_level&&a.why);
-    if(!confirmed){
-      const cf=el('button',`mt-3 px-4 py-2 rounded-lg text-sm font-semibold ${ready?'bg-tealgreen text-white':'bg-navy/15 text-navy/40'}`,'確認五維度錨點與等級');
-      cf.disabled=!ready||readOnly();
-      cf.addEventListener('click',()=>{S.confirmField(c,'m3.maturity_anchors');save();render();});
-      genWrap.appendChild(cf);
-      if(!ready)genWrap.appendChild(el('p','text-[11px] text-accent mt-1','每個維度都需填寫「為什麼需要」並選定最低與理想等級。'));
-    }else{
-      genWrap.appendChild(el('div','mt-3 text-sm text-tealdeep font-semibold flex items-center gap-1','<i data-lucide="check" class="w-4 h-4"></i>五維度錨點與等級已確認'));
-    }
+
+    const lvDetails=el('details','ref mb-3');
+    lvDetails.innerHTML=`<summary>五級行為錨點</summary>`;
+    const lvBody=el('div','body space-y-1.5');
+    F.LEVELS.forEach(L=>{
+      const row=el('div','flex gap-2 items-start');
+      row.appendChild(el('span','badge bg-mist text-tealdeep shrink-0 mt-1',L));
+      const t=el('textarea','flex-1 border border-navy/15 rounded px-2 py-1 text-xs min-h-[34px] leading-relaxed');
+      t.value=a[L]||''; t.disabled=confirmed||readOnly();
+      t.addEventListener('input',()=>{anchors[i][L]=t.value;S.saveField(c,'m3.maturity_anchors',anchors,'ai_inference','M3-09');save();});
+      row.appendChild(t); lvBody.appendChild(row);
+    });
+    lvDetails.appendChild(lvBody); card.appendChild(lvDetails);
+
+    const lv=el('div','flex flex-wrap gap-4 items-center pt-3 border-t border-navy/10');
+    lv.appendChild(el('span','text-accent font-semibold text-xs','人工決定：'));
+    [['minimum_level','最低可接受'],['ideal_level','理想／最高需要']].forEach(([key,label])=>{
+      const w=el('label','flex items-center gap-1.5 text-xs');
+      w.appendChild(el('span','text-navy/60',label));
+      const sel=el('select','border border-navy/15 rounded px-2 py-1 bg-white text-xs');
+      sel.innerHTML='<option value="">—</option>'+F.LEVELS.map(L=>`<option ${a[key]===L?'selected':''}>${L}</option>`).join('');
+      sel.disabled=confirmed||readOnly();
+      sel.addEventListener('change',()=>{anchors[i][key]=sel.value;S.saveField(c,'m3.maturity_anchors',anchors,'ai_inference','M3-09');save();render();});
+      w.appendChild(sel); lv.appendChild(w);
+    });
+    card.appendChild(lv);
+    box.appendChild(card);
+  });
+
+  const jdSel=anchors.filter(a=>a.jd_selected);
+  const incomplete=anchors.filter(a=>!(a.minimum_level&&a.ideal_level&&a.why&&a.description));
+  const ready=anchors.length===5&&incomplete.length===0&&jdSel.length>0;
+  if(!confirmed){
+    const cf=el('button',`mt-5 px-5 py-2.5 rounded-lg text-sm font-semibold ${ready?'bg-tealgreen text-white':'bg-navy/15 text-navy/40'}`,'確認五個維度');
+    cf.disabled=!ready||readOnly();
+    cf.addEventListener('click',()=>{S.confirmField(c,'m3.maturity_anchors');save();render();});
+    area.appendChild(cf);
+    if(incomplete.length)area.appendChild(el('p','text-xs text-accent mt-2 leading-relaxed',
+      `尚未填齊：${incomplete.map(a=>esc(a.competency)).join('、')}`));
+    else if(!jdSel.length)area.appendChild(el('p','text-xs text-accent mt-2',`請勾選要放進對外 JD 的維度（挑 ${F.JD_TRAIT_COUNT} 個）。`));
+  }else{
+    area.appendChild(el('div','mt-5 text-sm text-tealdeep font-semibold flex items-center gap-1.5',
+      `<i data-lucide="check-circle" class="w-4 h-4"></i>五個維度已確認，其中 ${jdSel.length} 個會放進對外 JD`));
   }
-  wrap.appendChild(genWrap);
-  area.appendChild(wrap);
 }
 
-
-/** 取出所有已確認的 M3 欄位值（供 M4/M5/M6 組裝） */
-function confirmedM3(){
-  const out={};
-  [...F.m3OutputFields().map(f=>f.id),'m3.maturity_anchors'].forEach(id=>{
-    if(S.isConfirmed(c,id)) out[id]=c.fields[id].value;
-  });
-  ['m5.candidate_process_info','m5.process_steps'].forEach(id=>{
-    if(c.fields[id]?.value) out[id]=c.fields[id].value;
-  });
-  return out;
-}
-/** 三張錨點表合併成職能清單 */
-function allAnchors(){
-  return F.ANCHOR_FIELD_IDS.flatMap(id=>c.fields[id]?.value||[]);
-}
 
 // ═══════════ M4 職務說明書 ═══════════
 function renderM4(area){
@@ -756,7 +1046,7 @@ function renderM4(area){
   infoWrap.appendChild(grid); area.appendChild(infoWrap);
 
   // 依已確認 M3 組裝預覽
-  const genBtn=el('button','inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2.5 rounded-lg font-semibold hover:bg-tealdeep mb-4','<i data-lucide="file-text" class="w-4 h-4"></i>依已確認 M3 組裝職務說明書（M4-01）');
+  const genBtn=el('button','inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2.5 rounded-lg font-semibold hover:bg-tealdeep mb-4','<i data-lucide="file-text" class="w-4 h-4"></i>依已確認內容組裝職務說明書');
   genBtn.disabled=readOnly();
   area.appendChild(genBtn);
   const preview=el('div'); area.appendChild(preview);
@@ -783,7 +1073,7 @@ function renderM4(area){
         ${sec('6.2 工具與專業技術',L(['m3.required_tools','m3.professional_methods','m3.work_methods']))}
         ${sec('6.3 核心判斷與工作原則',L(['m3.core_judgments','m3.work_principles','m3.high_risk_escalations']))}
         ${sec('6.4 品質、責任與倫理',L(['m3.quality_requirements','m3.error_responsibility','m3.ethics_nonnegotiables']))}
-        ${sec('6.5 人才成熟度',(confirmed['m3.maturity_anchors']||[]).map(m=>`${m.competency}（最低 ${m.minimum_level||'—'}）`))}
+        ${sec('6.5 人才成熟度（五個維度全寫·不含等級）',(confirmed['m3.maturity_anchors']||[]).map(m=>m.competency))}
       </div>`));
     const cf=el('button','mt-4 bg-tealgreen text-white px-4 py-2 rounded-lg font-semibold','確認職務說明書，進入甄選流程');
     cf.disabled=readOnly();
@@ -816,7 +1106,7 @@ function renderM5(area){
   });
   infoWrap.appendChild(grid);area.appendChild(infoWrap);
 
-  const genBtn=el('button','inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2.5 rounded-lg font-semibold hover:bg-tealdeep mb-4','<i data-lucide="list-checks" class="w-4 h-4"></i>產生甄選建議（M5-01 · 02 · 03）');
+  const genBtn=el('button','inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2.5 rounded-lg font-semibold hover:bg-tealdeep mb-4','<i data-lucide="list-checks" class="w-4 h-4"></i>產生甄選流程建議');
   genBtn.disabled=readOnly();
   area.appendChild(genBtn);
   const preview=el('div');area.appendChild(preview);
@@ -848,7 +1138,7 @@ function renderM6(area){
   moduleHeader(area,'m6');
   const ready=S.getModuleStatus(c,'m4')==='confirmed'&&S.getModuleStatus(c,'m5')==='confirmed';
   if(!ready){area.appendChild(el('div','p-4 rounded-xl bg-accent/10 border border-accent/30 text-sm text-navy/70','JD 必須等職務說明書與甄選流程設計書都確認後才能產生。'));return;}
-  const genBtn=el('button','inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2.5 rounded-lg font-semibold hover:bg-tealdeep mb-4','<i data-lucide="megaphone" class="w-4 h-4"></i>產生候選人版 JD（M6-01）');
+  const genBtn=el('button','inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2.5 rounded-lg font-semibold hover:bg-tealdeep mb-4','<i data-lucide="megaphone" class="w-4 h-4"></i>產生候選人版 JD');
   genBtn.disabled=readOnly();
   area.appendChild(genBtn);
   const preview=el('div');area.appendChild(preview);

@@ -22,17 +22,20 @@ tailwind.config = { theme: { extend: {
 <style>
   body{background:#FBF8F2;color:#142033;}
   h1,h2,.serif{font-family:"Noto Serif TC",serif;}
-  .card{transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;}
-  .card:hover{transform:translateY(-2px); box-shadow:0 14px 34px -18px #14203344; border-color:#1E918866;}
   dialog::backdrop{background:rgba(20,32,51,.45);}
   .badge{font-size:11px;padding:2px 10px;border-radius:999px;font-weight:600;}
+  .row:hover{background:#DCECEF33;}
+  .row:hover .row-del{opacity:1;}
+  .row-del{opacity:0;transition:opacity .15s ease;}
+  .pathcard{transition:border-color .15s ease, background .15s ease;}
+  .pathcard:hover{border-color:#1E918899;background:#DCECEF33;}
+  .pathcard.on{border-color:#1E9188;background:#DCECEF66;}
 </style>
 </head>
 <body class="min-h-screen font-sans">
 
-<!-- 頁首 -->
 <header class="border-b border-navy/10 bg-ivory/80 backdrop-blur sticky top-0 z-30">
-  <div class="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
+  <div class="max-w-5xl mx-auto px-5 h-16 flex items-center justify-between">
     <div class="flex items-center gap-3">
       <div class="w-9 h-9 rounded-lg bg-navy text-ivory grid place-items-center font-black serif">原</div>
       <div>
@@ -40,72 +43,101 @@ tailwind.config = { theme: { extend: {
         <div class="text-[11px] text-navy/50 leading-tight">原味藍圖 · 組織工具 Beta</div>
       </div>
     </div>
-    <div class="flex items-center gap-3">
-      <div class="flex items-center gap-1 bg-white rounded-full p-1 border border-navy/10 text-sm" id="identitySwitch">
-        <button data-role="student" class="px-3 py-1 rounded-full">學員</button>
-        <button data-role="instructor" class="px-3 py-1 rounded-full">講師</button>
-      </div>
+    <div class="flex items-center gap-1 bg-white rounded-full p-1 border border-navy/10 text-sm" id="identitySwitch">
+      <button data-role="student" class="px-3 py-1 rounded-full">學員</button>
+      <button data-role="instructor" class="px-3 py-1 rounded-full">講師</button>
     </div>
   </div>
 </header>
 
-<main class="max-w-6xl mx-auto px-5 py-8">
+<main class="max-w-5xl mx-auto px-5 py-8">
 
-  <!-- 說明條 -->
   <section class="mb-7">
-    <div class="text-[12px] tracking-[2px] text-tealdeep font-semibold mb-1">既有職務優化 · 路徑 B</div>
-    <h1 class="text-3xl font-black text-navy mb-2">把既有職務，整理成能用的規格與甄選文件</h1>
-    <p class="text-navy/60 max-w-2xl leading-relaxed">口述你手上的職務 → AI 幫你整理與檢查 → 你逐項確認 → 產出職務說明書、甄選流程與 JD，最後合併成一份 Word。AI 只整理與提問，<strong class="text-navy">要不要建立、最低標準、發布內容，都由人決定</strong>。</p>
+    <h1 class="text-3xl font-black text-navy mb-2">把職務想清楚，再開始找人</h1>
+    <p class="text-navy/60 max-w-2xl leading-relaxed">口述你手上的狀況 → AI 幫你整理與檢查 → 你逐項確認 → 產出職務說明書、甄選流程與 JD。AI 只整理與提問，<strong class="text-navy">要不要建立、最低標準、發布內容，都由人決定</strong>。</p>
   </section>
 
-  <!-- 工具列 -->
-  <div class="flex items-center justify-between mb-4">
+  <div class="flex items-center justify-between gap-3 mb-3">
     <div class="text-sm text-navy/50" id="caseCount">—</div>
     <div class="flex items-center gap-2">
-      <button id="seedDemoBtn" class="inline-flex items-center gap-2 bg-white border border-tealgreen/40 text-tealdeep px-4 py-2.5 rounded-lg font-semibold hover:bg-mist/50 transition" title="全部填好、可直接走完六模組並下載">
-        <i data-lucide="presentation" class="w-4 h-4"></i>示範①　完整流程
-      </button>
-      <button id="seedContraBtn" class="inline-flex items-center gap-2 bg-white border border-accent/50 text-accent px-4 py-2.5 rounded-lg font-semibold hover:bg-accent/5 transition" title="示範系統偵測權責矛盾、把決定權交還給人">
-        <i data-lucide="alert-triangle" class="w-4 h-4"></i>示範②　權責矛盾
-      </button>
-      <button id="newCaseBtn" class="inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2.5 rounded-lg font-semibold hover:bg-tealdeep transition">
+      <div class="relative">
+        <button id="demoBtn" class="inline-flex items-center gap-1.5 bg-white border border-navy/20 text-navy px-3.5 py-2 rounded-lg text-sm font-semibold hover:border-tealgreen/60 transition">
+          <i data-lucide="presentation" class="w-4 h-4"></i>載入示範案例<i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+        </button>
+        <div id="demoMenu" class="hidden absolute right-0 mt-1 w-72 bg-white border border-navy/15 rounded-xl shadow-lg overflow-hidden z-20">
+          <button data-demo="full" class="w-full text-left px-4 py-3 hover:bg-mist/40 border-b border-navy/8">
+            <div class="font-semibold text-sm text-navy">完整流程</div>
+            <div class="text-xs text-navy/50 mt-0.5">職務優化 · 全部填好，可直接下載</div>
+          </button>
+          <button data-demo="contra" class="w-full text-left px-4 py-3 hover:bg-mist/40 border-b border-navy/8">
+            <div class="font-semibold text-sm text-navy">權責矛盾</div>
+            <div class="text-xs text-navy/50 mt-0.5">現場按檢查，示範系統如何擋下來</div>
+          </button>
+          <button data-demo="patha" class="w-full text-left px-4 py-3 hover:bg-mist/40">
+            <div class="font-semibold text-sm text-navy">完整職務設計</div>
+            <div class="text-xs text-navy/50 mt-0.5">從問題釐清開始的完整流程</div>
+          </button>
+        </div>
+      </div>
+      <button id="newCaseBtn" class="inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2 rounded-lg text-sm font-semibold hover:bg-tealdeep transition">
         <i data-lucide="plus" class="w-4 h-4"></i>建立新案例
       </button>
     </div>
   </div>
 
-  <!-- 案例列表 -->
-  <div id="caseList" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+  <!-- 列表 -->
+  <div id="caseList" class="bg-white rounded-2xl border border-navy/10 overflow-hidden"></div>
 
-  <!-- 空狀態 -->
   <div id="emptyState" class="hidden text-center py-20 border-2 border-dashed border-navy/15 rounded-2xl">
     <i data-lucide="folder-open" class="w-10 h-10 mx-auto text-navy/30 mb-3"></i>
-    <p class="text-navy/50 mb-4">還沒有案例，建立第一個既有職務優化案例吧。</p>
+    <p class="text-navy/50 mb-4">還沒有案例。</p>
     <button class="newCaseBtn2 bg-tealgreen text-white px-4 py-2 rounded-lg font-semibold">建立新案例</button>
   </div>
 </main>
 
-<!-- 建立案例對話框 -->
-<dialog id="caseDialog" class="rounded-2xl p-0 w-[92vw] max-w-lg backdrop:backdrop-blur">
-  <form method="dialog" id="caseForm" class="p-6">
-    <h2 class="text-xl font-bold text-navy mb-1">建立新案例</h2>
-    <p class="text-sm text-navy/50 mb-5">路徑：既有職務優化（路徑 B）</p>
-    <div id="caseFormFields" class="space-y-4"></div>
-    <div class="flex justify-end gap-2 mt-6">
-      <button value="cancel" class="px-4 py-2 rounded-lg text-navy/60 hover:bg-navy/5">取消</button>
-      <button value="ok" id="caseCreateBtn" class="px-5 py-2 rounded-lg bg-navy text-ivory font-semibold hover:bg-tealdeep">建立</button>
+<!-- 建立案例：兩步驟 -->
+<dialog id="caseDialog" class="rounded-2xl p-0 w-[92vw] max-w-2xl">
+  <div class="p-6">
+    <!-- 第 1 步：選路徑 -->
+    <div id="step1">
+      <div class="text-[11px] tracking-[2px] text-tealdeep font-bold mb-1">建立案例 · 第 1 步</div>
+      <h2 class="text-xl font-bold text-navy mb-4">你想從哪裡開始？</h2>
+      <div id="pathChoices" class="grid sm:grid-cols-2 gap-3"></div>
+      <p class="text-xs text-navy/45 mt-3">選錯了也沒關係。之後系統若發現權責矛盾，會提醒你改走另一條，但不會自己切換。</p>
+      <div class="flex justify-end gap-2 mt-5">
+        <button id="cancel1" class="px-4 py-2 rounded-lg text-navy/60 hover:bg-navy/5">取消</button>
+        <button id="toStep2" class="px-5 py-2 rounded-lg bg-navy/20 text-navy/40 font-semibold" disabled>下一步</button>
+      </div>
     </div>
-  </form>
+
+    <!-- 第 2 步：基本資料 -->
+    <div id="step2" class="hidden">
+      <div class="text-[11px] tracking-[2px] text-tealdeep font-bold mb-1">建立案例 · 第 2 步</div>
+      <h2 class="text-xl font-bold text-navy mb-1">這個案例的基本資料</h2>
+      <p class="text-sm text-navy/50 mb-4" id="chosenPathLabel"></p>
+      <form id="caseForm">
+        <div id="caseFormFields" class="space-y-4"></div>
+        <div class="flex justify-between gap-2 mt-6">
+          <button type="button" id="backTo1" class="px-4 py-2 rounded-lg text-navy/60 hover:bg-navy/5">← 上一步</button>
+          <div class="flex gap-2">
+            <button type="button" id="cancel2" class="px-4 py-2 rounded-lg text-navy/60 hover:bg-navy/5">取消</button>
+            <button type="submit" class="px-5 py-2 rounded-lg bg-navy text-ivory font-semibold hover:bg-tealdeep">建立案例</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
 </dialog>
 
 <script type="module">
-import { CASE_FIELDS } from './jd-fields.js';
+import { CASE_FIELDS, PATHS, pathName } from './jd-fields.js';
 import { listCases, createCase, deleteCase, getIdentity, setIdentity, getModuleStatus } from './jd-store.js';
 import { countPending } from './jd-word.js';
-import { seedDemoCase, seedContradictionCase } from './jd-seed.js';
+import { seedDemoCase, seedContradictionCase, seedPathACase } from './jd-seed.js';
 
 const $ = (s, r=document) => r.querySelector(s);
 const el = (t, cls, html) => { const e=document.createElement(t); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e; };
+const escapeHtml = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 // ── 身分切換 ──
 function paintIdentity(){
@@ -120,63 +152,109 @@ document.querySelectorAll('#identitySwitch button').forEach(b=>{
   b.addEventListener('click', ()=>{ setIdentity(b.dataset.role); paintIdentity(); });
 });
 
-// ── 案例列表 ──
+// ── 示範下拉 ──
+const demoMenu = $('#demoMenu');
+$('#demoBtn').addEventListener('click', e=>{ e.stopPropagation(); demoMenu.classList.toggle('hidden'); });
+document.addEventListener('click', ()=>demoMenu.classList.add('hidden'));
+demoMenu.addEventListener('click', e=>e.stopPropagation());
+demoMenu.querySelectorAll('[data-demo]').forEach(b=>b.addEventListener('click',()=>{
+  const fn = { full: seedDemoCase, contra: seedContradictionCase, patha: seedPathACase }[b.dataset.demo];
+  location.href = './case.html?caseId=' + fn();
+}));
+
+// ── 列表 ──
 const STATUS_STYLE = {
-  active:['進行中','bg-mist text-tealdeep'],
-  submitted:['已提交','bg-mist text-tealdeep'],
-  output_ready:['可產出','bg-tealgreen/15 text-tealdeep'],
-  downloaded_grace:['已下載·倒數中','bg-accent/15 text-accent'],
-  closed:['已關閉','bg-navy/10 text-navy/50'],
-  reopened:['重新開放','bg-accent/15 text-accent'],
+  active:['進行中','text-navy/60','bg-tealgreen'],
+  submitted:['已提交','text-navy/60','bg-tealgreen'],
+  output_ready:['可產出','text-tealdeep','bg-tealgreen'],
+  downloaded_grace:['倒數中','text-accent','bg-accent'],
+  closed:['已關閉','text-navy/40','bg-navy/30'],
+  reopened:['重新開放','text-accent','bg-accent'],
 };
-const MODS = [['existing','基礎確認'],['m3','M3 規格'],['m4','職務說明書'],['m5','甄選流程'],['m6','JD']];
+const FLOW = { existing_role_focus:[['existing'],['m3'],['m4'],['m5'],['m6']],
+               full_design:[['m1'],['m2'],['m3'],['m4'],['m5'],['m6']] };
 
 function progressOf(c){
-  const done = MODS.filter(([m])=>getModuleStatus(c,m)==='confirmed').length;
-  return Math.round(done/MODS.length*100);
+  const steps = (FLOW[c.path_type]||FLOW.existing_role_focus).flat();
+  const done = steps.filter(m=>getModuleStatus(c,m)==='confirmed').length;
+  return Math.round(done/steps.length*100);
 }
 
 function render(){
   const cases = listCases();
   $('#caseCount').textContent = cases.length ? `${cases.length} 個案例` : '';
-  const list = $('#caseList'); list.innerHTML='';
+  const list = $('#caseList');
+  list.innerHTML='';
+  list.classList.toggle('hidden', cases.length===0);
   $('#emptyState').classList.toggle('hidden', cases.length>0);
-  for(const c of cases){
-    const [label, style] = STATUS_STYLE[c.overall_status] || STATUS_STYLE.active;
+
+  cases.forEach((c,i)=>{
+    const [label, textCls, barCls] = STATUS_STYLE[c.overall_status] || STATUS_STYLE.active;
+    const pct = progressOf(c);
     const pending = countPending(c);
-    const card = el('div','card bg-white rounded-2xl border border-navy/10 p-5 flex flex-col');
-    card.innerHTML = `
-      <div class="flex items-start justify-between gap-2 mb-2">
-        <h3 class="font-bold text-navy leading-snug">${c.is_demo?'<span class="badge bg-tealgreen text-white mr-1">示範</span>':''}${escapeHtml(c.fields['case.title']?.value||'未命名案例')}</h3>
-        <span class="badge ${style} whitespace-nowrap">${label}</span>
+    const row = el('div', `row flex items-center gap-3 px-4 py-3 ${i<cases.length-1?'border-b border-navy/8':''}`);
+    row.innerHTML = `
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-1.5">
+          ${c.is_demo?'<span class="badge bg-tealgreen text-white shrink-0">示範</span>':''}
+          <span class="font-semibold text-navy truncate">${escapeHtml(c.fields['case.title']?.value||'未命名案例')}</span>
+        </div>
+        <div class="text-xs text-navy/45 truncate mt-0.5">${escapeHtml(c.fields['case.organization_name']?.value||'')} · ${escapeHtml(c.fields['case.job_title_working']?.value||'—')}</div>
       </div>
-      <div class="text-sm text-navy/55 mb-1">${escapeHtml(c.fields['case.organization_name']?.value||'')}</div>
-      <div class="text-xs text-navy/40 mb-4">職務：${escapeHtml(c.fields['case.job_title_working']?.value||'—')}</div>
-      <div class="mt-auto">
-        <div class="flex items-center justify-between text-[11px] text-navy/50 mb-1">
-          <span>完成度 ${progressOf(c)}%</span>
-          <span>${pending?`${pending} 項待確認`:'無待確認'}</span>
-        </div>
-        <div class="h-1.5 bg-navy/10 rounded-full overflow-hidden mb-4">
-          <div class="h-full bg-tealgreen" style="width:${progressOf(c)}%"></div>
-        </div>
-        <div class="flex gap-2">
-          <a href="./case.html?caseId=${c.case_id}" class="flex-1 text-center bg-navy text-ivory py-2 rounded-lg text-sm font-semibold hover:bg-tealdeep">繼續</a>
-          <button data-del="${c.case_id}" class="px-3 py-2 rounded-lg text-navy/40 hover:text-accent hover:bg-accent/10" title="刪除案例"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-        </div>
-      </div>`;
-    list.appendChild(card);
-  }
-  list.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{
+      <span class="text-xs text-navy/55 whitespace-nowrap">${pathName(c.path_type)}</span>
+      <span class="text-xs ${textCls} whitespace-nowrap w-14 text-right">${label}</span>
+      <div class="hidden sm:block w-16" title="完成度 ${pct}%${pending?`，${pending} 項待確認`:''}">
+        <div class="h-1 bg-navy/10 rounded-full overflow-hidden"><div class="h-full ${barCls}" style="width:${pct}%"></div></div>
+      </div>
+      <button data-del="${c.case_id}" class="row-del p-1.5 rounded-lg text-navy/35 hover:text-accent hover:bg-accent/10" title="刪除案例" aria-label="刪除案例"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+      <a href="./case.html?caseId=${c.case_id}" class="p-1 text-navy/40 hover:text-tealdeep" aria-label="開啟案例"><i data-lucide="chevron-right" class="w-5 h-5"></i></a>`;
+    row.addEventListener('click', e=>{
+      if(e.target.closest('[data-del]')||e.target.closest('a')) return;
+      location.href='./case.html?caseId='+c.case_id;
+    });
+    row.style.cursor='pointer';
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation();
     if(confirm('確定刪除此案例？此動作無法復原。')){ deleteCase(b.dataset.del); render(); }
   }));
   if(window.lucide) lucide.createIcons();
 }
 
-function escapeHtml(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-
-// ── 建立案例對話框 ──
+// ── 建立案例：兩步驟 ──
 const dialog = $('#caseDialog');
+let chosenPath = null;
+
+function buildPathChoices(){
+  const wrap = $('#pathChoices'); wrap.innerHTML='';
+  Object.values(PATHS).forEach(p=>{
+    const card = el('button', 'pathcard text-left border-2 border-navy/12 rounded-xl p-4 bg-white');
+    card.type='button';
+    card.dataset.path = p.key;
+    card.innerHTML = `
+      <div class="flex items-center gap-2 mb-1.5">
+        <i data-lucide="${p.icon}" class="w-5 h-5 text-tealdeep"></i>
+        <span class="font-bold text-navy">${p.name}</span>
+      </div>
+      <p class="text-sm text-navy/60 leading-relaxed mb-3">${p.when}</p>
+      <div class="border-t border-navy/10 pt-2">
+        <div class="text-[11px] text-navy/40 mb-0.5">會經過</div>
+        <div class="text-[11px] text-navy/60 leading-relaxed">${p.steps}</div>
+      </div>`;
+    card.addEventListener('click',()=>{
+      chosenPath = p.key;
+      wrap.querySelectorAll('.pathcard').forEach(x=>x.classList.toggle('on', x.dataset.path===p.key));
+      const btn = $('#toStep2');
+      btn.disabled=false;
+      btn.className='px-5 py-2 rounded-lg bg-navy text-ivory font-semibold hover:bg-tealdeep';
+    });
+    wrap.appendChild(card);
+  });
+  if(window.lucide) lucide.createIcons();
+}
+
 function buildForm(){
   const wrap = $('#caseFormFields'); wrap.innerHTML='';
   for(const f of CASE_FIELDS){
@@ -185,43 +263,52 @@ function buildForm(){
     if(f.type==='multiselect'){
       const box = el('div','flex flex-wrap gap-2');
       f.options.forEach(opt=>{
-        const id = f.id+'::'+opt;
         box.innerHTML += `<label class="inline-flex items-center gap-1.5 text-sm bg-mist/50 border border-navy/10 rounded-full px-3 py-1.5 cursor-pointer"><input type="checkbox" name="${f.id}" value="${opt}" class="accent-tealgreen"> ${opt}</label>`;
       });
       row.appendChild(box);
     } else {
       row.innerHTML += `<input name="${f.id}" class="w-full border border-navy/15 rounded-lg px-3 py-2 focus:outline-none focus:border-tealgreen" placeholder="${f.help||''}">`;
+      if(f.help) row.innerHTML += `<p class="text-xs text-navy/40 mt-1">${f.help}</p>`;
     }
-    if(f.help && f.type!=='multiselect') row.innerHTML += `<p class="text-xs text-navy/40 mt-1">${f.help}</p>`;
     wrap.appendChild(row);
   }
 }
-function openDialog(){ buildForm(); dialog.showModal(); }
-$('#newCaseBtn').addEventListener('click', openDialog);
 
-// 導覽模式：一鍵灌入乾淨的示範案例（每次覆蓋，確保每場 demo 起點一致）
-$('#seedDemoBtn').addEventListener('click', ()=>{
-  location.href='./case.html?caseId='+seedDemoCase();
-});
-// 示範②：停在基礎確認，導覽時現場按「完整度檢查」才會跳出權責矛盾
-$('#seedContraBtn').addEventListener('click', ()=>{
-  location.href='./case.html?caseId='+seedContradictionCase();
-});
+function openDialog(){
+  chosenPath=null;
+  $('#step1').classList.remove('hidden');
+  $('#step2').classList.add('hidden');
+  const btn=$('#toStep2'); btn.disabled=true;
+  btn.className='px-5 py-2 rounded-lg bg-navy/20 text-navy/40 font-semibold';
+  buildPathChoices();
+  dialog.showModal();
+}
+$('#newCaseBtn').addEventListener('click', openDialog);
 document.querySelectorAll('.newCaseBtn2').forEach(b=>b.addEventListener('click', openDialog));
+$('#cancel1').addEventListener('click', ()=>dialog.close());
+$('#cancel2').addEventListener('click', ()=>dialog.close());
+$('#backTo1').addEventListener('click', ()=>{ $('#step2').classList.add('hidden'); $('#step1').classList.remove('hidden'); });
+
+$('#toStep2').addEventListener('click', ()=>{
+  if(!chosenPath) return;
+  $('#chosenPathLabel').textContent = '路線：' + pathName(chosenPath);
+  buildForm();
+  $('#step1').classList.add('hidden');
+  $('#step2').classList.remove('hidden');
+});
 
 $('#caseForm').addEventListener('submit',(e)=>{
-  if(e.submitter && e.submitter.value==='cancel') return;
+  e.preventDefault();
   const fd = new FormData(e.target);
   const values = {};
   for(const f of CASE_FIELDS){
-    if(f.type==='multiselect') values[f.id] = fd.getAll(f.id);
-    else values[f.id] = (fd.get(f.id)||'').trim();
+    values[f.id] = f.type==='multiselect' ? fd.getAll(f.id) : (fd.get(f.id)||'').trim();
   }
-  // 簡易必填檢查
   const miss = CASE_FIELDS.filter(f=>f.required && (Array.isArray(values[f.id])?!values[f.id].length:!values[f.id]));
-  if(miss.length){ e.preventDefault(); alert('請填寫：'+miss.map(f=>f.name).join('、')); return; }
-  const c = createCase(values);
-  setTimeout(()=>{ location.href='./case.html?caseId='+c.case_id; }, 0);
+  if(miss.length){ alert('請填寫：'+miss.map(f=>f.name).join('、')); return; }
+  const c = createCase(values, chosenPath);
+  dialog.close();
+  location.href='./case.html?caseId='+c.case_id;
 });
 
 paintIdentity();

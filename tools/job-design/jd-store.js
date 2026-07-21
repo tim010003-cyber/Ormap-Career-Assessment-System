@@ -64,13 +64,19 @@ export function getCase(caseId) {
   return readAll()[caseId] || null;
 }
 
-export function createCase(caseFieldValues) {
+/**
+ * @param caseFieldValues 案例層欄位值
+ * @param pathType 'existing_role_focus'（職務優化）｜'full_design'（完整職務設計）
+ *   由使用者在建立案例的第 1 步選擇，系統不預設。
+ */
+export function createCase(caseFieldValues, pathType) {
   const now = new Date().toISOString();
   const id = genId('case');
+  const path = pathType === 'full_design' ? 'full_design' : 'existing_role_focus';
   const c = {
     case_id: id,
     owner: 'demo-student',
-    path_type: 'existing_role_focus',
+    path_type: path,
     fields: {},                    // { field_id: FieldValue }
     modules: {},                   // { moduleCode: { status, structured_values, updated_at } }
     access: {                      // AccessWindow（Demo）
@@ -85,7 +91,7 @@ export function createCase(caseFieldValues) {
     exports: [],                   // WordExport 紀錄
     ai_jobs: [],                   // AIJob 紀錄（次數/成本估算）
     overall_status: 'active',      // active | submitted | output_ready | downloaded_grace | closed | reopened
-    current_module: 'existing',
+    current_module: path === 'full_design' ? 'm1' : 'existing',
     created_at: now,
     updated_at: now,
   };

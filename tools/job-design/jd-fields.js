@@ -3,7 +3,7 @@
  * =====================================================================
  * 單一真實來源。內容嚴格對齊課程正式工具文件：
  *   《3.職務與人才規格定位》《4.職務說明書》《5.甄選流程設計書》《6.JD對外文案》
- * 欄位 ID 對齊《02_欄位字典_v1》。核心引導問題、AI 轉換原則、專業邊界
+ * 欄位 ID 對齊《02_欄位字典_v1》。核心引導問題、AI 轉換原則
  * 一律照抄正式文件，不自行改寫語意。
  *
  * 結構
@@ -20,22 +20,58 @@ export function modulesForPath(pathType) {
   return pathType === 'full_design' ? PATH_A_MODULES : PATH_B_MODULES;
 }
 
+/**
+ * 兩條路徑的對外名稱（PO 定案 2026-07-21）。
+ * 畫面一律用這裡的名稱，不使用「路徑 A／B」這種內部代號。
+ */
+export const PATHS = {
+  existing_role_focus: {
+    key: 'existing_role_focus',
+    name: '職務優化',
+    when: '這個職務已經存在，工作和責任大致確定，想把職能標準、面試流程或 JD 做得更好。',
+    steps: '既有職務盤點 → 職務與人才規格 → 三份正式文件',
+    icon: 'sliders-horizontal',
+  },
+  full_design: {
+    key: 'full_design',
+    name: '完整職務設計',
+    when: '還不確定要不要增加這個職務，或想先釐清組織真正的問題，再談要不要找人。',
+    steps: '問題釐清 → 需求界定 → 職務與人才規格 → 三份正式文件',
+    icon: 'lightbulb',
+  },
+};
+export const pathName = (t) => PATHS[t]?.name || PATHS.existing_role_focus.name;
+
+// 步進器分組：思考 → 正式文件 → 輸出
+export const GROUP_THINKING = '思考';
+export const GROUP_DOCUMENT = '正式文件';
+export const GROUP_OUTPUT = '輸出';
+
 export const MODULE_META = {
-  m1:       { code: 'm1',       title: '問題釐清定位',     subtitle: '先確認問題，再談要不要找人', part: '第一部' },
-  m2:       { code: 'm2',       title: '職務需求界定',     subtitle: '比較策略，判斷是否真的要增聘', part: '第二部' },
-  existing: { code: 'existing', title: '既有職務基礎確認', subtitle: '路徑 B 起點：把既有職務講清楚', part: '第一部' },
-  m3:       { code: 'm3',       title: '職務與人才規格定位', subtitle: '五章：12 節 ＋ 五維人才成熟度', part: '第二部' },
-  m4:       { code: 'm4',       title: '職務說明書',       subtitle: '組織內部對齊角色、權責與適任條件', part: '正式輸出①' },
-  m5:       { code: 'm5',       title: '甄選流程設計書',   subtitle: '流程、面試題、行為定錨與等級', part: '正式輸出②' },
-  m6:       { code: 'm6',       title: 'JD 對外文案',      subtitle: '通過揭露檢查後才能發布', part: '正式輸出③' },
-  output:   { code: 'output',   title: '預覽與下載',       subtitle: '四份獨立文件、記錄下載與關閉倒數', part: '輸出' },
+  m1:       { code: 'm1',       title: '問題釐清',         subtitle: '先確認問題，再談要不要找人', group: GROUP_THINKING },
+  m2:       { code: 'm2',       title: '職務需求界定',     subtitle: '比較策略，判斷是否真的要增聘', group: GROUP_THINKING },
+  existing: { code: 'existing', title: '既有職務盤點',     subtitle: '先把這個職務目前的樣子講清楚', group: GROUP_THINKING },
+  m3:       { code: 'm3',       title: '職務與人才規格',   subtitle: '五章：12 節 ＋ 五維人才成熟度', group: GROUP_THINKING },
+  m4:       { code: 'm4',       title: '職務說明書',       subtitle: '組織內部對齊角色、權責與適任條件', group: GROUP_DOCUMENT },
+  m5:       { code: 'm5',       title: '甄選流程設計書',   subtitle: '流程、面試題、行為定錨與等級', group: GROUP_DOCUMENT },
+  m6:       { code: 'm6',       title: 'JD 對外文案',      subtitle: '通過揭露檢查後才能發布', group: GROUP_DOCUMENT },
+  output:   { code: 'output',   title: '預覽與下載',       subtitle: '四份獨立文件、記錄下載與關閉倒數', group: GROUP_OUTPUT },
 };
 
+/** 步進器上的小字：思考／正式文件／輸出 */
+export function groupLabel(moduleCode) {
+  return MODULE_META[moduleCode]?.group || '';
+}
+
+/**
+ * 「引導與思考」文件裡的部別編號（沿用課程文件的章節結構）。
+ * 只用於產生文件，不顯示在步進器上。
+ */
 export function partLabel(moduleCode, pathType) {
   const A = { m1: '第一部', m2: '第二部', m3: '第三部' };
   const B = { existing: '第一部', m3: '第二部' };
   const map = pathType === 'full_design' ? A : B;
-  return map[moduleCode] || MODULE_META[moduleCode]?.part || '';
+  return map[moduleCode] || '';
 }
 
 export const AI_ROLE_LABEL = {
@@ -56,7 +92,7 @@ export const CASE_FIELDS = [
     options: ['聚焦職能標準', '重寫面試流程', '更新 JD 對外文案', '釐清權責邊界', '設定最低適任等級'] },
 ];
 
-// ── existing.*：既有職務基礎確認（路徑 B，純人工）────────
+// ── existing.*：既有職務盤點（職務優化路線，純人工）────────
 export const EXISTING_FIELDS = [
   { id: 'existing.role_reason',          name: '職務存在理由',   type: 'textarea', required: true,  ai: 'U', help: '這個職務為什麼需要存在？解決什麼？' },
   { id: 'existing.expected_results',     name: '既有預期成果',   type: 'list',     required: true,  ai: 'U', help: '一條一個成果' },
@@ -65,6 +101,375 @@ export const EXISTING_FIELDS = [
   { id: 'existing.changed_expectations', name: '正在改變的期待', type: 'textarea', required: false, ai: 'U' },
   { id: 'existing.resources_authority',  name: '現有資源與授權', type: 'textarea', required: true,  ai: 'U', help: '手上有哪些資源、能決定什麼、要往上報什麼' },
 ];
+
+/* ═══════════════════════════════════════════════════════
+   M1 問題釐清定位書（依《1.問題釐清定位書》）
+   五章訪談式：每章 核心引導問題 → 口述回應區 → AI 轉換原則
+   ═══════════════════════════════════════════════════════ */
+
+// 第二章的問題類型參考（照抄正式文件）
+export const PROBLEM_TYPES = [
+  { name: '工作量問題', desc: '任務持續超過合理容量、排程延誤或長期加班。' },
+  { name: '能力問題', desc: '有人執行，但缺少必要知識、技術或判斷，造成品質與風險問題。' },
+  { name: '流程問題', desc: '重工、等待、資訊斷裂、交付點或責任不清。' },
+  { name: '工具問題', desc: '大量人工處理、資料分散，或現有系統無法支持工作。' },
+  { name: '管理問題', desc: '目標反覆、優先順序混亂、決策延遲、分工或回饋不足。' },
+  { name: '激勵問題', desc: '責任增加，但薪酬、授權、認可或發展沒有相應調整。' },
+  { name: '商業問題', desc: '產品、市場、需求或獲利模式尚未被驗證。' },
+  { name: '組織結構問題', desc: '工作放在不適合的部門或角色，合作界面與權責配置失衡。' },
+];
+
+export const NEED_SCALE_OPTIONS = ['短期止血', '局部改善', '長期能力建立', '尚待判斷'];
+
+// 第五章的建議狀態（只能是這四個）
+export const INVESTMENT_STATUS_OPTIONS = [
+  '進入《職務需求界定書》進行解法設計',
+  '先補充證據或驗證重要假設',
+  '暫緩處理並設定重新檢視條件',
+  '目前不投入，並保留決策理由',
+];
+
+export const M1_CHAPTERS = [
+  {
+    code: '第一章', title: '需求觸發與現況', rawId: 'm1._raw_ch1', task: 'M1-01',
+    purpose: '確認組織為什麼在這個時間點開始想投入資源，以及目前實際發生了什麼，而不是直接跳到「需要找一個人」。',
+    questions: [
+      '最近發生了什麼事情，讓你開始覺得這件事需要被處理？',
+      '現在具體看見哪些異常、延誤、損失、抱怨、機會或工作卡點？',
+      '問題通常在什麼情境、流程階段或對象身上出現；已經持續多久？',
+      '哪些內容已有資料、紀錄或多人觀察支持，哪些仍只是感受或推測？',
+    ],
+    responseHint: '可以從工作量增加、交付延誤、品質下降、客戶反映、人員離開、新服務啟動，或企業主長期被特定工作綁住等具體事件開始。沒有數字也可以先說明實際案例，但不要為了完整而猜測。',
+    guard: '不得把「主管想找人」直接改寫成已證實的人力需求。',
+    outputs: [
+      { id: 'm1.trigger_event', name: '需求觸發：最近的觸發事件', type: 'textarea', ai: 'AI-O' },
+      { id: 'm1.first_noticed_at', name: '問題開始或被注意到的時間', type: 'text', ai: 'AI-O' },
+      { id: 'm1.affected_roles', name: '最先注意到問題及主要受影響的角色', type: 'list', ai: 'AI-O' },
+      { id: 'm1.demand_nature', name: '需求性質', type: 'select', ai: 'AI-I',
+        options: ['新需求', '長期累積問題', '人員異動後的缺口', '新的商業機會'] },
+      { id: 'm1.confirmed_facts', name: '已確認的事實與可觀察現象', type: 'list', ai: 'AI-O' },
+      { id: 'm1.supporting_evidence', name: '有資料、紀錄、案例或多人觀察支持的內容', type: 'list', ai: 'AI-O' },
+      { id: 'm1.hypotheses_pending', name: '合理但尚待驗證的推論', type: 'list', ai: 'AI-I' },
+      { id: 'm1.feelings_claims', name: '目前只有感受、尚無法確認範圍與頻率的說法', type: 'list', ai: 'AI-O' },
+      { id: 'm1.information_gaps', name: '仍需要補充的資料', type: 'list', ai: 'AI-I' },
+    ],
+  },
+  {
+    code: '第二章', title: '問題定義與成因假設', rawId: 'm1._raw_ch2', task: 'M1-02',
+    purpose: '把表面症狀拆成可以處理的問題，辨識真正卡住的是工作量、能力、流程、工具、管理、激勵、商業或組織結構，而不是把所有問題都歸因於個人。',
+    showProblemTypes: true,
+    questions: [
+      '目前是沒有人做、做不完、做不好，還是做事的方法與決策機制有問題？',
+      '如果明天多一個人報到，但流程、工具、權責與管理方式都不變，哪些問題會改善，哪些仍然不會？',
+      '眼前看見的問題，可能是哪個更上游問題的結果；不同問題之間可能如何互相影響？',
+      '目前主要問題與次要問題分別是什麼；哪些成因已確認，哪些仍只是待驗證假設？',
+    ],
+    responseHint: '可以同時提出多種可能，不需要現在就選出唯一答案。請說明為什麼會這樣判斷、有哪些反例或不同看法，以及問題曾經暫時消失後又重新出現的情況。',
+    guard: '不得把時間上先發生的事情直接判定為原因，也不得使用「員工不夠積極」「團隊抗壓性不足」等人格歸因替代問題分析。',
+    outputs: [
+      { id: 'm1.problem_statements', name: '問題清單', type: 'repeat', ai: 'AI-O',
+        rule: '拆成一項主要問題與必要的關聯問題，不把不同問題合併成一個模糊需求。',
+        columns: [
+          { key: 'statement', name: '問題陳述', type: 'text', placeholder: '什麼對象在什麼情境下，無法產生什麼結果' },
+          { key: 'type', name: '問題類型', type: 'text', placeholder: '可一至兩類' },
+          { key: 'primary', name: '主／次', type: 'select', options: ['主要問題', '關聯問題'] },
+          { key: 'phenomena', name: '可觀察現象及已知影響', type: 'text' },
+          { key: 'causes', name: '可能的直接原因與更上游原因', type: 'text' },
+          { key: 'downstream', name: '受影響的下游結果', type: 'text' },
+          { key: 'confirmed_vs_hypo', name: '已確認成因／待驗證假設', type: 'text' },
+        ] },
+      { id: 'm1.next_bottleneck', name: '若只處理局部問題，可能出現的下一個瓶頸', type: 'list', ai: 'AI-I' },
+    ],
+  },
+  {
+    code: '第三章', title: '問題尺度、影響與不處理代價', rawId: 'm1._raw_ch3', task: 'M1-03',
+    purpose: '確認問題影響的範圍、持續時間與嚴重程度，並區分重要程度與時間敏感性。',
+    questions: [
+      '這個問題影響哪些人、客戶、部門、成果或決策；範圍正在縮小、穩定還是擴大？',
+      '這是偶發問題、週期性問題，還是持續發生的組織問題？',
+      '如果未來三至六個月不處理，最可能發生哪些具體後果？',
+      '有沒有不能延後處理的期限、法規、安全、客戶或商業時機？',
+    ],
+    responseHint: '可以從營收、成本、客戶、品質、工時、離職、企業主時間、商機、商譽、安全及合規風險說明。若無法估算金額，可以先描述影響方式、持續程度與嚴重性。',
+    guard: '緊急與重要必須分開：事情很急，不代表值得建立長期職務；事情目前不急，也不代表沒有高額累積成本。',
+    outputs: [
+      { id: 'm1.impact_scope', name: '主要影響對象與範圍', type: 'textarea', ai: 'AI-O' },
+      { id: 'm1.frequency_duration', name: '發生頻率、持續程度及是否正在擴大', type: 'textarea', ai: 'AI-O' },
+      { id: 'm1.current_impacts', name: '目前已經發生的影響', type: 'list', ai: 'AI-O' },
+      { id: 'm1.inactivity_cost', name: '三至六個月內可能出現的代價', type: 'list', ai: 'AI-I' },
+      { id: 'm1.importance', name: '影響程度及判斷依據', type: 'textarea', ai: 'H' },
+      { id: 'm1.time_sensitivity', name: '時間敏感性及關鍵期限', type: 'textarea', ai: 'H' },
+      { id: 'm1.need_scale', name: '需求尺度', type: 'select', ai: 'AI-I', options: NEED_SCALE_OPTIONS },
+      { id: 'm1.unquantified_risks', name: '尚未量化或仍待確認的風險', type: 'list', ai: 'AI-I' },
+    ],
+  },
+  {
+    code: '第四章', title: '改善目標', rawId: 'm1._raw_ch4', task: 'M1-04',
+    purpose: '把問題轉成清楚的改善目標，說明希望從什麼狀況改變成什麼狀況，而不先指定解法。',
+    questions: [
+      '如果問題獲得合理改善，哪些現象、成果或風險應該發生改變？',
+      '最低可以接受的改善結果是什麼，理想結果又是什麼？',
+      '可以透過哪些觀察、資料或事件，確認改善真的發生，而不只是多做了事情？',
+      '哪些期待不屬於這次處理範圍，或不應由單一方案承擔？',
+    ],
+    responseHint: '請使用「從什麼狀況改善成什麼狀況」描述。此處先定義結果，不需要決定由誰做、購買什麼工具或採用哪一種合作形式。',
+    guard: '不得把「招到一個人」「完成系統導入」等活動直接當成改善成果。',
+    outputs: [
+      { id: 'm1.current_condition', name: '目前狀況', type: 'textarea', ai: 'AI-O' },
+      { id: 'm1.target_change', name: '期待改變', type: 'textarea', ai: 'AI-O' },
+      { id: 'm1.beneficiaries', name: '主要受益對象', type: 'list', ai: 'AI-O' },
+      { id: 'm1.success_evidence', name: '判斷改善是否發生的依據', type: 'list', ai: 'AI-O' },
+      { id: 'm1.minimum_result', name: '最低可接受結果', type: 'textarea', ai: 'H' },
+      { id: 'm1.ideal_result', name: '理想結果', type: 'textarea', ai: 'H' },
+      { id: 'm1.out_of_scope', name: '暫時不追求或超出本次範圍的結果', type: 'list', ai: 'AI-O' },
+      { id: 'm1.beyond_single_solution', name: '無法由單一方案或單一人才承擔的期待', type: 'list', ai: 'AI-I' },
+    ],
+  },
+  {
+    code: '第五章', title: '投入判斷與下一步', rawId: 'm1._raw_ch5', task: 'M1-05',
+    purpose: '確認這個問題是否值得繼續投入、組織願意承擔哪些資源，以及是否具備進入解法設計的最低資訊。',
+    questions: [
+      '這個問題若被改善，可能帶來哪些價值、避免哪些代價？',
+      '組織目前願意投入哪些時間、預算、管理注意力與協作資源；有哪些不可妥協的限制？',
+      '哪些條件或資訊尚未具備，可能使這次投入無法成功？',
+      '現在應進入解法設計、先補充資訊、暫緩處理，還是決定不投入？為什麼？',
+    ],
+    responseHint: '可以說明可接受的投入範圍、不能犧牲的條件、現有資源及管理限制。無法估算投資報酬時，不需要硬填金額。不同角色看法不一致時，可以分別保留。',
+    guard: '不得只計算薪資或採購成本，也需提醒管理、訓練、溝通、工具及轉換成本，但沒有依據時不可自行估價。若問題、改善目標或投入邊界仍高度矛盾，不得直接建議建立職務。',
+    outputs: [
+      { id: 'm1.expected_value', name: '預期價值與可避免的代價', type: 'list', ai: 'AI-O' },
+      { id: 'm1.available_resources', name: '可投入的資源範圍', type: 'textarea', ai: 'AI-O' },
+      { id: 'm1.nonnegotiables', name: '不可妥協的限制', type: 'list', ai: 'AI-O' },
+      { id: 'm1.missing_conditions', name: '目前缺少的成功條件或資訊', type: 'list', ai: 'AI-I' },
+      { id: 'm1.underinvest_risk', name: '投入不足可能造成的風險', type: 'list', ai: 'AI-I' },
+      { id: 'm1.investment_status', name: '建議狀態', type: 'select', ai: 'H', options: INVESTMENT_STATUS_OPTIONS },
+      { id: 'm1.status_reason', name: '建議狀態的理由', type: 'textarea', ai: 'H' },
+    ],
+  },
+];
+
+// 正式輸出前的 AI 檢查（doc 1 §三）
+export const M1_PRE_OUTPUT_CHECKS = [
+  '已有明確證據支持的內容。',
+  '由受訪者提出但尚待驗證的推論。',
+  '不同角色之間互相矛盾的說法。',
+  '把流程、工具、管理或授權問題歸因於個人的情況。',
+  '把「招募」當成問題本身或唯一答案的情況。',
+  '缺乏依據的成本、時程或緊急程度。',
+  '需要補充資料後才能進入解法設計的事項。',
+];
+
+export const M1_FINAL_CHECKLIST = [
+  '已說明具體觸發事件，而不只寫「缺人」或「大家很忙」。',
+  '已區分事實、感受與待驗證假設。',
+  '已把不同問題拆開，不塞成一個模糊需求。',
+  '已辨識工作量、能力、流程、工具、管理、激勵、商業及組織結構因素。',
+  '已檢查增加一個人後，哪些問題仍不會改善。',
+  '已說明問題尺度、影響及不處理代價。',
+  '已區分重要程度與時間敏感性。',
+  '改善目標描述結果改變，而不是先指定解法。',
+  '已說明最低可接受結果、理想結果及判斷依據。',
+  '已確認投入價值、資源限制及缺少的成功條件。',
+  '已決定進入解法設計、先補資訊、暫緩或不投入。',
+  '交接內容足以讓《職務需求界定書》比較不同解法。',
+];
+
+/* ═══════════════════════════════════════════════════════
+   M2 職務需求界定書（依《2.職務需求界定書》）
+   **勾選式作業**，不是口述訪談。先自行勾選並簡短補充；
+   無法判斷時保留問題並標示「需要進一步確認／諮詢」。
+   ═══════════════════════════════════════════════════════ */
+
+export const M2_PARTS = [
+  {
+    code: '第一部分', title: '目前的人力與工作環境',
+    blocks: [
+      { type: 'fields', title: '上游問題', note: '若此處無法說清楚，請先回到《問題釐清定位書》，不要直接開始設計職務。',
+        fields: [
+          { id: 'm2.upstream_problem', name: '本次要處理的優先問題', type: 'textarea' },
+          { id: 'm2.upstream_minimum', name: '最低需要改善到什麼程度', type: 'textarea' },
+          { id: 'm2.upstream_ideal', name: '理想希望改善到什麼程度', type: 'textarea' },
+          { id: 'm2.upstream_constraints', name: '重要限制或不可犧牲條件', type: 'textarea' },
+          { id: 'm2.upstream_hypotheses', name: '仍待驗證的假設或資訊', type: 'textarea' },
+          { id: 'm2.upstream_out_of_scope', name: '暫時不處理的問題', type: 'textarea' },
+        ] },
+      { type: 'checklist', title: '現況盤點', id: 'm2.environment_checks',
+        options: [
+          '工作量持續超過現有人力可以合理完成的容量。',
+          '工作分配不平均，少數人長期補位或收尾。',
+          '現有人員的角色或能力與工作要求不相符。',
+          '工作量或需求頻率可能不足以形成完整職務。',
+          '流程反覆、重工、等待，或權責與交付標準不清楚。',
+          '工具、系統、資料或文件無法支持實際工作。',
+          '主管尚未清楚設定目標、優先順序、分工或回饋方式。',
+          '重要決策、授權或跨部門合作經常卡住。',
+          '主管目前沒有足夠時間或能力管理及培養新人。',
+          '責任增加後，薪酬、職等、授權或資源沒有同步調整。',
+          '產品、市場、服務或工作需求仍在變動，尚未形成穩定範圍。',
+          '需求屬於一次性、階段性或短期專案。',
+          '問題同時涉及策略、管理、專業與執行，可能不是一個角色可以合理承擔。',
+        ] },
+      { type: 'fields', fields: [
+          { id: 'm2.priority_condition', name: '目前最需要先處理的狀況', type: 'textarea' },
+          { id: 'm2.uncertain_points', name: '目前最不確定的地方', type: 'textarea' },
+        ] },
+      { type: 'checklist', id: 'm2.need_consult_1', options: ['需要進一步確認或帶入諮詢。'] },
+    ],
+  },
+  {
+    code: '第二部分', title: '可能採用的改善策略',
+    note: '四類策略都需要快速看過；只勾選本次可能採用或需要進一步評估的項目。',
+    blocks: [
+      { type: 'checklist', title: '工作、流程、工具與制度改善', id: 'm2.process_strategies',
+        options: [
+          '停止或刪除低價值、重複或不再必要的工作。',
+          '重整工作流程、交付方式或品質標準。',
+          '釐清跨部門權責、合作界面及決策方式。',
+          '建立文件、模板、資料規則或標準作業方式。',
+          '導入工具、系統或自動化。',
+        ] },
+      { type: 'checklist', title: '既有人員配置與管理改善', id: 'm2.people_management_strategies',
+        options: [
+          '重新分工、內部輪調或調整角色配置。',
+          '提供教育訓練、工作指導或必要資源。',
+          '建立更明確的目標、回饋及績效改善機制。',
+          '調整薪酬、職等、授權或工作範圍。',
+          '調整主管職責、管理關係，或依制度處理持續不適任情況。',
+        ] },
+      { type: 'checklist', title: '外部專業與彈性資源', id: 'm2.external_strategies',
+        options: [
+          '單次顧問諮詢或專業診斷。',
+          '專案型、按件計酬或階段性合作。',
+          '固定週期的外包、顧問或彈性人力。',
+          '由外部專業者建置，再將知識、流程或系統移轉給內部。',
+        ] },
+      { type: 'checklist', title: '內部人力與正式編制', id: 'm2.internal_staffing_strategies',
+        options: [
+          '增加部分工時、定期或試行性人力。',
+          '增加全職執行型人力。',
+          '增加全職專業型人力。',
+          '增設管理、專案整合或跨部門協調角色。',
+          '分階段增加不同角色或建立小型團隊。',
+          '增加人力，並同步改善流程、工具、權責或既有分工。',
+        ] },
+      { type: 'fields', title: '初步策略結論', fields: [
+          { id: 'm2.strategy_combination', name: '預計採用的策略組合', type: 'textarea' },
+          { id: 'm2.prerequisite_improvements', name: '增加人才前必須先完成的改善', type: 'textarea' },
+        ] },
+      { type: 'checklist', id: 'm2.staffing_decision',
+        options: [
+          '先改善現有環境，暫不增加人才。',
+          '先使用外部或彈性資源測試需求。',
+          '需要新增內部人力。',
+          '需要人力與其他改善策略同步進行。',
+          '目前無法判斷，需要進一步諮詢。',
+        ] },
+    ],
+  },
+  {
+    code: '第三部分', title: '需要哪一種角色層級',
+    blocks: [
+      { type: 'checklist', title: '角色類型判斷', id: 'm2.role_types',
+        options: [
+          '執行型角色：目標、流程與標準已經清楚，主要缺少穩定執行容量。',
+          '專業型角色：需要持續運用專業知識、方法與判斷處理問題。',
+          '管理／整合型角色：需要正式承擔目標、優先順序、分工、資源、決策或跨部門整合。',
+          '外部／專案型角色：需求短期、階段性或尚未穩定，不適合立即建立正式編制。',
+          '多角色／小型團隊：需要不同專業或不同層級，無法合理集中在一人身上。',
+          '暫不建立角色：應先改善流程、工具、管理或既有人員配置。',
+          '目前無法判斷，需要進一步諮詢。',
+        ] },
+      { type: 'checklist', title: '管理問題的責任判斷', id: 'm2.management_responsibility',
+        note: '若前面有勾選管理、決策、分工或合作問題，請確認。',
+        guard: '不能建立一個沒有相應授權的執行職務，卻期待他解決主管、決策或跨部門管理問題。',
+        options: [
+          '應由現任主管改善，不轉成新職務的責任。',
+          '需要調整現有主管職責、授權或管理關係。',
+          '組織確實缺少一個具有正式責任與授權的管理／整合角色。',
+          '目前無法判斷，需要進一步諮詢。',
+        ] },
+      { type: 'fields', fields: [
+          { id: 'm2.demand_duration', name: '需求持續性', type: 'select', options: ['一次性', '階段性', '週期性', '長期持續', '待確認'] },
+          { id: 'm2.workload_frequency', name: '初步工作量或頻率', type: 'textarea' },
+          { id: 'm2.collaboration_roles', name: '主要合作角色', type: 'textarea' },
+          { id: 'm2.suggested_role_type', name: '建議角色類型', type: 'text' },
+          { id: 'm2.role_level_reason', name: '為什麼需要這個層級', type: 'textarea' },
+          { id: 'm2.unresolved_by_executor', name: '若只增加執行人力，哪些問題仍不會改善', type: 'textarea' },
+        ] },
+    ],
+  },
+  {
+    code: '第四部分', title: '人才任務範圍與組織責任',
+    blocks: [
+      { type: 'fields', fields: [
+          { id: 'm2.primary_responsibilities', name: '人才主要負責', type: 'list', help: '人才需要主導並對結果承擔主要責任' },
+          { id: 'm2.shared_responsibilities', name: '需要共同處理', type: 'list', help: '需要與主管、同事、跨部門或外部角色共同完成' },
+          { id: 'm2.support_responsibilities', name: '人才協助處理', type: 'list', help: '提供資訊、執行支援或專業建議，但不承擔最終結果' },
+          { id: 'm2.organization_responsibilities', name: '由主管或組織負責', type: 'list', help: '不應轉嫁給人才，應由主管或組織承擔' },
+          { id: 'm2.outside_role_scope', name: '不應期待人才解決', type: 'list', help: '超出角色工作量、專業、責任或授權範圍' },
+        ] },
+      { type: 'checklist', title: '組織可以提供的條件', id: 'm2.organization_support',
+        options: [
+          '有明確主管或合作窗口。',
+          '可以提供必要資訊、資料、工具及系統。',
+          '可以給予與責任相符的決策權與授權。',
+          '可以提供訓練、交接、回饋及成果驗收。',
+          '可以同步完成必要的流程、制度或管理改善。',
+          '尚有重要條件無法確認，需要進一步諮詢。',
+        ] },
+      { type: 'fields', fields: [
+          { id: 'm2.missing_conditions', name: '目前仍缺少的條件', type: 'textarea' },
+        ] },
+    ],
+  },
+];
+
+// AI 整理原則（doc 2）
+export const M2_AI_RULES = [
+  '只根據勾選及補充內容整理，不自行補造問題、策略或職務。',
+  '若勾選結果互相矛盾，先列出矛盾，不急著產出職務建議。',
+  '區分人才主要負責、需要共同處理，以及主管或組織負責的事項。',
+  '若主要問題來自管理、流程、工具或授權，不得只建議新增執行人力。',
+  '若工作量、需求持續性或角色層級不明確，標示「需要進一步確認／諮詢」。',
+  '不在本文件產出年資、學歷、人格特質、職能等級或面試條件。',
+];
+
+// AI 最終輸出的九項（doc 2）
+export const M2_OUTPUT_ITEMS = [
+  '目前主要的人力與工作環境狀況。',
+  '建議採用的改善策略組合。',
+  '增加人才前必須先完成的改善。',
+  '是否需要額外人才及適合的合作形式。',
+  '建議角色類型與判斷理由。',
+  '需求持續性、初步工作量與主要合作角色。',
+  '人才主要負責、共同處理、協助處理及不應承擔的範圍。',
+  '主管與組織必須同步提供的條件。',
+  '需要進一步諮詢確認的問題。',
+];
+
+// 交接至《職務與人才規格定位》的對應（doc 2）
+export const M2_HANDOFF = [
+  { to: '1.1 角色定位與預期價值產出', items: ['建議角色類型及必要功能。', '主要需要處理的問題與預期改善結果。'] },
+  { to: '1.2 主要工作內容與頻率', items: ['人才主要負責、共同處理及協助事項。', '需求持續性、工作量及使用頻率。'] },
+  { to: '1.3 組織關係、責任與專業決策範圍', items: ['由主管或組織負責的事項。', '主要合作角色及必要資訊、資源與授權。', '不應期待人才單獨解決的問題。'] },
+];
+
+export const M2_HANDOFF_NOTE = '本文件不直接交接人才特質、職能名稱或能力等級，避免在工作範圍尚未確定前先對人才下結論。';
+
+/** M1 全部產出欄位 */
+export function m1OutputFields() {
+  return M1_CHAPTERS.flatMap(ch => ch.outputs);
+}
+
+/** M2 全部欄位（勾選清單 ＋ 填寫欄位） */
+export function m2AllFieldIds() {
+  const ids = [];
+  M2_PARTS.forEach(p => p.blocks.forEach(b => {
+    if (b.type === 'checklist') ids.push(b.id);
+    else (b.fields || []).forEach(f => ids.push(f.id));
+  }));
+  return ids;
+}
 
 /* ═══════════════════════════════════════════════════════
    M3 職務與人才規格定位 — 五章 14 節
@@ -92,6 +497,12 @@ export const M3_CHAPTERS = [
           { id: 'm3.value_outputs', name: '預期價值產出', type: 'list', ai: 'AI-O',
             rule: '三至六項主要價值或成果，每項盡量說明產出後會帶來什麼改變。' },
         ],
+        // 《3.職務與人才規格定位》1.1「產出至甄選流程設計書的內容」
+        m5Outputs: [
+          { id: 'm3.sel_value_evidence', name: '需要驗證的成果經驗', type: 'list', ai: 'AI-O' },
+          { id: 'm3.sel_value_understanding', name: '候選人是否理解工作價值', type: 'list', ai: 'AI-O' },
+          { id: 'm3.sel_outcome_criteria', name: '過去經驗與未來情境問題的成果判斷依據', type: 'list', ai: 'AI-O' },
+        ],
       },
       {
         code: '1.2', title: '主要工作內容與頻率',
@@ -112,6 +523,12 @@ export const M3_CHAPTERS = [
               { key: 'nature', name: '工作性質', type: 'select', options: WORK_NATURE },
               { key: 'frequency_share', name: '頻率／時間占比', type: 'text', placeholder: '如 30% 或 每週' },
             ] },
+        ],
+        // 《3.職務與人才規格定位》1.2「產出至甄選流程設計書的內容」
+        m5Outputs: [
+          { id: 'm3.sel_key_experience', name: '需要驗證的關鍵工作經驗', type: 'list', ai: 'AI-O' },
+          { id: 'm3.sel_work_sample', name: '適合採用工作樣本或實作測驗的內容', type: 'list', ai: 'AI-O' },
+          { id: 'm3.sel_stage_scope', name: '各甄選階段需要了解的工作範圍', type: 'list', ai: 'AI-O' },
         ],
       },
       {
@@ -157,6 +574,8 @@ export const M3_CHAPTERS = [
         outputs: [
           { id: 'm3.prehire_knowledge', name: '到職前核心必備知識', type: 'list', ai: 'AI-O',
             rule: '缺乏時會直接影響基本工作、安全、法規或重大判斷，並說明為什麼必須在到職前具備。' },
+          { id: 'm3.alternative_knowledge', name: '可接受的相關或替代知識', type: 'list', ai: 'AI-O',
+            rule: '候選人沒有完全相同的產業經驗時，哪些相關知識或學習能力可以替代。不得要求外部人才複製完全相同的經歷。' },
           { id: 'm3.trainable_knowledge', name: '到職後可培訓知識', type: 'list', ai: 'AI-O',
             rule: '核心基礎到位後可透過課程、實作、導師或工作經驗補足。避免把可培訓內容設成不必要的招募門檻。' },
           { id: 'm3.organization_specific_knowledge', name: '組織特有知識', type: 'list', ai: 'AI-O',
@@ -396,6 +815,16 @@ export const MATURITY_DIMENSIONS = [
   },
 ];
 
+/**
+ * 第五章的規則（PO 釐清，2026-07-21）
+ *   - 成熟度**五個維度全填**，不是只挑核心的。
+ *   - 職務說明書 6.5：五個維度**全部都要寫**，但只寫「需要具備的內容與想法」，**不放等級**。
+ *   - 甄選流程設計書表格三：五個維度都列，含 L1–L5 與最低／理想（等級只出現在這裡）。
+ *   - **只有 JD 對外文案**才從五個裡挑三個，改寫成情境化的「期待的工作特質」。
+ */
+export const JD_TRAIT_COUNT = 3;
+export const MATURITY_FILL_NOTE = '五個維度都要填寫。職務說明書會寫入全部五個（不含等級）；等級進甄選流程設計書表格三；對外 JD 再從中挑三個。';
+
 // 第五章 AI 彙整產出的守則（照抄正式文件 5.6）
 export const MATURITY_RULES = [
   '使用本職務的真實情境改寫行為錨點，不能只複製泛用定義。',
@@ -405,17 +834,42 @@ export const MATURITY_RULES = [
   '區分到職前必備與可以透過教練、訓練或任務發展的能力。',
 ];
 
-// 三張錨點表的欄位 ID（供 M5 合併使用）
+// 三張錨點表的欄位 ID（供 M5 表格三合併使用）
 export const ANCHOR_FIELD_IDS = ['m3.knowledge_anchors', 'm3.tool_anchors', 'm3.attitude_anchors'];
+
+/**
+ * 表格三：各職能的行為定錨等級（甄選流程設計書），欄位依《5.甄選流程設計書》。
+ *
+ * 重要（PO 釐清 2026-07-21）：**L1–L5 每一格的內容本身就是「行為特徵」**，
+ * 也就是行為錨定等級（BARS, Behaviorally Anchored Rating Scales）。
+ * 不需要、也不應該另立一個獨立的「行為特徵」欄位——那會變成重複。
+ *
+ * 等級只出現在這張表；職務說明書不放等級。
+ * 人才成熟度五個維度也一併列入這張表。
+ */
+export const ANCHOR_TABLE_COLUMNS = [
+  { key: 'competency',    name: '職能名稱' },
+  { key: 'definition',    name: '職能定義' },
+  { key: 'L1', name: 'L1' }, { key: 'L2', name: 'L2' }, { key: 'L3', name: 'L3' },
+  { key: 'L4', name: 'L4' }, { key: 'L5', name: 'L5' },
+  { key: 'minimum_level', name: '最低可接受等級' },
+  { key: 'ideal_level',   name: '理想適任等級' },
+];
+export const BARS_NOTE = 'L1–L5 每一格填的就是該等級的可觀察行為特徵（行為錨定等級 BARS）。';
 
 /** 攤平 M3 所有小節（供進度計算、逐節渲染） */
 export function m3Sections() {
   return M3_CHAPTERS.flatMap(ch => ch.sections.map(s => ({ ...s, chapter: ch.title })));
 }
 
+/** 一節的全部產出欄位（職務說明書 ＋ 甄選流程設計書） */
+export function sectionOutputs(s) {
+  return [...(s.outputs || []), ...(s.m5Outputs || [])];
+}
+
 /** M3 全部 AI 產出欄位 */
 export function m3OutputFields() {
-  return m3Sections().flatMap(s => s.outputs);
+  return m3Sections().flatMap(sectionOutputs);
 }
 
 /* ═══════════ M4 職務說明書（依《4.職務說明書》）═══════════ */
@@ -446,7 +900,8 @@ export const M4_SECTIONS = [
       { key: '6.2', title: '6.2 工具與專業技術', source: ['m3.required_tools', 'm3.professional_methods', 'm3.work_methods', 'm3.alternative_tools', 'm3.trainable_tools'] },
       { key: '6.3', title: '6.3 核心專業判斷與工作原則', source: ['m3.core_judgments', 'm3.work_principles', 'm3.high_risk_escalations', 'm3.exception_methods'] },
       { key: '6.4', title: '6.4 專業品質、責任與倫理', source: ['m3.quality_requirements', 'm3.error_responsibility', 'm3.ethics_nonnegotiables', 'm3.tradeoff_principles', 'm3.gray_area_principles'] },
-      { key: '6.5', title: '6.5 組織合作、溝通與人才成熟度', source: ['m3.maturity_anchors'] },
+      // 只放「選為核心的特質 ＋ 描述」，不放等級（等級一律在甄選流程設計書表格三）
+      { key: '6.5', title: '6.5 組織合作、溝通與人才成熟度', source: ['m3.maturity_anchors'], levelsExcluded: true },
     ] },
   { key: 'confirm',   title: '七、文件確認', source: 'H' },
 ];
@@ -518,6 +973,34 @@ export const M5_CONFIRMATIONS = [
 ];
 
 /* ═══════════ M6 JD 對外文案（依《6.JD對外文案》）═══════════ */
+
+/**
+ * 《6.JD對外文案》的句型模板。JD 是填空句型，不是自由造句——
+ * AI 需把上游內容套進這些句型，維持對外文案的一致語氣。
+ */
+export const M6_COMPETENCY_TEMPLATES = [
+  '你具備{知識}相關知識，能夠{做到什麼}。',
+  '你能使用{工具}，完成{什麼工作}。',
+  '你能運用{方法}方法，處理{什麼問題}。',
+  '面對{情境}時，你能依{判斷依據}做出判斷。',
+  '你能維持{品質標準}的品質，並在發現問題時{處理方式}。',
+];
+
+export const M6_TRAIT_TEMPLATES = [
+  '面對{情況}的情況，你能主動{行為}。',
+  '遇到{問題類型}類型的問題時，你會{行為}。',
+  '與{對象}合作時，你能{行為}。',
+  '面對變動、壓力或資訊不完整時，你能{行為}。',
+  '你能理解工作與{價值對象}的關係，並依{依據}調整行動。',
+];
+
+// 四、面試流程的句型（doc 6）
+export const M6_PROCESS_TEMPLATES = {
+  overall: '整體流程：預計包含 {階段數} 個階段，整體約於 {期間} 內完成。',
+  stage: '第{序}階段｜{階段名稱}：由{負責角色}進行，主要會{任務}；預計需要{時間}。',
+  prep: '事前準備：{內容}（若不需要，請明確寫「無」）。',
+  notify: '結果通知：預計於 {期間} 內通知結果或下一步安排。',
+};
 
 export const M6_SECTIONS = [
   { id: 'm6.role_positioning', name: '一、角色定位', type: 'textarea', ai: 'AI-O',

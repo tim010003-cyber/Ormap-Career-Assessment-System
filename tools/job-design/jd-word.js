@@ -2,7 +2,7 @@
  * jd-word.js — 職務設計與甄選 Web App｜文件產生（Demo 原型）
  * =====================================================================
  * 產出四份**獨立**文件（PO 決策 2026-07-19，取代 05 規格原本的「單一合併檔」）：
- *   ① 引導與思考   — 思考歷程（路徑 B：第一部基礎確認＋第二部職務與人才規格）
+ *   ① 引導與思考   — 思考歷程（職務優化：第一部既有職務盤點＋第二部職務與人才規格）
  *                    ＋ 待確認事項 ＋ 版本與來源摘要
  *   ② 職務說明書   — 正式輸出，乾淨版，不含思考引導內容
  *   ③ 甄選流程設計書
@@ -45,9 +45,13 @@ function listBlock(arr) {
 const fieldVal = (c, id) => c.fields[id]?.value ?? null;
 const docVersion = (c) => c.doc_version || 1;
 
-// 三張 M3 錨點表合併成職能清單（知識與判斷／工具與技術／專業態度）
+// 表格三來源：三張 M3 錨點表 ＋ 人才成熟度五個維度（全部，等級只在這裡出現）
 const ANCHOR_IDS = ['m3.knowledge_anchors', 'm3.tool_anchors', 'm3.attitude_anchors'];
-const allAnchors = (c) => ANCHOR_IDS.flatMap(id => fieldVal(c, id) || []);
+const allAnchors = (c) => [
+  ...ANCHOR_IDS.flatMap(id => fieldVal(c, id) || []),
+  ...(fieldVal(c, 'm3.maturity_anchors') || [])
+    .map(m => ({ ...m, isTrait: true, definition: m.definition || m.description || '' })),
+];
 
 const STYLE = `
 <style>
@@ -70,11 +74,13 @@ const STYLE = `
   .note{background:#FBF8F2;border:1px solid #E88A55;padding:8pt 12pt;border-radius:6px;font-size:10.5pt;}
   ul{margin:4pt 0 4pt 18pt;} li{margin:2pt 0;}
   .part{color:#94a3b8;font-size:10pt;letter-spacing:2px;}
+  .lvmark{margin-top:3pt;font-size:9pt;font-weight:700;color:#136E68;}
+  .trait{font-size:8.5pt;color:#a4551f;background:#FDF3EA;border:1px solid #E88A55;padding:0 4pt;border-radius:3px;}
 </style>`;
 
 /** 四份文件共用的封面 */
 function coverPage(c, opts) {
-  const pathLabel = c.path_type === 'full_design' ? '完整職務設計（路徑 A）' : '既有職務優化（路徑 B）';
+  const pathLabel = c.path_type === 'full_design' ? '完整職務設計' : '職務優化';
   const pending = countPending(c);
   const seal = opts.external
     ? '<div class="seal external">本文件為對外文案，可提供給候選人</div>'
@@ -102,11 +108,107 @@ export function buildGuideDoc(c) {
   const isPathA = c.path_type === 'full_design';
   const workItems = F('m3.work_items') || [];
 
+  const list = (id) => listBlock(F(id));
   const pathASections = `
   <h2><span class="part">第一部</span>　問題釐清定位</h2>
-  <p class="note">此案例已改走完整職務設計（路徑 A）。問題釐清與職務需求界定的完整內容將於正式版提供，本原型尚未開放填寫。</p>
+  <h3>需求背景與觸發</h3>
+  <table>
+    <tr><th style="width:170px">最近的觸發事件</th><td>${val(F('m1.trigger_event'))}</td></tr>
+    <tr><th>問題開始或被注意到的時間</th><td>${val(F('m1.first_noticed_at'))}</td></tr>
+    <tr><th>提出者與主要受影響角色</th><td>${list('m1.affected_roles')}</td></tr>
+    <tr><th>需求性質</th><td>${val(F('m1.demand_nature'))}</td></tr>
+  </table>
+  <h3>已確認事實、證據與待驗證假設</h3>
+  <table>
+    <tr><th style="width:170px">已確認的事實與現象</th><td>${list('m1.confirmed_facts')}</td></tr>
+    <tr><th>有資料或多人觀察支持</th><td>${list('m1.supporting_evidence')}</td></tr>
+    <tr><th>合理但尚待驗證的推論</th><td>${list('m1.hypotheses_pending')}</td></tr>
+    <tr><th>目前只有感受的說法</th><td>${list('m1.feelings_claims')}</td></tr>
+    <tr><th>仍需補充的資料</th><td>${list('m1.information_gaps')}</td></tr>
+  </table>
+  <h3>優先問題與問題類型</h3>
+  ${problemTable(F('m1.problem_statements'))}
+  <p><b>若只處理局部問題，可能出現的下一個瓶頸：</b></p>${list('m1.next_bottleneck')}
+  <h3>問題尺度、影響及不處理代價</h3>
+  <table>
+    <tr><th style="width:170px">主要影響對象與範圍</th><td>${val(F('m1.impact_scope'))}</td></tr>
+    <tr><th>頻率、持續程度與是否擴大</th><td>${val(F('m1.frequency_duration'))}</td></tr>
+    <tr><th>目前已發生的影響</th><td>${list('m1.current_impacts')}</td></tr>
+    <tr><th>三至六個月的可能代價</th><td>${list('m1.inactivity_cost')}</td></tr>
+    <tr><th>影響程度與判斷依據</th><td>${val(F('m1.importance'))}</td></tr>
+    <tr><th>時間敏感性與關鍵期限</th><td>${val(F('m1.time_sensitivity'))}</td></tr>
+    <tr><th>需求尺度</th><td>${val(F('m1.need_scale'))}</td></tr>
+    <tr><th>尚未量化的風險</th><td>${list('m1.unquantified_risks')}</td></tr>
+  </table>
+  <h3>最低與理想改善結果</h3>
+  <table>
+    <tr><th style="width:170px">目前狀況</th><td>${val(F('m1.current_condition'))}</td></tr>
+    <tr><th>期待改變</th><td>${val(F('m1.target_change'))}</td></tr>
+    <tr><th>主要受益對象</th><td>${list('m1.beneficiaries')}</td></tr>
+    <tr><th>判斷改善是否發生的依據</th><td>${list('m1.success_evidence')}</td></tr>
+    <tr><th>最低可接受結果</th><td>${val(F('m1.minimum_result'))}</td></tr>
+    <tr><th>理想結果</th><td>${val(F('m1.ideal_result'))}</td></tr>
+    <tr><th>超出本次範圍的結果</th><td>${list('m1.out_of_scope')}</td></tr>
+    <tr><th>無法由單一方案承擔的期待</th><td>${list('m1.beyond_single_solution')}</td></tr>
+  </table>
+  <h3>投入判斷、限制及下一步</h3>
+  <table>
+    <tr><th style="width:170px">預期價值與可避免的代價</th><td>${list('m1.expected_value')}</td></tr>
+    <tr><th>可投入的資源範圍</th><td>${val(F('m1.available_resources'))}</td></tr>
+    <tr><th>不可妥協的限制</th><td>${list('m1.nonnegotiables')}</td></tr>
+    <tr><th>目前缺少的成功條件</th><td>${list('m1.missing_conditions')}</td></tr>
+    <tr><th>投入不足的風險</th><td>${list('m1.underinvest_risk')}</td></tr>
+    <tr><th>建議狀態</th><td>${val(F('m1.investment_status'))}</td></tr>
+    <tr><th>理由</th><td>${val(F('m1.status_reason'))}</td></tr>
+  </table>
+
   <h2><span class="part">第二部</span>　職務需求界定</h2>
-  <p class="note">同上，待正式版提供。</p>
+  <h3>承接的優先問題</h3>
+  <table>
+    <tr><th style="width:170px">本次要處理的優先問題</th><td>${val(F('m2.upstream_problem'))}</td></tr>
+    <tr><th>最低需要改善到什麼程度</th><td>${val(F('m2.upstream_minimum'))}</td></tr>
+    <tr><th>理想希望改善到什麼程度</th><td>${val(F('m2.upstream_ideal'))}</td></tr>
+    <tr><th>重要限制或不可犧牲條件</th><td>${val(F('m2.upstream_constraints'))}</td></tr>
+    <tr><th>仍待驗證的假設或資訊</th><td>${val(F('m2.upstream_hypotheses'))}</td></tr>
+    <tr><th>暫時不處理的問題</th><td>${val(F('m2.upstream_out_of_scope'))}</td></tr>
+  </table>
+  <h3>人力與工作環境盤點摘要</h3>${list('m2.environment_checks')}
+  <table>
+    <tr><th style="width:170px">目前最需要先處理的狀況</th><td>${val(F('m2.priority_condition'))}</td></tr>
+    <tr><th>目前最不確定的地方</th><td>${val(F('m2.uncertain_points'))}</td></tr>
+  </table>
+  <h3>四類策略比較及採用組合</h3>
+  <table>
+    <tr><th style="width:170px">工作、流程、工具與制度</th><td>${list('m2.process_strategies')}</td></tr>
+    <tr><th>既有人員配置與管理</th><td>${list('m2.people_management_strategies')}</td></tr>
+    <tr><th>外部專業與彈性資源</th><td>${list('m2.external_strategies')}</td></tr>
+    <tr><th>內部人力與正式編制</th><td>${list('m2.internal_staffing_strategies')}</td></tr>
+    <tr><th>預計採用的策略組合</th><td>${val(F('m2.strategy_combination'))}</td></tr>
+    <tr><th>增加人才前必須先完成的改善</th><td>${val(F('m2.prerequisite_improvements'))}</td></tr>
+    <tr><th>人力策略結論</th><td>${list('m2.staffing_decision')}</td></tr>
+  </table>
+  <h3>角色類型與層級理由</h3>
+  <table>
+    <tr><th style="width:170px">角色類型判斷</th><td>${list('m2.role_types')}</td></tr>
+    <tr><th>管理問題的責任判斷</th><td>${list('m2.management_responsibility')}</td></tr>
+    <tr><th>需求持續性</th><td>${val(F('m2.demand_duration'))}</td></tr>
+    <tr><th>初步工作量或頻率</th><td>${val(F('m2.workload_frequency'))}</td></tr>
+    <tr><th>主要合作角色</th><td>${val(F('m2.collaboration_roles'))}</td></tr>
+    <tr><th>建議角色類型</th><td>${val(F('m2.suggested_role_type'))}</td></tr>
+    <tr><th>為什麼需要這個層級</th><td>${val(F('m2.role_level_reason'))}</td></tr>
+    <tr><th>只增加執行人力仍不會改善的問題</th><td>${val(F('m2.unresolved_by_executor'))}</td></tr>
+  </table>
+  <h3>人才任務範圍與組織責任</h3>
+  <table>
+    <tr><th style="width:170px">人才主要負責</th><td>${list('m2.primary_responsibilities')}</td></tr>
+    <tr><th>需要共同處理</th><td>${list('m2.shared_responsibilities')}</td></tr>
+    <tr><th>人才協助處理</th><td>${list('m2.support_responsibilities')}</td></tr>
+    <tr><th>由主管或組織負責</th><td>${list('m2.organization_responsibilities')}</td></tr>
+    <tr><th>不應期待人才解決</th><td>${list('m2.outside_role_scope')}</td></tr>
+    <tr><th>組織可以提供的條件</th><td>${list('m2.organization_support')}</td></tr>
+    <tr><th>目前仍缺少的條件</th><td>${val(F('m2.missing_conditions'))}</td></tr>
+  </table>
+
   <h2><span class="part">第三部</span>　職務與人才規格定位</h2>`;
 
   const pathBSections = `
@@ -302,18 +404,40 @@ export function buildJdDoc(c) {
 }
 
 // ── 共用表格片段 ────────────────────────────────────────
+/**
+ * 表格三：各職能的行為定錨等級（BARS）。
+ * L1–L5 每一格的內容**就是**該等級的行為特徵，不另立欄位。
+ * 最低／理想以 ✓ 標示於對應等級（打勾概念）。
+ */
 function anchorTable(anchors) {
   if (!anchors || !anchors.length) return `<p class="tbc">待確認</p>`;
-  return '<table><tr><th>職能／維度</th><th>L1</th><th>L2</th><th>L3</th><th>L4</th><th>L5</th><th>最低</th><th>理想</th></tr>' +
-    anchors.map(a => `<tr><td>${esc(a.competency)}</td><td>${esc(a.L1)}</td><td>${esc(a.L2)}</td><td>${esc(a.L3)}</td><td>${esc(a.L4)}</td><td>${esc(a.L5)}</td><td>${a.minimum_level ? esc(a.minimum_level) : TBC}</td><td>${a.ideal_level ? esc(a.ideal_level) : TBC}</td></tr>`).join('') +
-    '</table>';
+  const mark = (a, L) => {
+    const tags = [];
+    if (a.minimum_level === L) tags.push('✓最低');
+    if (a.ideal_level === L) tags.push('✓理想');
+    return tags.length ? `<div class="lvmark">${tags.join('　')}</div>` : '';
+  };
+  return '<table><tr><th>職能名稱</th><th>職能定義</th><th>L1</th><th>L2</th><th>L3</th><th>L4</th><th>L5</th><th>最低可接受等級</th><th>理想適任等級</th></tr>' +
+    anchors.map(a => `<tr>
+      <td>${esc(a.competency)}${a.isTrait ? '<br><span class="trait">成熟度</span>' : ''}</td>
+      <td>${a.definition ? esc(a.definition) : TBC}</td>
+      ${['L1', 'L2', 'L3', 'L4', 'L5'].map(L => `<td>${esc(a[L])}${mark(a, L)}</td>`).join('')}
+      <td>${a.minimum_level ? esc(a.minimum_level) : TBC}</td>
+      <td>${a.ideal_level ? esc(a.ideal_level) : TBC}</td></tr>`).join('') +
+    '</table><p class="note">L1–L5 每一格為該等級的可觀察行為特徵（行為錨定等級 BARS）。</p>';
 }
 
-// 職務說明書用：成熟度只列最低／理想，不攤開 L1–L5（那是甄選用的評分工具）
+/**
+ * 職務說明書 6.5：**五個維度全部寫入**（依《4.職務說明書》6.5 範本），
+ * 但只寫「需要具備的內容與想法」，**不放等級**——
+ * 凡是有等級的一律歸甄選流程設計書的表格三。（PO 釐清 2026-07-21）
+ */
 function maturitySummary(anchors) {
-  if (!anchors || !anchors.length) return `<p class="tbc">待確認</p>`;
-  return '<table><tr><th>維度</th><th>最低可接受</th><th>理想</th></tr>' +
-    anchors.map(a => `<tr><td>${esc(a.competency)}</td><td>${a.minimum_level ? esc(a.minimum_level) : TBC}</td><td>${a.ideal_level ? esc(a.ideal_level) : TBC}</td></tr>`).join('') + '</table>';
+  const all = anchors || [];
+  if (!all.length) return `<p class="tbc">待確認</p>`;
+  return '<table><tr><th style="width:180px">人才成熟度維度</th><th>需要具備的內容與想法</th></tr>' +
+    all.map(a => `<tr><td>${esc(a.competency)}</td><td>${a.description ? esc(a.description) : (a.why ? esc(a.why) : TBC)}</td></tr>`).join('') +
+    '</table><p class="note">各職能與維度的分級標準與最低／理想要求，詳見《甄選流程設計書》表格三。</p>';
 }
 
 function jobBasicTable(info, c) {
@@ -369,6 +493,13 @@ function gapTable(rows) {
     rows.map(r => `<tr><td>${esc(r.competency)}</td><td>${esc(r.gap)}</td><td>${esc(r.period)}</td><td>${esc(r.support)}</td></tr>`).join('') + '</table>';
 }
 
+// M1 第二章：問題清單
+function problemTable(rows) {
+  if (!rows || !rows.length) return `<p class="tbc">待確認</p>`;
+  return '<table><tr><th>問題陳述</th><th>問題類型</th><th>主／次</th><th>可觀察現象及已知影響</th><th>可能原因</th><th>受影響的下游結果</th><th>已確認／待驗證</th></tr>' +
+    rows.map(r => `<tr><td>${esc(r.statement)}</td><td>${r.type ? esc(r.type) : TBC}</td><td>${esc(r.primary)}</td><td>${r.phenomena ? esc(r.phenomena) : TBC}</td><td>${r.causes ? esc(r.causes) : TBC}</td><td>${r.downstream ? esc(r.downstream) : TBC}</td><td>${r.confirmed_vs_hypo ? esc(r.confirmed_vs_hypo) : TBC}</td></tr>`).join('') + '</table>';
+}
+
 function confirmTable(roles) {
   return '<table><tr><th style="width:180px">確認角色</th><th>姓名</th><th>確認日期</th></tr>' +
     roles.map(r => `<tr><td>${esc(r)}</td><td class="tbc">待確認</td><td class="tbc">待確認</td></tr>`).join('') + '</table>';
@@ -377,8 +508,18 @@ function confirmTable(roles) {
 // ── 待確認事項（只出現在①引導與思考）────────────────────
 export function collectPending(c) {
   const out = [];
+  const isPathA = c.path_type === 'full_design';
+  // 依路徑決定前置模組：完整職務設計＝問題釐清／需求界定；職務優化＝既有職務盤點
+  const upstream = isPathA
+    ? [
+        ['問題釐清定位', ['m1.trigger_event', 'm1.problem_statements', 'm1.minimum_result', 'm1.investment_status']],
+        ['職務需求界定', ['m2.upstream_problem', 'm2.strategy_combination', 'm2.suggested_role_type', 'm2.primary_responsibilities']],
+      ]
+    : [
+        ['既有職務基礎確認', ['existing.role_reason', 'existing.expected_results', 'existing.main_work', 'existing.resources_authority']],
+      ];
   const checkList = [
-    ['既有職務基礎確認', ['existing.role_reason', 'existing.expected_results', 'existing.main_work', 'existing.resources_authority']],
+    ...upstream,
     ['職務與人才規格', ['m3.role_positioning', 'm3.value_outputs', 'm3.work_items', 'm3.organization_relations',
       'm3.prehire_knowledge', 'm3.core_judgments', 'm3.knowledge_anchors',
       'm3.required_tools', 'm3.professional_methods', 'm3.tool_anchors',

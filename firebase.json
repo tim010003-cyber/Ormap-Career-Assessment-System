@@ -12,10 +12,22 @@
       "PRD/**",
       "**/*.md",
       "**/*.xlsx",
-      "mockups/**"
+      "mockups/**",
+      "package.json",
+      "package-lock.json",
+      "tests/**"
     ]
   },
   "firestore": {
     "rules": "firestore.rules"
+  },
+  "emulators": {
+    "firestore": {
+      "port": 8080
+    },
+    "ui": {
+      "enabled": false
+    },
+    "singleProjectMode": true
   }
 }

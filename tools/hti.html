@@ -1397,7 +1397,11 @@
                 saveBtn.disabled = true;
 
                 try {
-                    const userUid = auth.currentUser ? auth.currentUser.uid : "guest";
+                    // ⭐ SEC-FIX-D（2026-07-21）：評測結果一律綁定真實登入者。
+                    //    舊版在未登入時寫入 uid:"guest"，會產生無主資料，
+                    //    且與「評測一律需登入」的產品決策不符（SEC-003）。
+                    const userUid = auth.currentUser?.uid;
+                    if (!userUid) throw new Error('登入狀態已失效，請重新登入後再儲存結果');
                     const currentScores = window.getHTIScores();
                     const sorted = Object.entries(currentScores).sort(([,a], [,b]) => b - a);
                     const topTraits = [sorted[0][0], sorted[1][0]];

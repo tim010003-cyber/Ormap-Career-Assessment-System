@@ -105,10 +105,15 @@ export async function migratePendingCounselor(db, uid, email) {
     const data = pSnap.data();
     // 背景遷移（不 await）：寫入正式 uid 文件 → 然後刪除舊 pending 文件
     // 刪除失敗時不阻斷登入，下次登入會再試一次
+    // ⭐ SEC-FIX-D（2026-07-21）：migratedFrom 是 Rules 的驗證依據。
+    //    Rules 會據此讀取來源 pending 文件，確認其 email 與登入者的
+    //    token email 相符，才允許本人建立 counselors/{uid}。
+    //    少了這個欄位，遷移會被拒絕（這是刻意的：沒有邀請就不該有身分）。
     setDoc(doc(db, "counselors", uid), {
       ...data,
       uid,
-      pending: false
+      pending: false,
+      migratedFrom: pendingKey
     })
     .then(() => deleteDoc(doc(db, "counselors", pendingKey)))
     .catch((e) => {

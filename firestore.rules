@@ -1,74 +1,133 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // ── 輔助函數（避免重複邏輯）─────────────────────
-    function isSuperAdmin() {
-      return exists(/databases/$(database)/documents/counselors/$(request.auth.uid))
-        && get(/databases/$(database)/documents/counselors/$(request.auth.uid)).data.isSuperAdmin == true;
+
+    // ═══════════════════════════════════════════════════════════════
+    // 設計原則（2026-07-21 SEC-FIX-D 全面收緊）
+    // ───────────────────────────────────────────────────────────────
+    // 這個專案沒有伺服器端，Rules 是唯一的防線。因此：
+    //   1. 預設拒絕：未列出的路徑一律拒絕。
+    //   2. 最小權限：每條規則只開放「該流程實際需要的欄位」，
+    //      不因為「呼叫端只會改某欄位」就信任呼叫端。
+    //   3. 提權必須由既有 Super Admin 執行，任何人不得自我提權。
+    //
+    // 本次修補的兩條 P0 提權路徑：
+    //   P0-A（counselors 自我提權）
+    //     舊規則 `allow create, update: if request.auth.uid == docId` 沒有
+    //     欄位限制，任何 Google 帳號登入後寫入 counselors/{自己的uid} =
+    //     { isActive:true, isSuperAdmin:true } 即取得最高權限。
+    //     現在：自建文件必須附帶 migratedFrom，指向一份 email 與本人相符
+    //     的 pending 邀請文件，且不得自帶 isSuperAdmin:true。
+    //   P0-B（assessments 綁定竊取）
+    //     舊規則 `allow update: ... || isCounselor()` 沒有欄位限制，任何
+    //     諮詢師可把他人報告的 assignedCounselorUid 改成自己，再經 get 讀取。
+    //     現在：assignedCounselorUid 只有 Super Admin 能寫；本人只能改
+    //     counselorAccess（授權開關）。
+    //
+    // 同時收緊（原列 SEC-001 / SEC-003 / SEC-004）：
+    //   - assessments list 由「任何登入者」改為只能查到與自己相關的資料。
+    //   - assessments create 由 `if true` 改為必須登入且 uid 需為本人。
+    //   - user_progress read 由「任何登入者」改為只能讀自己的草稿。
+    //
+    // AUTH-001：isCounselor 由 `isActive != false` 改為 `isActive == true`，
+    //   與前端 auth-utils.js 的判定對齊。缺 isActive 欄位的舊文件原本就
+    //   會被前端拒絕，因此此變更不會移除任何實際可用的存取。
+    // ═══════════════════════════════════════════════════════════════
+
+    // ── 輔助函數 ──────────────────────────────────────
+    function counselorData() {
+      return get(/databases/$(database)/documents/counselors/$(request.auth.uid)).data;
     }
+    // 注意：Firestore 規則在存取「不存在的欄位」時會直接判定錯誤（等同拒絕），
+    // 因此凡是可能缺欄位的舊資料一律用 data.get(欄位, 預設值) 讀取。
+    // 缺 isActive 的舊文件 → 視為未啟用；缺 isDeleted → 視為未刪除。
     function isCounselor() {
-      return exists(/databases/$(database)/documents/counselors/$(request.auth.uid))
-        && get(/databases/$(database)/documents/counselors/$(request.auth.uid)).data.isActive != false
-        && get(/databases/$(database)/documents/counselors/$(request.auth.uid)).data.isDeleted != true;
+      return request.auth != null
+        && exists(/databases/$(database)/documents/counselors/$(request.auth.uid))
+        && counselorData().get('isActive', false) == true
+        && counselorData().get('isDeleted', false) != true;
     }
+    function isSuperAdmin() {
+      return isCounselor() && counselorData().get('isSuperAdmin', false) == true;
+    }
+    // 自建 counselors 文件時，來源 pending 邀請文件的資料
+    function pendingSource() {
+      return get(/databases/$(database)/documents/counselors/$(request.resource.data.migratedFrom)).data;
+    }
+
     // ── 使用者個人資料 ────────────────────────────────
     match /users/{userId} {
       allow read, write: if request.auth != null
         && request.auth.uid == userId;
     }
+
     // ── 測驗結果 ──────────────────────────────────────
     match /assessments/{docId} {
-      allow create: if true;
-      // ── 讀取（Phase 9.2 / A2）：get 與 list 分離 ──
-      // 單筆 get 鎖定：本人 / Super Admin / 綁定且未撤銷授權的諮詢師。
-      // 堵住「任意登入者拿 docId 直接讀他人報告」與「被撤銷授權的諮詢師
-      // 仍能從 report.html?id= 讀取」兩個漏洞（counselorAccess 現在 DB 層生效）。
-      // 註：counselorAccess 欄位不存在時視為授權（null != false 為 true），
-      //     符合「undefined/true 皆授權，僅 false 撤銷」的資料契約。
+      // 建立：必須登入，且只能建立掛在自己名下的結果。
+      // 不得在建立時自帶 assignedCounselorUid（否則等於自行指定審閱者）。
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.toolType in ['TWA', 'HTI']
+        && !('assignedCounselorUid' in request.resource.data);
+
+      // 單筆讀取：本人 / Super Admin / 綁定且未撤銷授權的諮詢師。
       allow get: if request.auth != null && (
-        request.auth.uid == resource.data.uid
+        request.auth.uid == resource.data.get('uid', '')
         || isSuperAdmin()
         || (isCounselor()
-            && resource.data.assignedCounselorUid == request.auth.uid
-            && resource.data.counselorAccess != false)
+            && resource.data.get('assignedCounselorUid', '') == request.auth.uid
+            && resource.data.get('counselorAccess', true) != false)
       );
-      // 查詢（list）維持登入可用：admin 後台 Super Admin 全表查詢、
-      // 一般諮詢師 where assignedCounselorUid、timeline/dashboard where uid 都靠 list。
-      // ⚠️ 殘留風險：list 未逐筆落實 counselorAccess 過濾（Firestore 規則非過濾器，
-      //    需查詢端 where 對齊 + counselorAccess 全面布林化才能收緊）。
-      //    目前 list 結果仍由前端過濾，列為後續 backlog。
-      allow list: if request.auth != null;
-      // 本人可更新；諮詢師可寫入 assignedCounselorUid
+
+      // 查詢：Firestore 要求查詢結果必須「可證明」全部符合本規則，
+      // 因此以下三種既有查詢形狀仍然可用，其餘一律被拒：
+      //   dashboard.html / timeline.html  where('uid','==',本人)
+      //   admin.html（一般諮詢師）        where('assignedCounselorUid','==',本人)
+      //   admin.html（Super Admin）       全表查詢
+      // ⚠️ 殘留（已知、可接受）：list 未逐筆檢查 counselorAccess，
+      //    因為該欄位無法由查詢條件證明。撤銷授權後諮詢師仍可能在列表
+      //    看到該筆摘要，但單筆 get 會被擋下。前端仍需過濾。
+      // ⚠️ 條件順序有意義：查詢（list）不是逐筆比對，而是由 Firestore 以查詢條件
+      //    做符號推導。若把依賴文件欄位的條件放在最前面，全表查詢會因為
+      //    「查詢未限定該欄位」而直接判定錯誤，連 Super Admin 都會被擋。
+      //    因此先放不依賴文件內容的身分判定，再放依賴欄位的條件。
+      allow list: if request.auth != null && (
+        isSuperAdmin()
+        || (isCounselor() && resource.data.assignedCounselorUid == request.auth.uid)
+        || resource.data.uid == request.auth.uid
+      );
+
+      // 更新：本人只能切換授權開關（dashboard.html 的「開放諮詢師查看」）。
+      // assignedCounselorUid 等所有其他欄位只有 Super Admin 能改。
       allow update: if request.auth != null && (
-        request.auth.uid == resource.data.uid
-        || isCounselor()
+        (request.auth.uid == resource.data.uid
+         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['counselorAccess']))
+        || isSuperAdmin()
       );
-      // ⭐ 7.6 新增：本人或 Super Admin 可刪除
+
       allow delete: if request.auth != null && (
         request.auth.uid == resource.data.uid
         || isSuperAdmin()
       );
     }
+
     // ── 測驗草稿（自動存檔）──────────────────────────
+    // 文件 ID 一律為 {uid}_{工具代碼}，讀寫都只認自己的前綴。
     match /user_progress/{docId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && docId.matches(request.auth.uid + "_.*");
+      allow read, write: if request.auth != null
+        && docId.matches(request.auth.uid + '_.*');
     }
+
     // ── 諮詢師備註 ────────────────────────────────────
     match /counselor_notes/{docId} {
       allow read, write: if request.auth != null && isCounselor();
     }
+
     // ── 白板功能已於 2026-07-20 依使用者決策全面移除 ──────
-    // 原有 whiteboard_sessions（含子集合）與 whiteboard_active 兩個集合的
-    // 規則為 `if request.auth != null`，任何登入者皆可讀寫任意 session，
-    // 並可經由結束流程取得他人評測報告的存取權（SEC-002 / SEC-005，皆 P0）。
-    // 功能移除後不再保留任何規則 —— 未列出的路徑一律拒絕存取，
-    // 因此殘留資料即使仍在資料庫中也無法被前端讀寫。
+    // 未列出的路徑一律拒絕，殘留資料無法被前端讀寫。
     // 既有文件的實際清理另行處理（需使用者授權後執行）。
-    // ── 意見回饋（基礎建設⑤，2026-07-16）──────────────
-    // 任何人皆可送出回饋（含未登入訪客）；只讀權限保留給 Super Admin（未來後台）。
-    // 客戶端不可讀他人回饋、不可改/刪，避免濫用；create 加基本欄位驗證擋灌爆。
+
+    // ── 意見回饋 ──────────────────────────────────────
     match /feedback/{docId} {
       allow create: if request.resource.data.message is string
         && request.resource.data.message.size() > 0
@@ -76,20 +135,49 @@ service cloud.firestore {
       allow read: if request.auth != null && isSuperAdmin();
       allow update, delete: if false;
     }
+
     // ── 諮詢師管理 ────────────────────────────────────
     match /counselors/{docId} {
-      // 任何登入者可讀（isCounselor 函數需要查詢）
-      allow read: if request.auth != null;
-      // 建立 / 更新：Super Admin 或本人（pending 遷移用）
-      allow create, update: if request.auth != null && (
-        isSuperAdmin()
-        || request.auth.uid == docId
+      // 讀取：本人文件 / Super Admin / 自己的 pending 邀請文件（以 email 對應）。
+      // 舊規則開放給任何登入者，等於外洩完整諮詢師名單與待邀請 email。
+      allow get: if request.auth != null && (
+        docId == request.auth.uid
+        || isSuperAdmin()
+        || resource.data.get('email', '') == request.auth.token.email
       );
-      // 刪除：Super Admin、本人文件、或本人的 pending 文件（email 對應）
+      // 列舉整份名單：只有 counselors.html（Super Admin 專頁）需要。
+      allow list: if isSuperAdmin();
+
+      // 建立：
+      //   a) Super Admin 建立任何文件（含 pending 邀請）。
+      //   b) 受邀者首次登入的自動遷移 —— 必須附 migratedFrom 指向一份
+      //      email 與本人 token 相符、且未停用的 pending 文件，
+      //      且不得自帶 isSuperAdmin:true。
+      // 這使「憑空自建諮詢師身分」與「自我提權為 Super Admin」皆不可能。
+      allow create: if request.auth != null && (
+        isSuperAdmin()
+        || (docId == request.auth.uid
+            && request.resource.data.get('isSuperAdmin', false) != true
+            && 'migratedFrom' in request.resource.data
+            && exists(/databases/$(database)/documents/counselors/$(request.resource.data.migratedFrom))
+            && pendingSource().get('email', '') == request.auth.token.email
+            && pendingSource().get('isActive', false) == true)
+      );
+
+      // 更新：Super Admin 不限；本人只能寫入登入軌跡與顯示名稱
+      // （admin.html 每次登入會更新 lastLoginAt / name）。
+      // 權限旗標 isActive / isSuperAdmin / isDeleted 一律不得自改。
+      allow update: if request.auth != null && (
+        isSuperAdmin()
+        || (docId == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['lastLoginAt', 'name']))
+      );
+
+      // 刪除：Super Admin，或本人的 pending 文件（遷移完成後清理）。
       allow delete: if request.auth != null && (
         isSuperAdmin()
-        || request.auth.uid == docId
-        || resource.data.email == request.auth.token.email
+        || resource.data.get('email', '') == request.auth.token.email
       );
     }
   }

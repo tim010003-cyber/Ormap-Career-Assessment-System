@@ -77,6 +77,8 @@
     </div>
   </div>
 
+  <div id="quotaBar" class="hidden mb-4 px-4 py-3 rounded-xl bg-mist/40 border border-navy/12 text-sm"></div>
+
   <!-- 列表 -->
   <div id="caseList" class="bg-white rounded-2xl border border-navy/10 overflow-hidden"></div>
 
@@ -130,7 +132,7 @@ import { CASE_FIELDS, PATHS, pathName } from './jd-fields.js';
 import { listCases, createCase, deleteCase, getModuleStatus } from './jd-store.js';
 import { countPending } from './jd-word.js';
 import { seedDemoCase, seedContradictionCase, seedPathACase } from './jd-seed.js';
-import { aiStatus, isLocalEnv, whyNotReady, signIn, signOut, onAuth } from './jd-ai.js';
+import { aiStatus, isLocalEnv, whyNotReady, signIn, signOut, onAuth, myAccess, redeemCode, remaining } from './jd-ai.js';
 
 const $ = (s, r=document) => r.querySelector(s);
 const el = (t, cls, html) => { const e=document.createElement(t); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e; };
@@ -307,20 +309,64 @@ render();
     }
   }
 
-  // 帳號：線上要用 AI 必須登入，配額之後也綁在帳號上
-  const acct=$('#acctChip'), acctTxt=$('#acctChipText');
-  const paintAcct=(u)=>{
-    if(u){
-      acctTxt.textContent=(u.displayName||u.email||'已登入').split(' ')[0];
-      acct.title=u.email+'（點擊登出）';
-      acct.className='inline-flex items-center gap-1.5 bg-tealgreen/10 border border-tealgreen/40 text-tealdeep px-3.5 py-2 rounded-lg text-sm font-semibold hover:bg-tealgreen/15 transition';
-    }else{
+  // 帳號與課程授權碼：線上要用 AI 必須登入並兌換過碼，配額綁在帳號上
+  const acct=$('#acctChip'), acctTxt=$('#acctChipText'), quotaBar=$('#quotaBar');
+
+  async function paintAcct(u){
+    if(!u){
       acctTxt.textContent='登入';
       acct.title='AI 整理需要登入才能使用';
       acct.className='inline-flex items-center gap-1.5 bg-white border border-navy/20 text-navy px-3.5 py-2 rounded-lg text-sm font-semibold hover:border-tealgreen/60 transition';
+      quotaBar.classList.add('hidden');
+      if(window.lucide) lucide.createIcons();
+      return;
     }
-    if(window.lucide) lucide.createIcons();
-  };
+    acctTxt.textContent=(u.displayName||u.email||'已登入').split(' ')[0];
+    acct.title=u.email+'（點擊登出）';
+    acct.className='inline-flex items-center gap-1.5 bg-tealgreen/10 border border-tealgreen/40 text-tealdeep px-3.5 py-2 rounded-lg text-sm font-semibold hover:bg-tealgreen/15 transition';
+    paintQuota(await myAccess(true));
+  }
+
+  function paintQuota(a){
+    quotaBar.classList.remove('hidden');
+    quotaBar.innerHTML='';
+
+    if(!a?.hasCode){
+      quotaBar.innerHTML=`<div class="flex flex-wrap items-center gap-2">
+        <span class="text-navy/70">還沒輸入課程授權碼，目前不能使用 AI 整理。</span></div>`;
+      const wrap=el('div','flex items-center gap-2 mt-2');
+      const inp=el('input','border border-navy/20 rounded-lg px-3 py-1.5 text-sm font-mono w-56');
+      inp.placeholder='ORMAP-XXXX-XXXX'; inp.setAttribute('aria-label','課程授權碼');
+      const btn=el('button','bg-navy text-ivory px-3.5 py-1.5 rounded-lg text-sm font-semibold hover:bg-tealdeep','兌換');
+      const msg=el('span','text-xs text-accent');
+      const doRedeem=async()=>{
+        const code=inp.value.trim();
+        if(!code) return;
+        btn.disabled=true; msg.textContent='';
+        try{ paintQuota(await redeemCode(code)); }
+        catch(e){ msg.textContent=e.message||'兌換失敗'; btn.disabled=false; }
+      };
+      btn.addEventListener('click',doRedeem);
+      inp.addEventListener('keydown',e=>{ if(e.key==='Enter') doRedeem(); });
+      wrap.append(inp,btn,msg); quotaBar.appendChild(wrap);
+      return;
+    }
+
+    if(a.isInstructor){
+      quotaBar.innerHTML=`<span class="font-semibold text-tealdeep">講師模式</span>
+        <span class="text-navy/55 ml-2">${esc(a.cohort||'')}　AI 整理不計次</span>`;
+      return;
+    }
+
+    const left=remaining(a);
+    const low=left<=5;
+    quotaBar.innerHTML=`<div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span class="font-semibold ${low?'text-accent':'text-tealdeep'}">AI 整理還有 ${left} 次</span>
+        <span class="text-navy/45">已用 ${a.quotaUsed}／${a.quotaTotal}　${esc(a.cohort||'')}</span>
+        ${low?'<span class="text-accent/80">次數有限，想清楚再按會比較划算。</span>':''}
+      </div>`;
+  }
+
   acct.addEventListener('click', async()=>{
     try{
       const u=await import('./jd-ai.js').then(m=>m.currentUser());

@@ -65,5 +65,8 @@ node_modules/
 # dotenv environment variables file
 .env
 
+# 職務設計 App 的本機 AI 代理設定（內含 API Key，絕不可進版控或部署）
+tools/job-design/server/.ai-config.json
+
 # dataconnect generated files
 .dataconnect

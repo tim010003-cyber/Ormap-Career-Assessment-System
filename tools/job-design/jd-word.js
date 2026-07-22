@@ -53,54 +53,123 @@ const allAnchors = (c) => [
     .map(m => ({ ...m, isTrait: true, definition: m.definition || m.description || '' })),
 ];
 
+/**
+ * 文件樣式：純黑白、緊湊、正式。
+ *
+ * 為什麼不用品牌色：這些檔案下載後會被拿去改、去印、去轉 PDF、
+ * 貼進別人的簡報。彩色線條在那些情境只會變成雜訊，而且不好改。
+ * 標準公文的作法就是黑白 + 灰階層次，需要品牌感時由使用者自己套。
+ */
 const STYLE = `
 <style>
-  body{font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;color:#142033;line-height:1.7;}
-  h1{font-size:22pt;color:#142033;border-bottom:3px solid #1E9188;padding-bottom:6pt;margin-top:26pt;}
-  h2{font-size:15pt;color:#136E68;margin-top:20pt;border-left:5px solid #1E9188;padding-left:8pt;}
-  h3{font-size:12.5pt;color:#142033;margin-top:14pt;}
-  table{border-collapse:collapse;width:100%;margin:8pt 0;}
-  th,td{border:1px solid #b7c7c9;padding:5pt 8pt;text-align:left;vertical-align:top;font-size:10.5pt;}
-  th{background:#DCECEF;color:#0f172a;}
-  .tbc{color:#b45309;font-weight:600;}
-  .cover{padding:36pt 0 24pt;border-bottom:1px solid #dcd6c8;}
-  .cover .kind{font-size:10pt;letter-spacing:3px;color:#136E68;font-weight:700;}
-  .cover .doc-title{font-size:26pt;font-weight:900;margin:6pt 0 2pt;}
-  .cover .role{font-size:14pt;color:#475569;}
-  .kv{margin:2pt 0;font-size:10.5pt;} .kv b{display:inline-block;min-width:92pt;color:#136E68;}
-  .seal{display:inline-block;margin-top:14pt;padding:5pt 12pt;border-radius:4px;font-size:10pt;font-weight:700;}
-  .seal.internal{background:#FDF3EA;border:1px solid #E88A55;color:#a4551f;}
-  .seal.external{background:#EAF5F3;border:1px solid #1E9188;color:#136E68;}
-  .note{background:#FBF8F2;border:1px solid #E88A55;padding:8pt 12pt;border-radius:6px;font-size:10.5pt;}
-  ul{margin:4pt 0 4pt 18pt;} li{margin:2pt 0;}
-  .part{color:#94a3b8;font-size:10pt;letter-spacing:2px;}
-  .lvmark{margin-top:3pt;font-size:9pt;font-weight:700;color:#136E68;}
-  .trait{font-size:8.5pt;color:#a4551f;background:#FDF3EA;border:1px solid #E88A55;padding:0 4pt;border-radius:3px;}
+  @page{margin:2cm 2.2cm;}
+  body{font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;color:#000;
+       line-height:1.45;font-size:10.5pt;}
+  h1{font-size:13pt;font-weight:700;margin:16pt 0 6pt;padding-bottom:3pt;
+     border-bottom:1pt solid #000;letter-spacing:.5pt;}
+  h2{font-size:11.5pt;font-weight:700;margin:14pt 0 5pt;padding:2pt 0 2pt 7pt;
+     border-left:3pt solid #000;background:#f2f2f2;}
+  h3{font-size:10.5pt;font-weight:700;margin:10pt 0 3pt;}
+  p{margin:3pt 0;}
+  table{border-collapse:collapse;width:100%;margin:4pt 0 8pt;
+        font-size:9.5pt;table-layout:fixed;}
+  th,td{border:.5pt solid #666;padding:3pt 5pt;text-align:left;
+        vertical-align:top;line-height:1.35;word-wrap:break-word;}
+  th{background:#e8e8e8;font-weight:700;}
+  td ul{margin:0 0 0 14pt;padding:0;} td li{margin:0;}
+  ul{margin:2pt 0 2pt 16pt;padding:0;} li{margin:1pt 0;line-height:1.4;}
+  .tbc{color:#666;}
+  .cover{padding:0 0 8pt;margin-bottom:4pt;border-bottom:1.5pt solid #000;}
+  .cover .doc-title{font-size:19pt;font-weight:900;margin:0 0 4pt;letter-spacing:1pt;}
+  .cover .meta-line{font-size:9.5pt;color:#333;margin:1pt 0;}
+  .note{border:.5pt solid #999;background:#f7f7f7;padding:5pt 8pt;
+        font-size:9.5pt;margin:5pt 0;}
+  .part{color:#666;font-size:9pt;letter-spacing:1.5pt;font-weight:400;}
+  .lvmark{margin-top:1pt;font-size:8.5pt;font-weight:700;color:#333;}
+  .trait{font-size:8pt;border:.5pt solid #666;padding:0 3pt;color:#333;}
 </style>`;
 
-/** 四份文件共用的封面 */
+/**
+ * 職務名稱、合作形式這些「三份文件都會用到」的資料，一律走這裡。
+ * 之前封面讀 case.job_title_working、基本資料讀 m4.job_basic_info.job_title，
+ * 使用者在基本資料改了名字，封面沒跟著改，同一份文件出現兩個職稱。
+ */
+function jobFacts(c) {
+  const info = fieldVal(c, 'm4.job_basic_info') || {};
+  return {
+    title: info.job_title || fieldVal(c, 'case.job_title_working') || '',
+    org: info.department || fieldVal(c, 'case.organization_name') || '',
+    engagement: info.engagement || '',
+    info,
+  };
+}
+
+/**
+ * 文件狀態由人決定，不由系統判定。預設草稿。
+ * 系統只在使用者要改成「正式發布」時提醒還有幾項沒確認，不擋。
+ */
+export const DOC_STATUS = ['草稿', '審閱中', '正式發布'];
+export const docStatus = (c) => c.doc_status || '草稿';
+
+/**
+ * 文件抬頭。只印客戶需要知道的四件事——
+ * 案例路徑、文件版本、待確認數量那些是系統對自己說話，不放進交付文件。
+ */
 function coverPage(c, opts) {
-  const pathLabel = c.path_type === 'full_design' ? '完整職務設計' : '職務優化';
-  const pending = countPending(c);
-  const seal = opts.external
-    ? '<div class="seal external">本文件為對外文案，可提供給候選人</div>'
-    : '<div class="seal internal">本文件為內部資料，不對外公開</div>';
   return `<section class="cover">
-    <div class="kind">${esc(opts.kind)}</div>
     <div class="doc-title">${esc(opts.title)}</div>
-    <div class="role">${esc(fieldVal(c, 'case.job_title_working') || '（未命名職務）')}</div>
-    <div style="height:14pt"></div>
-    <div class="kv"><b>案例名稱</b>${val(fieldVal(c, 'case.title'))}</div>
-    <div class="kv"><b>組織</b>${val(fieldVal(c, 'case.organization_name'))}</div>
-    <div class="kv"><b>案例路徑</b>${pathLabel}</div>
-    <div class="kv"><b>文件版本</b>v${docVersion(c)}</div>
-    <div class="kv"><b>產生日期</b>${tw(new Date().toISOString())}</div>
-    <div class="kv"><b>確認狀態</b>${pending === 0 ? '全部已確認' : `尚有 ${pending} 項待確認`}</div>
-    ${seal}
+    <div class="meta-line">狀態：${esc(docStatus(c))}</div>
+    <div class="meta-line">文件建立人：${esc(fieldVal(c, 'case.creator_role') || '—')}</div>
+    <div class="meta-line">建立日期：${esc(fieldVal(c, 'case.created_date') || '—')}</div>
   </section>`;
 }
 
-const wrap = (inner) => `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="utf-8">${STYLE}</head><body>${inner}</body></html>`;
+
+/**
+ * 企業理念。來自問題釐清開場「這個組織在做什麼」，只印在對外的職務招募說明上。
+ * 候選人要判斷「我為什麼要來這裡」，這段就是答案。
+ */
+function orgIntro(c) {
+  const what = fieldVal(c, 'm1.org_what');
+  const who = fieldVal(c, 'm1.org_who');
+  const value = fieldVal(c, 'm1.org_value');
+  const beliefs = fieldVal(c, 'm1.org_beliefs');
+  // 沒填也要出標題。這一段是文件的固定結構，看得到空位才知道要回去補。
+  if (!what && !who && !value && (!beliefs || !beliefs.length)) {
+    return `<h1>企業理念</h1><p class="tbc">待確認（在「問題釐清 · 這個組織在做什麼」回答後，這裡會自動帶入）</p>`;
+  }
+  const paras = [what, who, value].filter(x => x && String(x).trim())
+    .map(x => `<p>${esc(x)}</p>`).join('');
+  const b = (beliefs || []).filter(x => (x ?? '').toString().trim());
+  return `<h1>企業理念</h1>${paras}${b.length ? '<p><b>我們在乎的事</b></p>' + listBlock(b) : ''}`;
+}
+
+/**
+ * 第一人稱代換。
+ * 口述時說話的是主管本人，所以整份逐字稿都是「我」。
+ * 提示詞已經要求 AI 改寫，但既有資料是舊的、人工補打的也可能留下「我」，
+ * 所以輸出時再收一次網。只動明顯的自稱，不動「我們」那種組織口吻。
+ */
+function depersonalize(html, roleName) {
+  const r = roleName || '主管';
+  return String(html)
+    .replace(/由我審核/g, `由${r}審核`)
+    .replace(/給我作最終審核/g, `交由${r}最終審核`)
+    .replace(/需要我審核/g, `需要${r}審核`)
+    .replace(/我與相關窗口/g, `${r}與相關窗口`)
+    .replace(/提交給我/g, `提交給${r}`)
+    .replace(/回報給我/g, `回報給${r}`)
+    .replace(/由我(決定|負責|安排|協調)/g, (m, v) => `由${r}${v}`)
+    .replace(/(^|[，。；、（\s])我(需要|會|要|來|是|的)/g, (m, p, v) => `${p}${r}${v}`);
+}
+
+const wrap = (inner, c) => `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="utf-8">${STYLE}</head><body>${c ? depersonalize(inner, reporterRole(c)) : inner}</body></html>`;
+
+/** 對外要用的角色稱謂：優先用實際填的對接窗口職稱，否則統稱主管 */
+function reporterRole(c) {
+  const info = fieldVal(c, 'm4.job_basic_info') || {};
+  return info.report_to_title || '主管';
+}
 
 // ═══════════ ① 引導與思考 ═══════════
 export function buildGuideDoc(c) {
@@ -172,19 +241,19 @@ export function buildGuideDoc(c) {
     <tr><th>仍待驗證的假設或資訊</th><td>${val(F('m2.upstream_hypotheses'))}</td></tr>
     <tr><th>暫時不處理的問題</th><td>${val(F('m2.upstream_out_of_scope'))}</td></tr>
   </table>
-  <h3>人力與工作環境盤點摘要</h3>${list('m2.environment_checks')}
+  <h3>第一類：改善與重整既有資源</h3>
+  ${strategyTable(c, '工作與流程改善', 'm2.strategies_a')}
+  ${strategyTable(c, '人員配置與管理改善', 'm2.strategies_b')}
+  <h3>第二類：增加新的能力或人力供給</h3>
+  ${strategyTable(c, '引入外部專業與彈性人力', 'm2.strategies_c')}
+  ${strategyTable(c, '增加內部人力與正式編制', 'm2.strategies_d')}
+  <h3>合作形式與資源配置決策</h3>
   <table>
-    <tr><th style="width:170px">目前最需要先處理的狀況</th><td>${val(F('m2.priority_condition'))}</td></tr>
-    <tr><th>目前最不確定的地方</th><td>${val(F('m2.uncertain_points'))}</td></tr>
-  </table>
-  <h3>四類策略比較及採用組合</h3>
-  <table>
-    <tr><th style="width:170px">工作、流程、工具與制度</th><td>${list('m2.process_strategies')}</td></tr>
-    <tr><th>既有人員配置與管理</th><td>${list('m2.people_management_strategies')}</td></tr>
-    <tr><th>外部專業與彈性資源</th><td>${list('m2.external_strategies')}</td></tr>
-    <tr><th>內部人力與正式編制</th><td>${list('m2.internal_staffing_strategies')}</td></tr>
-    <tr><th>預計採用的策略組合</th><td>${val(F('m2.strategy_combination'))}</td></tr>
+    <tr><th style="width:170px">預計採用的合作形式組合</th><td>${val(F('m2.engagement_mix'))}</td></tr>
+    <tr><th>各自負責的範圍與分工</th><td>${val(F('m2.engagement_split'))}</td></tr>
+    <tr><th>可投入的預算範圍與分配</th><td>${val(F('m2.budget_plan'))}</td></tr>
     <tr><th>增加人才前必須先完成的改善</th><td>${val(F('m2.prerequisite_improvements'))}</td></tr>
+    <tr><th>決策理由</th><td>${val(F('m2.decision_reason'))}</td></tr>
     <tr><th>人力策略結論</th><td>${list('m2.staffing_decision')}</td></tr>
   </table>
   <h3>角色類型與層級理由</h3>
@@ -219,7 +288,6 @@ export function buildGuideDoc(c) {
   <h3>現有職務問題</h3>${listBlock(F('existing.current_issues'))}
   <h3>正在改變的期待</h3><p>${val(F('existing.changed_expectations'))}</p>
   <h3>資源、授權與組織條件</h3><p>${val(F('existing.resources_authority'))}</p>
-  <h3>本次優化目標</h3>${listBlock(F('case.optimization_goals'))}
   <h2><span class="part">第二部</span>　職務與人才規格定位</h2>`;
 
   return wrap(`
@@ -231,8 +299,20 @@ export function buildGuideDoc(c) {
 
   <h1>思考歷程紀錄</h1>
   ${isPathA ? pathASections : pathBSections}
+  <h3>結果與價值</h3>
+  <table>
+    <tr><th style="width:170px">具體產出與實際結果</th><td>${listBlock(F('m3.concrete_outputs'))}</td></tr>
+    <tr><th>可觀察的變化</th><td>${listBlock(F('m3.observable_changes'))}</td></tr>
+    <tr><th>錯誤可能造成的後果</th><td>${listBlock(F('m3.error_consequences'))}</td></tr>
+  </table>
   <h3>角色定位</h3><p>${val(F('m3.role_positioning'))}</p>
   <h3>預期價值產出</h3>${listBlock(F('m3.value_outputs'))}
+  <h3>工作流程</h3>
+  <table>
+    <tr><th style="width:170px">主要步驟與順序</th><td>${listBlock(F('m3.work_steps'))}</td></tr>
+    <tr><th>需要協作的內容</th><td>${listBlock(F('m3.collaboration_items'))}</td></tr>
+    <tr><th>使用或處理的資料與物件</th><td>${listBlock(F('m3.data_objects'))}</td></tr>
+  </table>
   <h3>主要工作項目</h3>
   <table><tr><th>工作項目</th><th>責任區分</th><th>性質</th><th>頻率／占比</th></tr>
   ${workItems.length ? workItems.map(w => `<tr><td>${esc(w.work)}</td><td>${esc(w.responsibility_type)}</td><td>${esc(w.nature)}</td><td>${w.frequency_share ? esc(w.frequency_share) : TBC}</td></tr>`).join('') : `<tr><td colspan="4" class="tbc">待確認</td></tr>`}
@@ -282,7 +362,7 @@ export function buildGuideDoc(c) {
     <tr><th>JD 對外文案</th><td>${c.modules?.m6?.status === 'confirmed' ? '已確認' : TBC}</td></tr>
     <tr><th>產生時間</th><td>${tw(new Date().toISOString())}</td></tr>
     <tr><th>首次下載時間</th><td>${tw(c.access?.first_final_download_at)}</td></tr>
-  </table>`);
+  </table>`, c);
 }
 
 // ═══════════ ② 職務說明書 ═══════════
@@ -298,6 +378,9 @@ export function buildJobDescriptionDoc(c) {
 
   <h1>二、角色定位</h1>
   <p>${val(F('m3.role_positioning'))}</p>
+  ${c.case_summary && c.case_summary.text ? `
+  <h3>2.1 職務需求來源</h3>
+  <p>${esc(c.case_summary.text).replace(/\n+/g, '</p><p>')}</p>` : ''}
 
   <h1>三、預期價值產出</h1>
   ${listBlock(F('m3.value_outputs'))}
@@ -339,7 +422,7 @@ export function buildJobDescriptionDoc(c) {
   <p class="note">完整行為錨點、面試題目與評分標準不放入職務說明書。</p>
 
   <h1>七、文件確認</h1>
-  ${confirmTable(['職務主管確認', '招募／人力資源確認', '其他共同確認者'])}`);
+  ${confirmTable(['職務主管確認', '招募／人力資源確認', '其他共同確認者'])}`, c);
 }
 
 // ═══════════ ③ 甄選流程設計書 ═══════════
@@ -348,23 +431,19 @@ export function buildSelectionDoc(c) {
   return wrap(`
   ${coverPage(c, { kind: '正式輸出 ②', title: '甄選流程設計書', external: false })}
 
-  <h1>一、文件版本與來源版本</h1>
-  <table>
-    <tr><th style="width:170px">本文件版本</th><td>v${docVersion(c)}</td></tr>
-    <tr><th>依據之職務規格</th><td>${c.modules?.m3?.status === 'confirmed' ? '職務與人才規格定位（已確認）' : TBC}</td></tr>
-    <tr><th>依據之職務說明書</th><td>${c.modules?.m4?.status === 'confirmed' ? '職務說明書（已確認）' : TBC}</td></tr>
-  </table>
+  <h1>一、職務基本資料</h1>
+  ${jobBasicTable(F('m4.job_basic_info'), c)}
 
-  <h1>二、甄選流程設計表</h1>
+    <h1>二、甄選流程設計表</h1>
   ${processTable(F('m5.process_steps'))}
 
-  <h1>三、候選人流程說明</h1>
+  <h1>三、候選人須知</h1>
   ${candidateInfo(F('m5.candidate_process_info'))}
 
   <h1>四、各職能結構化面試問題</h1>
   ${questionTable(F('m5.interview_questions'))}
 
-  <h1>五、表格三：各職能的行為定錨等級</h1>
+  <h1>五、各職能的行為定錨等級</h1>
   ${anchorTable(allAnchors(c))}
 
   <h1>六、表現過度的可能風險</h1>
@@ -374,7 +453,7 @@ export function buildSelectionDoc(c) {
   ${gapTable(F('m5.training_gaps'))}
 
   <h1>八、文件確認</h1>
-  ${confirmTable(['職務主管確認', '招募／人力資源確認', '其他面試角色確認'])}`);
+  ${confirmTable(['職務主管確認', '招募／人力資源確認', '其他面試角色確認'])}`, c);
 }
 
 // ═══════════ ④ JD 對外文案 ═══════════
@@ -382,10 +461,15 @@ export function buildSelectionDoc(c) {
 export function buildJdDoc(c) {
   const F = (id) => fieldVal(c, id);
   return wrap(`
-  ${coverPage(c, { kind: '正式輸出 ③', title: 'JD 對外文案', external: true })}
+  ${coverPage(c, { kind: '正式輸出 ③', title: '職務招募說明', external: true })}
 
   <h1>職務名稱</h1>
-  <p>${val(F('m6.job_title'))}</p>
+  <p>${esc(jobFacts(c).title) || TBC}</p>
+
+  <h1>基本資料</h1>
+  ${jdBasicTable(F('m4.job_basic_info'), c)}
+
+  ${orgIntro(c)}
 
   <h1>角色定位</h1>
   <p>${val(F('m6.role_positioning'))}</p>
@@ -400,7 +484,7 @@ export function buildJdDoc(c) {
   ${listBlock(F('m6.work_traits'))}
 
   <h1>面試流程</h1>
-  ${listBlock(F('m6.interview_process'))}`);
+  ${listBlock(F('m6.interview_process'))}`, c);
 }
 
 // ── 共用表格片段 ────────────────────────────────────────
@@ -441,18 +525,31 @@ function maturitySummary(anchors) {
 }
 
 function jobBasicTable(info, c) {
+  // 職務名稱／組織／合作形式一律走 jobFacts()，三份文件不會再分歧。
+  // ALWAYS 的欄位就算空白也印出來（留白本身是資訊）；其餘沒填就不佔版面。
+  const facts = jobFacts(c);
+  const ALWAYS = new Set(['職務名稱', '合作形式', '招募人數']);
   const rows = [
-    ['職務名稱', fieldVal(c, 'case.job_title_working')],
-    ['部門／團隊', info?.department], ['直屬主管', info?.report_to],
-    ['聘用形式', info?.employment], ['工作地點', info?.location],
-  ];
-  return '<table>' + rows.map(([k, v]) => `<tr><th style="width:120px">${k}</th><td>${v ? esc(v) : TBC}</td></tr>`).join('') + '</table>';
+    ['職務名稱', facts.title],
+    ['合作形式', facts.engagement],
+    ['招募人數', info?.headcount],
+    ['同時在職人數', info?.concurrent],
+    ['部門／團隊', info?.department],
+    ['主要對接窗口', info?.report_to],
+    ['工作地點', info?.location],
+    ['工作模式', info?.work_mode],
+    ['工作時間／投入量', info?.work_hours],
+    ['報酬範圍', info?.salary_range],
+  ].filter(([k, v]) => ALWAYS.has(k) || (v != null && String(v).trim() !== ''));
+  return '<table>' + rows.map(([k, v]) => `<tr><th style="width:130px">${k}</th><td>${v ? esc(v) : TBC}</td></tr>`).join('') + '</table>';
 }
 
 function processTable(steps) {
   if (!steps || !steps.length) return `<p class="tbc">待確認</p>`;
-  return '<table><tr><th>階段</th><th>負責角色</th><th>任務</th><th>甄選重點</th></tr>' +
-    steps.map(s => `<tr><td>${esc(s.step)}</td><td>${esc(s.role)}</td><td>${esc(s.task)}</td><td>${esc(s.focus)}</td></tr>`).join('') + '</table>';
+  return '<table>'
+    + '<colgroup><col style="width:18%"><col style="width:16%"><col style="width:10%"><col style="width:30%"><col style="width:26%"></colgroup>'
+    + '<tr><th>階段</th><th>負責角色</th><th>時長</th><th>任務</th><th>甄選重點</th></tr>'
+    + steps.map(s => `<tr><td>${esc(s.step)}</td><td>${esc(s.role)}</td><td>${s.duration ? esc(s.duration) : '—'}</td><td>${esc(s.task)}</td><td>${esc(s.focus)}</td></tr>`).join('') + '</table>';
 }
 
 function candidateInfo(info) {
@@ -461,17 +558,50 @@ function candidateInfo(info) {
   return '<table>' + rows.map(([k, v]) => `<tr><th style="width:140px">${k}</th><td>${v ? esc(v) : TBC}</td></tr>`).join('') + '</table>';
 }
 
+/**
+ * 各職能結構化面試問題。
+ * 「使用階段」已移除（這張表本來就全是結構化面試），「問題類型」遞補到第一欄。
+ * 依職能分組，同一項職能的題目只在第一列印出職能名稱，表格不會一直重複。
+ */
 function questionTable(qs) {
   if (!qs || !qs.length) return `<p class="tbc">待確認</p>`;
-  return '<table><tr><th>使用階段</th><th>職能名稱</th><th>問題類型</th><th>核心問題</th><th>結構化追問</th><th>需要取得的行為證據</th><th>對應等級</th></tr>' +
-    qs.map(q => `<tr><td>${esc(q.stage)}</td><td>${esc(q.competency)}</td><td>${esc(q.qtype)}</td><td>${esc(q.question)}</td><td>${esc(q.followup)}</td><td>${esc(q.evidence)}</td><td>${q.level ? esc(q.level) : TBC}</td></tr>`).join('') + '</table>';
+  let prev = null;
+  return '<table>'
+    + '<colgroup><col style="width:12%"><col style="width:14%"><col style="width:26%"><col style="width:22%"><col style="width:19%"><col style="width:7%"></colgroup>'
+    + '<tr><th>問題類型</th><th>職能名稱</th><th>核心問題</th><th>結構化追問</th><th>需要取得的行為證據</th><th>等級</th></tr>'
+    + qs.map(q => {
+      const same = q.competency === prev;
+      prev = q.competency;
+      return `<tr><td>${esc(q.qtype)}</td><td>${same ? '' : esc(q.competency)}</td><td>${esc(q.question)}</td><td>${esc(q.followup)}</td><td>${esc(q.evidence)}</td><td>${q.level ? esc(q.level) : '—'}</td></tr>`;
+    }).join('') + '</table>';
 }
 
 // 組織關係與權責範圍（對上／對下／平行／對外）
+/** JD 對外版的基本資料：只放候選人看了有用、也適合對外公開的欄位 */
+function jdBasicTable(info, c) {
+  const facts = jobFacts(c);
+  const rows = [
+    ['合作形式', facts.engagement],
+    ['招募人數', info?.headcount],
+    ['工作地點', info?.location],
+    ['工作模式', info?.work_mode],
+    ['工作時間／投入量', info?.work_hours],
+    ['報酬範圍', info?.salary_range],
+  ].filter(([, v]) => v != null && String(v).trim() !== '');
+  if (!rows.length) return `<p class="tbc">待確認</p>`;
+  return '<table>' + rows.map(([k, v]) => `<tr><th style="width:130px">${k}</th><td>${esc(v)}</td></tr>`).join('') + '</table>';
+}
+
+/**
+ * 組織關係表。已簡化成「面向／主要對象／主要負責事項」三欄。
+ * 舊資料若還有 support / decision / escalation，合併進「主要負責事項」不遺失。
+ */
 function relationsTable(rows) {
   if (!rows || !rows.length) return `<p class="tbc">待確認</p>`;
-  return '<table><tr><th>關係面向</th><th>主要對象</th><th>主要負責事項</th><th>協助事項</th><th>專業決策範圍</th><th>需要回報、協作或授權的情況</th></tr>' +
-    rows.map(r => `<tr><td>${esc(r.aspect)}</td><td>${r.target ? esc(r.target) : TBC}</td><td>${r.primary ? esc(r.primary) : TBC}</td><td>${r.support ? esc(r.support) : TBC}</td><td>${r.decision ? esc(r.decision) : TBC}</td><td>${r.escalation ? esc(r.escalation) : TBC}</td></tr>`).join('') + '</table>';
+  const merged = (r) => [r.primary, r.support, r.decision, r.escalation]
+    .filter(x => x && String(x).trim()).join('；');
+  return '<table><tr><th style="width:90px">關係面向</th><th style="width:180px">主要對象</th><th>主要負責事項</th></tr>' +
+    rows.map(r => `<tr><td>${esc(r.aspect)}</td><td>${r.target ? esc(r.target) : TBC}</td><td>${merged(r) ? esc(merged(r)) : TBC}</td></tr>`).join('') + '</table>';
 }
 
 // 人才成熟度（含「為什麼需要」）
@@ -491,6 +621,19 @@ function gapTable(rows) {
   if (!rows || !rows.length) return `<p class="tbc">待確認</p>`;
   return '<table><tr><th>職能名稱</th><th>到職時可接受的缺口</th><th>預計補足的程度與期間</th><th>組織提供的訓練或支持</th></tr>' +
     rows.map(r => `<tr><td>${esc(r.competency)}</td><td>${esc(r.gap)}</td><td>${esc(r.period)}</td><td>${esc(r.support)}</td></tr>`).join('') + '</table>';
+}
+
+// M2 解法決策表：勾選的方案 ＋ 原因跟後續行動
+function strategyTable(c, label, optionsId) {
+  const picked = fieldVal(c, optionsId) || [];
+  const notes = fieldVal(c, optionsId + '_notes') || {};
+  if (!picked.length) return `<p><b>${label}</b>：<span class="tbc">未採用任何方案</span></p>`;
+  const cell = (v, key) => {
+    const t = typeof v === 'string' ? (key === 'reason' ? v : '') : (v?.[key] || '');
+    return String(t).trim() ? esc(t) : TBC;
+  };
+  return `<p><b>${label}</b></p><table><tr><th style="width:34%">採用的方案</th><th>原因</th><th>後續行動</th></tr>` +
+    picked.map(p => `<tr><td>${esc(p)}</td><td>${cell(notes[p], 'reason')}</td><td>${cell(notes[p], 'action')}</td></tr>`).join('') + '</table>';
 }
 
 // M1 第二章：問題清單
@@ -513,7 +656,7 @@ export function collectPending(c) {
   const upstream = isPathA
     ? [
         ['問題釐清定位', ['m1.trigger_event', 'm1.problem_statements', 'm1.minimum_result', 'm1.investment_status']],
-        ['職務需求界定', ['m2.upstream_problem', 'm2.strategy_combination', 'm2.suggested_role_type', 'm2.primary_responsibilities']],
+        ['職務需求界定', ['m2.upstream_problem', 'm2.engagement_mix', 'm2.suggested_role_type', 'm2.primary_responsibilities']],
       ]
     : [
         ['既有職務基礎確認', ['existing.role_reason', 'existing.expected_results', 'existing.main_work', 'existing.resources_authority']],
@@ -557,7 +700,7 @@ export const DOCUMENTS = [
   { key: 'guide',     name: '引導與思考',       kind: '思考歷程紀錄', external: false, build: buildGuideDoc },
   { key: 'jobdesc',   name: '職務說明書',       kind: '正式輸出 ①',  external: false, build: buildJobDescriptionDoc },
   { key: 'selection', name: '甄選流程設計書',   kind: '正式輸出 ②',  external: false, build: buildSelectionDoc },
-  { key: 'jd',        name: 'JD 對外文案',      kind: '正式輸出 ③',  external: true,  build: buildJdDoc },
+  { key: 'jd',        name: '職務招募說明',      kind: '正式輸出 ③',  external: true,  build: buildJdDoc },
 ];
 
 export function getDocument(key) { return DOCUMENTS.find(d => d.key === key); }
@@ -565,10 +708,25 @@ export function getDocument(key) { return DOCUMENTS.find(d => d.key === key); }
 // ── 下載 ────────────────────────────────────────────────
 function safeName(s) { return String(s || '').replace(/[\\/:*?"<>|]/g, '_'); }
 
+/**
+ * 取得文件內容：人工改過就用人工版，否則用系統組裝的版本。
+ * 使用者可以在畫面上直接改四份文件，改完的內容存在案例裡，下載時一併帶走。
+ */
+export function documentHtml(c, key) {
+  const doc = getDocument(key);
+  if (!doc) return '';
+  const override = c.doc_overrides && c.doc_overrides[key];
+  return (override && override.html) ? override.html : doc.build(c);
+}
+
+export function isEdited(c, key) {
+  return !!(c.doc_overrides && c.doc_overrides[key] && c.doc_overrides[key].html);
+}
+
 export function downloadDocument(c, key) {
   const doc = getDocument(key);
   if (!doc) return null;
-  const html = doc.build(c);
+  const html = documentHtml(c, key);
   const role = safeName(c.fields['case.job_title_working']?.value || '職務');
   const ymd = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const filename = `${doc.name}_${role}_v${docVersion(c)}_${ymd}.doc`;

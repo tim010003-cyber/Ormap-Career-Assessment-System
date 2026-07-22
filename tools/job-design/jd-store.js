@@ -54,6 +54,18 @@ export function makeFieldValue(value, sourceType, aiTask) {
   };
 }
 
+/**
+ * 跨視窗同步（同一台電腦、同一個瀏覽器）
+ * localStorage 的 storage 事件只會在「其他」視窗觸發，不會回打自己，
+ * 所以回應者打字時不會干擾自己，引導者視窗會即時看到更新。
+ * 兩台裝置之間的同步要等接上 Firestore 才做得到。
+ */
+export function watchExternalChanges(cb) {
+  const handler = (e) => { if (e.key === LS_KEY) cb(); };
+  addEventListener('storage', handler);
+  return () => removeEventListener('storage', handler);
+}
+
 // ── 案例 CRUD ────────────────────────────────────────────
 export function listCases() {
   const all = readAll();
@@ -100,6 +112,11 @@ export function createCase(caseFieldValues, pathType) {
     c.fields[fid] = makeFieldValue(val, 'user_input');
     c.fields[fid].confirmed = true; // 案例基本資料由使用者直接確認
   }
+  // 案例名稱不再由使用者填寫，改由組織＋職務自動組成
+  const org = caseFieldValues?.['case.organization_name'] || '';
+  const job = caseFieldValues?.['case.job_title_working'] || '未命名職務';
+  c.fields['case.title'] = makeFieldValue(org ? `${org}　${job}` : job, 'user_input');
+  c.fields['case.title'].confirmed = true;
   const all = readAll();
   all[id] = c;
   writeAll(all);

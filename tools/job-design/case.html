@@ -5,89 +5,77 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>職務設計與甄選｜案例工作區</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="../../brand.css">
+<link rel="stylesheet" href="./jd-theme.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
-<script>
-tailwind.config = { theme: { extend: {
-  colors: { primary:'#0d9488', secondary:'#0f172a', ivory:'#FBF8F2', navy:'#142033',
-    tealgreen:'#1E9188', tealdeep:'#136E68', accent:'#E88A55', mist:'#DCECEF' },
-  fontFamily: { sans:['"Noto Sans TC"','sans-serif'], serif:['"Noto Serif TC"','serif'] },
-}}}
-</script>
 <script src="https://unpkg.com/lucide@1.8.0"></script>
-<style>
-  body{background:#FBF8F2;color:#142033;}
-  h1,h2,.serif{font-family:"Noto Serif TC",serif;}
-  .col-raw{background:#F4F1EA;} .col-ai{background:#EAF5F3;} .col-inf{background:#FDF3EA;}
-  .badge{font-size:11px;padding:2px 9px;border-radius:999px;font-weight:600;}
-  textarea{resize:vertical;}
-  [contenteditable]:focus{outline:2px solid #1E918855;border-radius:6px;}
-
-  /* ── 思考頁：呼吸感 ── */
-  .stage{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;font-size:13px;
-         color:#14203399;white-space:nowrap;transition:background .15s ease,color .15s ease;}
-  .stage.on{background:#142033;color:#FBF8F2;font-weight:600;}
-  .stage.done{color:#136E68;}
-  .stage:not(.locked){cursor:pointer;}
-  .stage.locked{opacity:.4;}
-  .stage-sep{flex:1;height:1px;background:#14203320;min-width:12px;}
-
-  .qlist{counter-reset:q;}
-  .qitem{display:flex;gap:14px;margin-bottom:18px;font-size:17px;line-height:2;color:#142033cc;}
-  .qitem::before{counter-increment:q;content:counter(q);flex:none;width:26px;height:26px;margin-top:8px;
-                 border-radius:50%;background:#DCECEF;color:#136E68;font-size:12px;font-weight:700;
-                 display:grid;place-items:center;font-family:"Noto Sans TC",sans-serif;}
-
-  .answer{width:100%;border:1px solid #14203322;border-radius:14px;padding:18px 20px;
-          font-size:16px;line-height:1.95;background:#fff;min-height:220px;}
-  .answer:focus{outline:none;border-color:#1E9188;box-shadow:0 0 0 4px #1E918818;}
-  .answer::placeholder{color:#14203355;}
-
-  details.ref{border:1px solid #14203318;border-radius:12px;background:#fff;}
-  details.ref>summary{cursor:pointer;list-style:none;padding:10px 14px;font-size:12.5px;color:#136E68;font-weight:600;}
-  details.ref>summary::-webkit-details-marker{display:none}
-  details.ref[open]>summary{border-bottom:1px solid #14203312;}
-  details.ref .body{padding:12px 14px;font-size:13px;line-height:1.8;color:#142033aa;}
-</style>
 </head>
-<body class="min-h-screen font-sans">
+<body class="site-page jd-app jd-case-page min-h-screen font-sans">
+<a class="site-skip-link" href="#moduleArea">跳到目前問題</a>
 
-<header class="border-b border-navy/10 bg-ivory/85 backdrop-blur sticky top-0 z-30">
-  <div class="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between gap-3">
-    <div class="flex items-center gap-3 min-w-0">
-      <a href="./index.html" class="text-navy/50 hover:text-navy shrink-0"><i data-lucide="arrow-left" class="w-5 h-5"></i></a>
-      <div class="min-w-0">
-        <div class="font-bold leading-tight truncate" id="hCaseTitle">案例</div>
-        <div class="text-[11px] text-navy/50 leading-tight truncate" id="hCaseSub"></div>
-      </div>
-    </div>
-    <div class="flex items-center gap-3 shrink-0">
-      <div id="accessChip" class="hidden badge bg-accent/15 text-accent"></div>
-      <div class="flex items-center gap-1 bg-white rounded-full p-1 border border-navy/10 text-sm" id="identitySwitch">
-        <button data-role="student" class="px-3 py-1 rounded-full">學員</button>
-        <button data-role="instructor" class="px-3 py-1 rounded-full">講師</button>
-      </div>
-    </div>
+<header class="site-header"><div class="site-container site-container--wide site-header__inner"><a class="site-brand" href="../../index.html"><img src="../../ormap-logo.png" alt=""><span>原味藍圖<small>生涯探索與人生設計</small></span></a><nav class="site-nav" aria-label="主要導覽"><a href="../../about.html">認識我們</a><a href="../../blog.html">文章</a><a href="../../tools.html" aria-current="page">探索工具</a><a href="../../courses.html">課程</a><a href="../../services.html">個人服務</a><a href="../../organizations.html">組織方案</a><a class="site-nav__account" href="../../dashboard.html">我的空間</a></nav><details class="site-mobile-nav"><summary>選單</summary><nav class="site-mobile-nav__panel" aria-label="行動版導覽"><a href="../../index.html">首頁</a><a href="../../tools.html" aria-current="page">探索工具</a><a href="../../organizations.html">組織方案</a><a href="../../dashboard.html">我的空間</a></nav></details></div></header>
+
+<!-- 單一頂列：返回 + 案例 + 階段進度（合併原本兩條 bar，讓版面往上拉） -->
+<header class="jd-appbar">
+  <div class="jd-appbar__inner max-w-[1560px] mx-auto px-8 flex items-center gap-6">
+    <nav aria-label="麵包屑" class="shrink-0">
+      <a href="./index.html" class="flex items-center gap-2 text-navy/45 hover:text-navy group">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+        <span class="text-sm max-w-[170px] truncate hidden md:block" id="hCaseTitle">案例</span>
+      </a>
+    </nav>
+    <nav id="stageBar" class="flex-1 min-w-0"></nav>
+    <button id="openGuideBtn" class="shrink-0 inline-flex items-center gap-1.5 text-[12.5px] text-navy/50 hover:text-tealdeep px-2.5 py-1.5 rounded-lg hover:bg-mist/50 transition"
+            title="另開一個視窗給引導者，顯示提問腳本與對方寫的內容">
+      <i data-lucide="monitor" class="w-4 h-4"></i><span class="hidden lg:inline">引導者視窗</span>
+    </button>
+    <div id="accessChip" class="hidden badge bg-accent/15 text-accent shrink-0"></div>
   </div>
 </header>
 
-<!-- 頂部流程進度 -->
-<div class="border-b border-navy/10 bg-white/70 backdrop-blur sticky top-16 z-20">
-  <div class="max-w-3xl mx-auto px-5 py-4">
-    <nav id="stageBar"></nav>
+<!-- 主體三欄：階段（左）｜思考（中）｜提問（右）
+     左右皆可收合，收合後中間的思考區自動放大。 -->
+<div class="jd-workspace-shell max-w-[1560px] mx-auto px-6">
+  <div id="closedBanner" class="hidden mb-8 p-4 rounded-xl bg-navy/5 border border-navy/10 text-sm text-navy/60"></div>
+  <div id="workspace">
+    <aside id="stageRail" class="rail"></aside>
+    <main id="moduleArea" class="min-w-0"></main>
+    <aside id="promptRail" class="rail"></aside>
   </div>
 </div>
 
-<div class="max-w-3xl mx-auto px-5 py-10">
-  <div id="closedBanner" class="hidden mb-6 p-4 rounded-xl bg-navy/5 border border-navy/10 text-sm text-navy/60"></div>
-  <main id="moduleArea" class="min-w-0"></main>
-</div>
+<footer class="site-footer"><div class="site-container site-footer__grid"><div><h2>原味藍圖 Ormap</h2><p>先看懂真正的問題，再決定需要什麼樣的人才合作。</p></div><nav aria-label="工具"><h3>職務設計與甄選</h3><a href="./jobdesign-intro.html">使用說明</a><a href="./index.html">案例列表</a><a href="./settings.html">AI 設定</a></nav><nav aria-label="網站"><h3>探索與服務</h3><a href="../../tools.html">探索工具</a><a href="../../organizations.html">組織方案</a></nav><nav aria-label="網站資訊"><h3>網站資訊</h3><a href="../../privacy.html">隱私權政策</a><a href="../../terms.html">服務條款</a><a href="../../feedback.html">意見回饋</a></nav></div><div class="site-container site-footer__legal">© 2026 原味藍圖 Ormap。此工具目前作為課程／顧問配套使用，不是公開自助服務。</div></footer>
 
 <script type="module">
 import * as F from './jd-fields.js';
 import * as S from './jd-store.js';
 import * as AI from './jd-mock-ai.js';
-import { DOCUMENTS, getDocument, downloadDocument, downloadAllDocuments, collectPending, countPending } from './jd-word.js';
+import { DOCUMENTS, getDocument, collectPending, countPending, downloadDocument, downloadAllDocuments, documentHtml, isEdited, DOC_STATUS, docStatus } from './jd-word.js';
+import * as AIX from './jd-ai.js';
+
+/**
+ * 跑一個 AI 任務：先算出 Mock 結果當保底，再問真 AI。
+ * AI 沒設定、連不上或失敗時，直接沿用 Mock，流程不中斷。
+ */
+async function runWithAi(taskCode, instruction, mock, input, btn){
+  if(mock.cannot_complete) return mock;
+  const ready = await AIX.aiReady();
+  if(!ready) return mock;
+  const label = btn ? btn.innerHTML : null;
+  if(btn){ btn.disabled=true; btn.innerHTML='<i data-lucide="loader" class="w-4 h-4 animate-spin"></i>AI 整理中…'; if(window.lucide)lucide.createIcons(); }
+  try{
+    const ai = await AIX.askAi(taskCode, instruction, mock.organized_content, input);
+    const merged = AIX.mergeIntoEnvelope(mock, ai);
+    // 整理完就把整體敘述更新一次（不擋畫面）。
+    // 下一題拿到的背景就是含這一題在內的完整理解，而不是一堆碎片。
+    if(taskCode!=='SYNTH-01') setTimeout(()=>{ refreshSummary().catch(()=>{}); }, 50);
+    return merged;
+  } finally {
+    if(btn){ btn.disabled=false; btn.innerHTML=label; if(window.lucide)lucide.createIcons(); }
+  }
+}
 
 const $ = (s,r=document)=>r.querySelector(s);
 const el=(t,cls,html)=>{const e=document.createElement(t);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;};
@@ -101,32 +89,146 @@ if(!c){ document.body.innerHTML='<div class="p-10 text-center text-navy/60">找�
 
 let currentModule = c.current_module || 'existing';
 
-// ── 身分切換 ──
-function paintIdentity(){
-  const role=S.getIdentity();
-  document.querySelectorAll('#identitySwitch button').forEach(b=>{
-    const on=b.dataset.role===role;
-    b.classList.toggle('bg-navy',on); b.classList.toggle('text-ivory',on); b.classList.toggle('text-navy/60',!on);
-  });
-}
-document.querySelectorAll('#identitySwitch button').forEach(b=>b.addEventListener('click',()=>{S.setIdentity(b.dataset.role);paintIdentity();render();}));
+// 身分（學員／講師）切換移到案例列表頁，思考頁不顯示，避免分心。
 const isInstructor=()=>S.getIdentity()==='instructor';
 
 function save(){ S.saveCase(c); }
 
+/* ══════════ 累積上下文 ══════════
+   第一版：每次呼叫只拿到「這一題的口述」，AI 看不到前面講過的話，
+   所以做不出上下文推論。
+   第二版（caseBrief）：把講過的東西全部串起來送出去。有上下文了，
+   但送的是一堆碎片——同一件事在三個章節各出現一次，AI 讀到碎片，
+   寫出來的也是碎片，於是「前面說過、後面又說一次」。
+   第三版（現在）：多一層 caseSummary()。由 AI 把整個案例融成一份連貫的敘述，
+   之後每一次整理都以這份敘述為背景，而不是每次重新拼湊碎片。
+   rawDump() 保留原始素材，只在產生／更新那份敘述時才用到。 */
+
+const briefText = v => {
+  if (v == null) return '';
+  if (Array.isArray(v)) return v.map(x =>
+    typeof x === 'string' ? x : Object.values(x||{}).filter(y=>typeof y==='string'&&y.trim()).join('｜')
+  ).filter(Boolean).join('；');
+  if (typeof v === 'object') return Object.values(v).filter(y=>typeof y==='string'&&y.trim()).join('｜');
+  return String(v);
+};
+
+/**
+ * 送給每一次整理的背景：優先用 AI 整合好的連貫敘述，
+ * 沒有的話（還沒整合、或 AI 沒開）才退回原始素材。
+ */
+function caseBrief(exceptRawId){
+  const s=c.case_summary;
+  if(s && s.text && s.text.trim()){
+    // 敘述是背景；這一題的鄰近原話另外由呼叫端帶入
+    return '【目前對這個案例的整體理解】\n'+s.text.trim();
+  }
+  return rawDump(exceptRawId);
+}
+
+/** 原始素材：講過的話與已整理的欄位，全部串起來。只在產生整合敘述時使用。 */
+function rawDump(exceptRawId){
+  const L=[];
+  const push=(label,val)=>{ const t=briefText(val).trim(); if(t) L.push(`${label}：${t.slice(0,600)}`); };
+
+  // 案例基本資料
+  const base=F.CASE_FIELDS.map(x=>x.id).filter(id=>c.fields[id]?.value);
+  if(base.length) L.push('【這個案例】'+base.map(id=>`${F.CASE_FIELDS.find(x=>x.id===id).name}：${briefText(c.fields[id].value)}`).join('、'));
+
+  // 既有職務盤點
+  const ex=(F.EXISTING_FIELDS||[]).filter(x=>c.fields[x.id]?.value);
+  if(ex.length){ L.push('【既有職務】'); ex.forEach(x=>push('　'+x.name,c.fields[x.id].value)); }
+
+  // M1 問題釐清：原話 + 已整理欄位
+  const m1=[];
+  F.M1_CHAPTERS.forEach(ch=>{
+    if(ch.rawId===exceptRawId) return;
+    const raw=c.fields[ch.rawId]?.value;
+    const outs=ch.outputs.filter(o=>c.fields[o.id]?.value);
+    if(!raw && !outs.length) return;
+    m1.push(`　〈${ch.code} ${ch.title}〉`);
+    if(raw) m1.push('　　他說：'+String(raw).slice(0,700));
+    outs.forEach(o=>{ const t=briefText(c.fields[o.id].value).trim(); if(t) m1.push(`　　${o.name}：${t.slice(0,400)}`); });
+  });
+  if(m1.length) L.push('【問題釐清】\n' + m1.join('\n'));
+
+  // M2 需求界定：勾了什麼、為什麼
+  const m2=[];
+  (F.M2_PARTS||[]).forEach(p=>{
+    (p.categories||[]).forEach(cat=>{
+      const picked=c.fields[cat.optionsId]?.value;
+      const notes=c.fields[cat.optionsId+'_notes']?.value;
+      if(picked&&picked.length) m2.push(`　${cat.label||cat.title||''}：${briefText(picked)}${notes?'（'+briefText(notes).slice(0,300)+'）':''}`);
+    });
+    (p.fields||[]).forEach(fd=>{ const v=c.fields[fd.id]?.value; if(v) m2.push(`　${fd.name}：${briefText(v).slice(0,300)}`); });
+  });
+  if(m2.length) L.push('【需求界定】\n' + m2.join('\n'));
+
+  // M3 已整理的節
+  const m3=[];
+  F.m3Sections().forEach(sec=>{
+    if(sec.rawId===exceptRawId) return;
+    const raw=c.fields[sec.rawId]?.value;
+    const outs=F.sectionOutputs(sec).filter(o=>c.fields[o.id]?.value);
+    if(!raw && !outs.length) return;
+    m3.push(`　〈${sec.code} ${sec.title}〉`);
+    if(raw) m3.push('　　他說：'+String(raw).slice(0,500));
+    outs.forEach(o=>{ const t=briefText(c.fields[o.id].value).trim(); if(t) m3.push(`　　${o.name}：${t.slice(0,350)}`); });
+  });
+  if(m3.length) L.push('【職務與人才規格】\n' + m3.join('\n'));
+
+  const out=L.join('\n');
+  return out.length>14000 ? out.slice(-14000) : out;
+}
+
+/**
+ * 整合：請 AI 把整個案例讀過一遍，寫成一份連貫的敘述，存在案例上。
+ * 之後每一次整理都以這份敘述當背景，破碎感的根治就在這裡。
+ * 沒有真 AI 時直接跳過（Mock 拼不出敘述，硬拼只會更碎）。
+ */
+let _synthing=false;
+async function refreshSummary(force){
+  if(_synthing) return c.case_summary;
+  const material=rawDump();
+  if(material.length<80) return c.case_summary;
+  // 省用量：素材沒變、或只多了一點點，就不重跑整合。
+  // 手動按「重新整合」時 force=true，一律重算。
+  const stamp=material.length+'|'+material.slice(-120);
+  if(!force && c.case_summary){
+    if(c.case_summary.stamp===stamp) return c.case_summary;
+    const grew=material.length-(c.case_summary.materialLen||0);
+    if(grew<400) return c.case_summary;   // 只多了一兩句話，不值得再花一次
+  }
+  if(!(await AIX.aiReady())) return c.case_summary;
+
+  _synthing=true;
+  try{
+    const ai=await AIX.askAi('SYNTH-01',
+      '把這個案例目前談過的所有內容，整合成一份連貫的敘述。這份敘述會成為後續每一次整理的背景，'+
+      '所以重點是「融會貫通」而不是「摘錄」：重複的合併、散落的收攏、前後呼應的串起來。'+
+      '\n只輸出 {"organized_content":{"summary":"……"}}，summary 是一段完整的中文敘述。',
+      {summary:'…'}, {案例目前的所有素材:material});
+    const text=ai && ai.organized_content && ai.organized_content.summary;
+    if(text && String(text).trim().length>50){
+      c.case_summary={text:String(text).trim(), stamp, materialLen:material.length, at:new Date().toISOString()};
+      save();
+      return c.case_summary;
+    }
+  }catch(e){ console.warn('[整合] 失敗，維持原本背景：',e.message); }
+  finally{ _synthing=false; }
+  return c.case_summary;
+}
+
+
 // ── 模組是否可進入（前一模組需 confirmed）──
 const flow=()=>F.modulesForPath(c.path_type);
 
-function moduleUnlocked(m){
-  const seq=flow();
-  const idx=seq.indexOf(m);
-  if(idx<=0) return true;
-  const prev=seq[idx-1];
-  return S.getModuleStatus(c,prev)==='confirmed';
-}
+// 階段不上鎖。想先跳到後面看看、想回頭改，都由人決定；
+// 導覽上仍會標示各階段的完成狀態，但不擋。
+function moduleUnlocked(){ return true; }
 
 /* ══════════ 階段 × 步驟 模型 ══════════
-   階段（頂部大流程）：思考階段各自一站，三份正式文件與下載合併成「產出文件」。
+   階段（頂部大流程）：思考階段各自一站，三份正式文件與預覽合併成「產出文件」。
    步驟（階段內）：一次只顯示一步，避免使用者一往下拉就看到別題。 */
 
 const DOC_MODULES=['m4','m5','m6','output'];
@@ -160,49 +262,243 @@ function setCursor(mod,i){
   save();
 }
 
-// ── 頂部階段列 ──
+// ── 頂部階段列（單列，與返回鍵同一條 bar）──
 function renderStageBar(){
   const bar=$('#stageBar'); bar.innerHTML='';
   const list=stages();
   const curStage=stageOf(currentModule);
+  const curIdx=list.findIndex(s=>curStage&&s.key===curStage.key);
 
   const row=el('div','flex items-center gap-1 overflow-x-auto');
   list.forEach((s,i)=>{
-    if(i>0)row.appendChild(el('div','stage-sep'));
+    if(i>0)row.appendChild(el('div',`stage-sep ${i<=curIdx?'done':''}`));
     const allDone=s.modules.every(m=>S.getModuleStatus(c,m)==='confirmed');
     const unlocked=moduleUnlocked(s.modules[0]);
     const on=curStage&&curStage.key===s.key;
-    const b=el('button',`stage ${on?'on':''} ${allDone?'done':''} ${unlocked?'':'locked'}`);
-    const dot = allDone&&!on
-      ? `<span class="w-5 h-5 rounded-full bg-tealgreen text-white grid place-items-center shrink-0"><i data-lucide="check" class="w-3 h-3"></i></span>`
-      : `<span class="w-5 h-5 rounded-full ${on?'bg-ivory/25':'bg-navy/10'} grid place-items-center text-[11px] font-bold shrink-0">${i+1}</span>`;
-    b.innerHTML=`${dot}<span>${s.title}</span>`;
+    const b=el('button',`stage ${on?'on':''} ${allDone&&!on?'done':''} ${unlocked?'':'locked'}`);
+    const num = allDone&&!on
+      ? `<span class="num"><i data-lucide="check" class="w-3 h-3"></i></span>`
+      : `<span class="num">${i+1}</span>`;
+    b.innerHTML=`${num}<span>${s.title}</span>`;
     if(unlocked)b.addEventListener('click',()=>{ goModule(s.modules[0]); });
     row.appendChild(b);
   });
   bar.appendChild(row);
-
-  // 階段內步驟指示
-  const steps=stepsOf(currentModule);
-  if(steps.length>1){
-    const i=cursor(currentModule);
-    const sub=el('div','flex items-center gap-2 mt-3');
-    sub.innerHTML=`<span class="text-xs text-navy/45 shrink-0">第 ${i+1} / ${steps.length} 題</span>`;
-    const dots=el('div','flex items-center gap-1 flex-wrap');
-    steps.forEach((s,k)=>{
-      const d=el('button',`h-1.5 rounded-full transition-all ${k===i?'w-6 bg-navy':'w-1.5 bg-navy/20 hover:bg-navy/40'}`);
-      d.title=`${k+1}. ${s.title}`;
-      d.addEventListener('click',()=>{setCursor(currentModule,k);render();});
-      dots.appendChild(d);
-    });
-    sub.appendChild(dots);
-    bar.appendChild(sub);
-  }
   if(window.lucide)lucide.createIcons();
 }
 
+/* ══════════ 兩側欄：左＝階段（給所有人看位置）｜右＝提問（給引導者）══════════
+   兩欄都可收合，收合後中間思考區自動放大。狀態記在本機，下次進來維持。 */
+
+const RAIL_KEY = { left: 'jd_rail_left', right: 'jd_rail_right' };
+const railOpen = (side) => localStorage.getItem(RAIL_KEY[side]) !== 'closed';
+function setRail(side, open) {
+  localStorage.setItem(RAIL_KEY[side], open ? 'open' : 'closed');
+  applyRailState();
+  renderStageRail(); renderPromptRail();   // 收合／展開後內容不同，需重繪
+}
+function applyRailState() {
+  const ws = $('#workspace'); if (!ws) return;
+  const L = railOpen('left'), R = railOpen('right');
+  ws.classList.toggle('no-left', !L);
+  ws.classList.toggle('no-right', !R);
+  // 思考區寬度直接指定：收得越多，想事情的空間越大
+  // 思考區寬度全部以行內樣式指定，避免受串接影響。
+  // 注意：grid item 不可用 margin auto（auto margin 會吃掉剩餘空間，
+  // 使元素縮成內容寬而讓 max-width 失效），改用 justify-self 置中。
+  const area = $('#moduleArea');
+  if (area) {
+    const wide = matchMedia('(min-width:1180px)').matches;
+    ['max-width', 'width', 'margin', 'justify-self'].forEach(p => area.style.removeProperty(p));
+    if (wide) {
+      const w = (!L && !R) ? '900px' : ((!L || !R) ? '780px' : '680px');
+      area.style.setProperty('width', '100%', 'important');
+      area.style.setProperty('max-width', w, 'important');
+      area.style.setProperty('margin', '0', 'important');
+      area.style.setProperty('justify-self', 'center', 'important');
+    }
+  }
+}
+addEventListener('resize', applyRailState);
+
+/** 收合後的窄條：直書標籤 ＋ 展開鍵 */
+function collapsedRail(rail, side, label, icon) {
+  const box = el('div', 'rail-collapsed sticky top-24');
+  const btn = el('button', 'rail-toggle', `<i data-lucide="${icon}" class="w-4 h-4"></i>`);
+  btn.title = `展開${label}`;
+  btn.addEventListener('click', () => setRail(side, true));
+  const v = el('div', 'vlabel', esc(label));
+  v.addEventListener('click', () => setRail(side, true));
+  box.appendChild(btn); box.appendChild(v);
+  rail.appendChild(box);
+}
+
+/** 欄位標頭 ＋ 收合鍵 */
+function railHead(box, side, label) {
+  const head = el('div', 'rail-head');
+  head.appendChild(el('div', 'text-[11px] tracking-[2px] text-tealdeep font-bold', esc(label)));
+  const btn = el('button', 'rail-toggle', `<i data-lucide="${side === 'left' ? 'chevrons-left' : 'chevrons-right'}" class="w-4 h-4"></i>`);
+  btn.title = `收起${label}`;
+  btn.addEventListener('click', () => setRail(side, false));
+  head.appendChild(btn);
+  box.appendChild(head);
+}
+
+// ── 左欄：階段與位置 ──
+function renderStageRail() {
+  const rail = $('#stageRail'); if (!rail) return;
+  rail.innerHTML = '';
+  if (!railOpen('left')) return collapsedRail(rail, 'left', '階段', 'panel-left-open');
+
+  const steps = stepsOf(currentModule);
+  const meta = F.MODULE_META[currentModule];
+  const i = cursor(currentModule);
+  const box = el('div', 'sticky top-24');
+  railHead(box, 'left', '階段');
+
+  box.appendChild(el('div', 'mb-5',
+    `<div class="text-[15px] font-black text-navy leading-snug">${esc(meta.title)}</div>`));
+
+  // 「產出文件」這一站底下其實有四個模組，但它們各自只有一個步驟，
+  // 所以之前左欄什麼都不顯示，只能靠「確認…進入下一步」單向前進。
+  // 這裡把四個模組本身當成步驟列出來，跟其他階段一樣可以點選、可以回頭改。
+  if (DOC_MODULES.includes(currentModule)) {
+    const list = el('div', 'space-y-0.5');
+    DOC_MODULES.forEach((m, k) => {
+      const on = m === currentModule;
+      const done = m === 'output' ? false : S.getModuleStatus(c, m) === 'confirmed';
+      const b = el('button', `railitem ${on ? 'on' : ''} ${done ? 'done' : ''}`);
+      b.innerHTML = `<span class="idx">${done && !on ? '✓' : k + 1}</span>${esc(F.MODULE_META[m].title)}`;
+      b.addEventListener('click', () => {
+        currentModule = m; c.current_module = m; save(); render();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+      list.appendChild(b);
+    });
+    box.appendChild(list);
+    box.appendChild(el('p', 'mt-3 text-[11px] text-navy/35 leading-relaxed',
+      '四份文件可以來回切換。改了前面的內容，後面重新產生一次就會更新。'));
+    rail.appendChild(box);
+    if (window.lucide) lucide.createIcons();
+    return;
+  }
+
+  if (steps.length > 1) {
+    const near = el('div');
+    [-1, 0, 1].forEach(d => {
+      const k = i + d; if (k < 0 || k >= steps.length) return;
+      const on = d === 0;
+      near.appendChild(el('div',
+        `text-[12.5px] leading-relaxed py-1 ${on ? 'text-navy font-bold' : 'text-navy/35'}`,
+        `${on ? '▸ ' : '　'}${k + 1}. ${esc(steps[k].title)}`));
+    });
+    const more = el('details', 'ref mt-3');
+    more.innerHTML = `<summary>看全部 ${steps.length} 題</summary>`;
+    const list = el('div', 'body space-y-0.5 max-h-[38vh] overflow-y-auto');
+    steps.forEach((s, k) => {
+      const b = el('button', `railitem ${k === i ? 'on' : ''} ${stepDone(currentModule, k) ? 'done' : ''}`);
+      b.innerHTML = `<span class="idx">${stepDone(currentModule, k) && k !== i ? '✓' : k + 1}</span>${esc(s.title)}`;
+      b.addEventListener('click', () => { setCursor(currentModule, k); render(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+      list.appendChild(b);
+    });
+    more.appendChild(list);
+    near.appendChild(more);
+    box.appendChild(near);
+  }
+  rail.appendChild(box);
+  if (window.lucide) lucide.createIcons();
+}
+
+// ── 右欄：給引導者的提問 ──
+function renderPromptRail() {
+  const rail = $('#promptRail'); if (!rail) return;
+  rail.innerHTML = '';
+  if (!railOpen('right')) return collapsedRail(rail, 'right', '提問', 'panel-right-open');
+
+  const box = el('div', 'sticky top-24');
+  railHead(box, 'right', '提問');
+
+  const prompts = currentPrompts();
+  if (prompts.length) {
+    box.appendChild(el('p', 'text-[11.5px] text-navy/40 leading-relaxed mb-4',
+      '這一頁可以問的問題。一次問一題，等對方講完再問下一題。'));
+    const ol = el('ol', 'space-y-3');
+    prompts.forEach(q => {
+      if (q.group) { ol.appendChild(el('li', 'text-[11px] tracking-[1px] text-tealdeep font-bold pt-2', esc(q.text))); return; }
+      ol.appendChild(el('li', 'text-[13px] text-navy/65 leading-[1.8] flex gap-2',
+        `<span class="text-accent/50 shrink-0 mt-0.5">·</span><span>${esc(q.text || q)}</span>`));
+    });
+    box.appendChild(ol);
+  } else {
+    box.appendChild(el('p', 'text-[12px] text-navy/35 leading-relaxed', '這一頁沒有預設追問，讓對方自己說就好。'));
+  }
+
+  box.appendChild(el('p', 'mt-6 pt-5 border-t border-navy/10 text-[11.5px] text-navy/35 leading-relaxed',
+    '想不出來的部分可以先留白，之後再回來補。'));
+
+  // 目前 AI 對整個案例的理解。看得到、改得動——改過的會直接影響後面每一次整理。
+  const sum = c.case_summary;
+  const sBox = el('div', 'mt-6 pt-5 border-t border-navy/10');
+  const sHead = el('div', 'flex items-center justify-between mb-2');
+  sHead.innerHTML = '<span class="text-[11px] tracking-[1px] font-bold text-tealdeep">目前的整體理解</span>';
+  const reBtn = el('button', 'text-[11px] text-navy/40 hover:text-tealdeep', sum ? '重新整合' : '整合一次');
+  reBtn.addEventListener('click', async () => {
+    reBtn.textContent = '整合中…'; reBtn.disabled = true;
+    await refreshSummary(true);
+    render();
+  });
+  sHead.appendChild(reBtn);
+  sBox.appendChild(sHead);
+  if (sum && sum.text) {
+    const ta = el('textarea', 'w-full text-[12px] leading-[1.75] text-navy/65 border border-navy/12 rounded-lg p-2.5 resize-y bg-white');
+    ta.rows = 10; ta.value = sum.text;
+    ta.disabled = readOnly();
+    ta.addEventListener('input', () => {
+      c.case_summary = { ...c.case_summary, text: ta.value, edited: true };
+      save();
+    });
+    sBox.appendChild(ta);
+    sBox.appendChild(el('p', 'text-[11px] text-navy/30 mt-1.5 leading-relaxed',
+      '這是後面每一次整理的背景。覺得哪裡不對就直接改，改完會影響後續整理。'));
+  } else {
+    sBox.appendChild(el('p', 'text-[12px] text-navy/35 leading-relaxed',
+      '談過幾題、並且 AI 已設定之後，這裡會出現整合後的案例理解，避免後面重複問已經講過的事。'));
+  }
+  box.appendChild(sBox);
+
+  rail.appendChild(box);
+  if (window.lucide) lucide.createIcons();
+}
+
+/** 目前這一步要給引導者的提問（{text, group?} 或字串） */
+function currentPrompts() {
+  const steps = stepsOf(currentModule), s = steps[cursor(currentModule)];
+  if (!s) return [];
+  if (currentModule === 'existing') return F.EXISTING_QUESTIONS.map(text => ({ text }));
+  if (s.kind === 'm1ch' || s.kind === 'm3sec' || s.kind === 'm3dim') return (s.data.questions || []).map(text => ({ text }));
+  if (s.kind === 'm2part') {
+    if (s.data.categories) {
+      // 一頁一類，直接用該類的追問；不顯示 A／B／C／D 代號
+      return s.data.categories.flatMap(cat => (cat.questions || []).map(text => ({ text })));
+    }
+    return (s.data.questions || []).map(text => ({ text }));
+  }
+  return [];
+}
+
+/** 某個步驟是否已完成（用於脈絡欄打勾） */
+function stepDone(mod,k){
+  const steps=stepsOf(mod), s=steps[k];
+  if(!s) return false;
+  if(s.kind==='m1ch') return !!String(c.fields[s.data.rawId]?.value||'').trim() || s.data.outputs.some(o=>c.fields[o.id]);
+  if(s.kind==='m3sec') return !!String(c.fields[s.data.rawId]?.value||'').trim() || F.sectionOutputs(s.data).some(o=>c.fields[o.id]);
+  if(s.kind==='m3dim') return !!(c.fields['m3._raw_'+s.data.code.replace('.','_')]?.value||'').trim();
+  if(s.kind==='m3agg') return S.isConfirmed(c,'m3.maturity_anchors');
+  if(s.kind==='m2part') return S.getModuleStatus(c,'m2')==='confirmed';
+  return false;
+}
+
 function goModule(m){
-  if(!moduleUnlocked(m)){alert('請先完成前一個階段。');return;}
   currentModule=m; c.current_module=m; save(); render();
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -231,22 +527,23 @@ function stepNav(area,mod,{onNext,nextLabel,nextEnabled=true}={}){
   area.appendChild(wrap);
 }
 
-/** 思考頁共用標頭：只放標題，不放邊界說明 */
-function thinkHeader(area,{eyebrow,title,icon}){
-  area.appendChild(el('header','mb-8',
-    `<div class="flex items-center gap-2 mb-2">
+/**
+ * 思考頁標頭：標題 ＋ 一句核心大問題。
+ * 這個畫面服務的是「被問的人」（企業主／用人主管），
+ * 他只需要看到一個問題並想事情；細部追問由旁邊的引導者提出（見左欄）。
+ */
+function thinkHeader(area,{eyebrow,title,icon,coreQuestion}){
+  area.appendChild(el('header','mb-10',
+    `<div class="flex items-center gap-2 mb-2.5">
        ${icon?`<i data-lucide="${icon}" class="w-4 h-4 text-tealgreen"></i>`:''}
        <span class="text-[11px] tracking-[2px] text-tealdeep font-bold">${esc(eyebrow||'')}</span>
      </div>
-     <h1 class="text-2xl font-black text-navy leading-snug">${esc(title)}</h1>`));
+     <h1 class="text-[26px] font-black text-navy leading-snug mb-5">${esc(title)}</h1>
+     ${coreQuestion?`<p class="text-[21px] leading-[1.85] text-navy/85 font-medium">${esc(coreQuestion)}</p>`:''}`));
 }
 
-/** 核心引導問題（畫面上只留這個） */
-function questionBlock(area,questions){
-  const box=el('div','qlist mb-8');
-  questions.forEach(q=>box.appendChild(el('div','qitem',esc(q))));
-  area.appendChild(box);
-}
+/** 追問腳本已移到左欄（給引導者用），主畫面不再列出 */
+function questionBlock(){ /* deprecated：保留空實作避免舊呼叫出錯 */ }
 
 /** 口述回應區 */
 function answerBlock(area,fieldId,placeholder){
@@ -299,16 +596,134 @@ function renderAccess(){
 
 const readOnly=()=>S.isClosed(c);
 
+/* ══════════ 引導者視窗（?view=guide）══════════
+   同一台電腦開兩個視窗：回應者用主畫面思考與輸入，
+   引導者這一面看提問腳本，並即時看到對方正在寫什麼。
+   這一面是唯讀的，避免兩邊同時寫入互相覆蓋。 */
+
+const IS_GUIDE = new URLSearchParams(location.search).get('view') === 'guide';
+
+function openGuideWindow() {
+  const url = `${location.pathname}?caseId=${c.case_id}&view=guide`;
+  window.open(url, 'jd_guide_' + c.case_id, 'width=520,height=900');
+}
+
+/** 目前這一步在畫面上的標題與大問題 */
+function currentStepInfo() {
+  const steps = stepsOf(currentModule);
+  const s = steps[cursor(currentModule)];
+  const meta = F.MODULE_META[currentModule];
+  if (currentModule === 'existing') {
+    return { stage: meta.title, title: '先把這個職務目前的樣子講清楚', core: '這個職務現在實際上在做什麼？', pos: '' };
+  }
+  const pos = steps.length > 1 ? `第 ${cursor(currentModule) + 1} / ${steps.length} 題` : '';
+  if (!s) return { stage: meta.title, title: meta.title, core: '', pos };
+  const d = s.data || {};
+  return {
+    stage: meta.title,
+    title: s.kind === 'm3dim' ? d.name : (s.title || meta.title),
+    core: d.coreQuestion || d.definition || '',
+    pos,
+  };
+}
+
+/** 回應者目前這一步寫了什麼（唯讀鏡像） */
+function currentAnswers() {
+  const steps = stepsOf(currentModule);
+  const s = steps[cursor(currentModule)];
+  const out = [];
+  const push = (label, id) => {
+    const v = c.fields[id]?.value;
+    if (typeof v === 'string' && v.trim()) out.push({ label, text: v });
+  };
+  if (currentModule === 'existing') {
+    F.EXISTING_FIELDS.forEach(f => push(f.name, f.id));
+    return out;
+  }
+  if (!s) return out;
+  const d = s.data || {};
+  if (d.rawId) push('口述回應', d.rawId);
+  if (s.kind === 'm3dim') push('口述回應', 'm3._raw_' + d.code.replace('.', '_'));
+  if (s.kind === 'm2part' && d.categories) d.categories.forEach(cat => push('口述回應', cat.rawId));
+  return out;
+}
+
+function renderGuideView() {
+  document.body.classList.add('guide-mode');
+  const root = $('#moduleArea');
+  root.innerHTML = '';
+  const info = currentStepInfo();
+
+  root.appendChild(el('div', 'mb-6',
+    `<div class="flex items-center justify-between gap-2 mb-2">
+       <span class="text-[11px] tracking-[2px] text-tealdeep font-bold">${esc(info.stage)}</span>
+       <span class="text-[11px] text-navy/40">${esc(info.pos)}</span>
+     </div>
+     <h1 class="text-[22px] font-black text-navy leading-snug">${esc(info.title)}</h1>
+     ${info.core ? `<p class="text-[17px] leading-[1.85] text-navy/80 font-medium mt-3">${esc(info.core)}</p>` : ''}`));
+
+  // 提問腳本
+  const prompts = currentPrompts();
+  const box = el('div', 'rounded-2xl border border-accent/25 bg-accent/5 p-5 mb-6');
+  box.appendChild(el('div', 'flex items-center gap-1.5 mb-1',
+    '<i data-lucide="messages-square" class="w-4 h-4 text-accent"></i><span class="text-[12px] tracking-[1px] text-accent font-bold">提問</span>'));
+  box.appendChild(el('p', 'text-[11.5px] text-navy/40 leading-relaxed mb-4', '一次問一題，等對方講完再問下一題。'));
+  if (prompts.length) {
+    const ol = el('ol', 'space-y-3.5');
+    prompts.forEach(q => ol.appendChild(el('li', 'text-[14px] text-navy/75 leading-[1.8] flex gap-2.5',
+      `<span class="text-accent/50 shrink-0 mt-0.5">·</span><span>${esc(q.text || q)}</span>`)));
+    box.appendChild(ol);
+  } else {
+    box.appendChild(el('p', 'text-[13px] text-navy/40', '這一頁沒有預設追問，讓對方自己說就好。'));
+  }
+  root.appendChild(box);
+
+  // 對方正在寫什麼
+  root.appendChild(el('div', 'flex items-center gap-1.5 mb-3',
+    '<i data-lucide="pencil-line" class="w-4 h-4 text-tealgreen"></i><span class="text-[12px] tracking-[1px] text-tealdeep font-bold">對方寫的內容</span>'));
+  const answers = currentAnswers();
+  if (answers.length) {
+    answers.forEach(a => {
+      const card = el('div', 'rounded-xl border border-navy/12 bg-white p-4 mb-3');
+      card.appendChild(el('div', 'text-[11px] text-navy/40 mb-1.5', esc(a.label)));
+      card.appendChild(el('div', 'text-[14.5px] leading-[1.9] text-navy/80 whitespace-pre-wrap', esc(a.text)));
+      root.appendChild(card);
+    });
+  } else {
+    root.appendChild(el('div', 'rounded-xl border border-dashed border-navy/15 p-6 text-center text-[13px] text-navy/35',
+      '對方還沒開始寫。'));
+  }
+
+  root.appendChild(el('p', 'mt-8 pt-5 border-t border-navy/10 text-[11.5px] text-navy/35 leading-relaxed',
+    '這個視窗會跟著對方的畫面自動更新，只能看、不能改。'));
+  if (window.lucide) lucide.createIcons();
+}
+
 // ═══════════ 模組渲染 ═══════════
 function render(){
-  $('#hCaseTitle').textContent=c.fields['case.title']?.value||'案例';
-  $('#hCaseSub').textContent=(c.fields['case.organization_name']?.value||'')+' · '+(c.fields['case.job_title_working']?.value||'');
-  paintIdentity(); renderStageBar(); renderAccess();
+  // 引導者視窗：唯讀，且頂列已移除，必須在動到 header 之前先返回
+  if(IS_GUIDE){ renderGuideView(); return; }
+  const t=$('#hCaseTitle'); if(t)t.textContent=c.fields['case.title']?.value||'案例';
+  renderStageBar(); applyRailState(); renderStageRail(); renderPromptRail(); renderAccess();
   const area=$('#moduleArea'); area.innerHTML='';
   const R={existing:renderExisting, m1:renderM1, m2:renderM2, m3:renderM3, m4:renderM4, m5:renderM5, m6:renderM6, output:renderOutput};
   (R[currentModule]||renderExisting)(area);
   if(window.lucide)lucide.createIcons();
 }
+
+/* 跨視窗同步：另一個視窗改了資料就重新載入這個案例並重繪。
+   storage 事件不會在自己這個視窗觸發，所以打字時不會被自己中斷。 */
+let syncTimer=null;
+S.watchExternalChanges(()=>{
+  clearTimeout(syncTimer);
+  syncTimer=setTimeout(()=>{
+    const fresh=S.getCase(caseId);
+    if(!fresh) return;
+    c=fresh;
+    currentModule=c.current_module||currentModule;
+    render();
+  },250);
+});
 
 function moduleHeader(area,m,extra){
   const meta=F.MODULE_META[m];
@@ -355,8 +770,7 @@ function renderM1(area){
   const st=m1State().chapters[ch.code]||null;
   const allConfirmed=ch.outputs.every(o=>S.isConfirmed(c,o.id));
 
-  thinkHeader(area,{eyebrow:`問題釐清 · ${ch.code}`,title:ch.title,icon:'search'});
-  questionBlock(area,ch.questions);
+  thinkHeader(area,{eyebrow:`問題釐清 · ${ch.code}`,title:ch.title,icon:'search',coreQuestion:ch.coreQuestion});
 
   if(ch.showProblemTypes){
     refBlock(area,'參考：八種問題類型',
@@ -369,17 +783,21 @@ function renderM1(area){
   const aiBtn=el('button','inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-tealdeep disabled:opacity-40',
     `<i data-lucide="sparkles" class="w-4 h-4"></i>${st?'重新整理':'請 AI 幫我整理'}`);
   aiBtn.disabled=readOnly();
-  aiBtn.addEventListener('click',()=>{
+  aiBtn.addEventListener('click',async()=>{
     const text=c.fields[ch.rawId]?.value;
-    if(!text||!text.trim()){alert('請先在回應區說說你的想法。');return;}
-    const r=AI.runM1Chapter(ch.code,text);
+    // 沒寫東西也讓他按。整理不出來就整理不出來，不要用彈窗擋人。
+    let r=AI.runM1Chapter(ch.code,text);
+    r=await runWithAi(r.task_code,
+      `《問題釐清定位書》${ch.code} ${ch.title}。${ch.purpose}　依使用者的口述整理可編輯草稿。`+
+      `\n欄位定義：\n${ch.outputs.map(o=>`・${o.id}｜${o.name}｜${o.type}`).join('\n')}`+
+      `\n使用者已明確表達的增員或找人決策要忠實保留，不要自動降格為假設。任何缺口或不同角度都只是可選提醒，不得阻擋流程。`,
+      r, {目前為止談過的內容:caseBrief(ch.rawId), 這一題他說的:text}, aiBtn);
     S.recordAiJob(c,r.task_code);
-    if(r.cannot_complete){alert(r.cannot_complete_reason);return;}
     for(const[fid,v]of Object.entries(r.organized_content)){
       const f=ch.outputs.find(o=>o.id===fid);
       S.saveField(c,fid,v,f&&f.ai==='AI-I'?'ai_inference':'ai_organized',r.task_code);
     }
-    m1State().chapters[ch.code]={inferences:r.inferences_requiring_confirmation,gaps:r.information_gaps,warnings:r.warnings};
+    m1State().chapters[ch.code]={inferences:r.inferences_requiring_confirmation,gaps:r.information_gaps,warnings:r.warnings,source:r._source,model:r._model};
     save();render();
   });
   aiRow.appendChild(aiBtn);
@@ -388,87 +806,211 @@ function renderM1(area){
   area.appendChild(aiRow);
 
   if(st){
-    if(st.warnings?.length)area.appendChild(el('div','mt-6 p-3.5 rounded-xl bg-accent/8 border border-accent/20 text-sm text-navy/70 leading-relaxed',
-      st.warnings.map(w=>`<div class="flex gap-2"><i data-lucide="info" class="w-4 h-4 text-accent shrink-0 mt-1"></i><span>${esc(w)}</span></div>`).join('')));
+    if(st.warnings?.length)area.appendChild(el('div','mt-6 p-3.5 rounded-xl bg-mist/45 border border-tealgreen/25 text-sm text-navy/70 leading-relaxed',
+      `<div class="text-xs font-semibold text-tealdeep mb-2">延伸思考（不影響繼續）</div>`+
+      st.warnings.map(w=>`<div class="flex gap-2"><i data-lucide="info" class="w-4 h-4 text-tealdeep shrink-0 mt-1"></i><span>${esc(w)}</span></div>`).join('')));
 
     area.appendChild(el('div','mt-8 mb-3 flex items-center gap-2',
-      '<i data-lucide="list-checks" class="w-4 h-4 text-tealgreen"></i><span class="text-sm font-bold text-navy">AI 整理結果，請逐項確認</span>'));
+      '<i data-lucide="list-checks" class="w-4 h-4 text-tealgreen"></i><span class="text-sm font-bold text-navy">AI 整理草稿（可修改、可留白，確認與否不影響繼續）</span>'));
     const outWrap=el('div','space-y-3'); area.appendChild(outWrap);
     ch.outputs.forEach(o=>outWrap.appendChild(outputCard(o,st)));
   }
 
   const isLast=i===F.M1_CHAPTERS.length-1;
-  const allChaptersDone=F.M1_CHAPTERS.every(x=>x.outputs.every(o=>S.isConfirmed(c,o.id)));
   stepNav(area,'m1',{
     nextLabel:isLast?'完成問題釐清':'下一題',
-    nextEnabled:!isLast||allChaptersDone,
+    nextEnabled:true,
     onNext:()=>{S.setModuleStatus(c,'m1','confirmed');goModule('m2');},
   });
 }
 
 
-// ═══════════ M2 職務需求界定（勾選式作業 · 一頁一部分）═══════════
+// ═══════════ M2 職務需求界定（一頁一部分）═══════════
 function renderM2(area){
   const i=cursor('m2');
   const part=F.M2_PARTS[i];
   const isLast=i===F.M2_PARTS.length-1;
 
-  thinkHeader(area,{eyebrow:`職務需求界定 · ${part.code}`,title:part.title,icon:'list-checks'});
-  if(part.note)area.appendChild(el('p','text-[15px] text-navy/60 leading-loose mb-7 -mt-4',esc(part.note)));
+  thinkHeader(area,{eyebrow:`職務需求界定 · ${part.code}`,title:part.title,icon:'list-checks',coreQuestion:part.coreQuestion});
+  if(part.note)area.appendChild(el('p','text-[15px] text-navy/60 leading-loose mb-8 -mt-4',esc(part.note)));
 
-  part.blocks.forEach(b=>area.appendChild(renderM2Block(b)));
+  // 第四部分的整合引導問題
 
-  // 最後一部分才做整理與交接
-  if(isLast){
-    const aiWrap=el('div','mt-10 pt-8 border-t border-navy/10');
-    aiWrap.appendChild(el('div','flex items-center gap-2 mb-4',
-      '<i data-lucide="sparkles" class="w-4 h-4 text-tealgreen"></i><span class="text-sm font-bold text-navy">整理勾選結果</span>'));
-    const aiBtn=el('button','inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-tealdeep',
-      '<i data-lucide="sparkles" class="w-4 h-4"></i>整理勾選結果');
-    aiBtn.disabled=readOnly();
-    aiWrap.appendChild(aiBtn);
-    const result=el('div','mt-5'); aiWrap.appendChild(result);
-    area.appendChild(aiWrap);
+  if(part.showTradeoffs)renderTradeoffs(area);
 
-    function paintM2(){
-      const checks={}; F.m2AllFieldIds().forEach(id=>checks[id]=c.fields[id]?.value);
-      const r=AI.runM2(checks); S.recordAiJob(c,'M2-01');
-      result.innerHTML='';
-      r.contradictions.forEach(x=>result.appendChild(el('div','rounded-xl bg-white border-2 border-accent p-5 mb-4',
-        `<div class="font-bold text-accent mb-2 flex items-center gap-1.5"><i data-lucide="alert-triangle" class="w-4 h-4"></i>勾選結果矛盾</div>
-         <p class="text-[15px] text-navy/75 leading-loose mb-1">${esc(x.message)}</p>
-         <p class="text-sm text-navy/55 leading-loose mb-3">${esc(x.detail)}</p>
-         <div class="p-3 rounded-lg bg-mist/50 border border-navy/10 text-sm text-navy/70 leading-loose"><b class="text-tealdeep">由你決定：</b>${esc(x.suggestion)}</div>`)));
-      if(r.warnings.length)result.appendChild(el('div','p-3.5 rounded-xl bg-accent/8 border border-accent/20 text-sm text-navy/70 leading-loose mb-4',
-        r.warnings.map(w=>`<div>${esc(w)}</div>`).join('')));
-      const oc=r.organized_content;
-      result.appendChild(el('div','bg-white rounded-xl border border-navy/10 p-5 mb-4',
-        `<div class="font-semibold text-navy mb-3 text-sm">整理結果</div>
-         <div class="text-sm space-y-2 text-navy/70 leading-relaxed">
-           <div><b class="text-tealdeep">環境盤點：</b>${oc.environment_summary.length?oc.environment_summary.length+' 項':'<span class="text-accent">未勾選</span>'}</div>
-           <div><b class="text-tealdeep">策略組合：</b>${oc.strategy_combination.length?oc.strategy_combination.map(esc).join('；'):'<span class="text-accent">未勾選</span>'}</div>
-           <div><b class="text-tealdeep">人力策略結論：</b>${oc.staffing_decision.map(esc).join('；')||'<span class="text-accent">未勾選</span>'}</div>
-           <div><b class="text-tealdeep">角色類型：</b>${oc.role_types.map(esc).join('；')||'<span class="text-accent">未勾選</span>'}</div>
-           <div><b class="text-tealdeep">待諮詢：</b>${oc.need_consult.length?oc.need_consult.length+' 項':'無'}</div>
-         </div>`));
-      refBlock(result,'交接至《職務與人才規格定位》',
-        F.M2_HANDOFF.map(h=>`<div style="margin-bottom:8px"><b style="color:#136E68">${h.to}</b><ul style="margin:4px 0 0 16px">${h.items.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')
-        +`<p style="color:#E88A55;margin-top:8px">${esc(F.M2_HANDOFF_NOTE)}</p>`);
-      const cf=el('button','bg-tealgreen text-white px-5 py-2.5 rounded-lg font-semibold','確認需求界定，進入職務與人才規格');
-      cf.disabled=readOnly();
-      cf.addEventListener('click',()=>{S.setModuleStatus(c,'m2','confirmed');goModule('m3');});
-      result.appendChild(cf);
-      if(window.lucide)lucide.createIcons();
-    }
-    aiBtn.addEventListener('click',paintM2);
-    if(S.getModuleStatus(c,'m2')==='confirmed')paintM2();
-  }
+  // 解法類別（A/B/C/D）
+  (part.categories||[]).forEach(cat=>area.appendChild(renderCategory(cat)));
+
+  // 一般欄位／勾選區塊
+  (part.blocks||[]).forEach(b=>area.appendChild(renderM2Block(b)));
+
+  if(isLast)renderM2Summary(area);
 
   stepNav(area,'m2',{
     nextLabel:isLast?'完成需求界定':'下一部分',
-    nextEnabled:!isLast||S.getModuleStatus(c,'m2')==='confirmed',
-    onNext:()=>goModule('m3'),
+    nextEnabled:true,
+    onNext:()=>{S.setModuleStatus(c,'m2','confirmed');goModule('m3');},
   });
+}
+
+/** 一個解法類別：口述 → 決策表 → 檢核提醒（標題與大問題已在頁首） */
+function renderCategory(cat){
+  const wrap=el('section');
+  answerBlock(wrap,cat.rawId,'可以先說說目前的實際情況。');
+
+  // 決策表
+  const picked=c.fields[cat.optionsId]?.value||[];
+  const notes=c.fields[cat.optionsId+'_notes']?.value||{};
+  wrap.appendChild(el('div','mt-8 mb-3 flex items-center gap-2',
+    '<i data-lucide="check-square" class="w-4 h-4 text-tealgreen"></i><span class="text-sm font-bold text-navy">可能的方案</span>'));
+
+  const box=el('div','space-y-3');
+  cat.options.forEach(opt=>{
+    const on=picked.includes(opt.name);
+    const card=el('div',`rounded-xl border p-4 transition-colors ${on?'border-tealgreen/50 bg-tealgreen/5':'border-navy/12 bg-white'}`);
+    const head=el('label','flex items-start gap-3 cursor-pointer');
+    const chk=el('input'); chk.type='checkbox'; chk.className='accent-tealgreen w-4 h-4 mt-1 shrink-0';
+    chk.checked=on; chk.disabled=readOnly();
+    chk.addEventListener('change',()=>{
+      const cur=c.fields[cat.optionsId]?.value||[];
+      const next=chk.checked?[...cur,opt.name]:cur.filter(x=>x!==opt.name);
+      S.saveField(c,cat.optionsId,next,'user_input'); S.confirmField(c,cat.optionsId); save(); render();
+    });
+    head.appendChild(chk);
+    head.appendChild(el('div','min-w-0',
+      `<div class="font-semibold text-navy text-[15px] leading-snug">${esc(opt.name)}</div>
+       <div class="text-[13px] text-navy/50 leading-relaxed mt-1.5"><span class="text-tealdeep font-semibold">什麼情況適用：</span>${esc(opt.when)}</div>`));
+    card.appendChild(head);
+
+    // 勾選後才展開「原因」與「後續行動」兩格，分開想、分開寫
+    if(on){
+      const cur=notes[opt.name]||{};
+      const nw=el('div','mt-4 pt-4 border-t border-tealgreen/20 grid sm:grid-cols-2 gap-3');
+      [['reason','原因','為什麼這個方案適合現在的情況？'],
+       ['action','後續行動','接下來要做什麼、由誰做、什麼時候？']].forEach(([key,label,ph])=>{
+        const w=el('div');
+        w.innerHTML=`<div class="text-xs font-semibold text-tealdeep mb-1.5">${label}</div>`;
+        const ta=el('textarea','w-full border border-navy/15 rounded-lg px-3 py-2.5 text-sm leading-relaxed min-h-[76px] bg-white');
+        ta.placeholder=ph;
+        ta.value=(typeof cur==='string'?(key==='reason'?cur:''):cur[key])||'';
+        ta.disabled=readOnly();
+        ta.addEventListener('input',()=>{
+          const all={...(c.fields[cat.optionsId+'_notes']?.value||{})};
+          const prev=typeof all[opt.name]==='string'?{reason:all[opt.name]}:{...(all[opt.name]||{})};
+          prev[key]=ta.value; all[opt.name]=prev;
+          S.saveField(c,cat.optionsId+'_notes',all,'user_input'); S.confirmField(c,cat.optionsId+'_notes'); save();
+        });
+        w.appendChild(ta); nw.appendChild(w);
+      });
+      card.appendChild(nw);
+    }
+    box.appendChild(card);
+  });
+  wrap.appendChild(box);
+
+  if(cat.reminder)wrap.appendChild(el('div','mt-4 p-4 rounded-xl bg-accent/8 border border-accent/20 text-[13.5px] text-navy/70 leading-loose flex gap-2.5',
+    `<i data-lucide="alert-circle" class="w-4 h-4 text-accent shrink-0 mt-1"></i><span><b class="text-accent">檢核提醒：</b>${esc(cat.reminder)}</span>`));
+
+  return wrap;
+}
+
+/** 合作形式的取捨參考表 */
+function renderTradeoffs(area){
+  refBlock(area,'參考：各種合作形式的取捨',
+    '<table style="width:100%;border-collapse:collapse">'
+    +'<tr><th style="text-align:left;padding:6px 8px;border-bottom:1px solid #14203320">合作形式</th>'
+    +'<th style="text-align:left;padding:6px 8px;border-bottom:1px solid #14203320">適合的情況</th>'
+    +'<th style="text-align:left;padding:6px 8px;border-bottom:1px solid #14203320">需要付出的代價</th></tr>'
+    + F.ENGAGEMENT_TRADEOFFS.map(t=>
+      `<tr><td style="padding:6px 8px;border-bottom:1px solid #14203310;font-weight:600">${esc(t.form)}</td>`
+      +`<td style="padding:6px 8px;border-bottom:1px solid #14203310">${esc(t.fit)}</td>`
+      +`<td style="padding:6px 8px;border-bottom:1px solid #14203310">${esc(t.cost)}</td></tr>`).join('')
+    +'</table>');
+}
+
+/** 最後一部分的 AI 整理與交接 */
+function renderM2Summary(area){
+  const aiWrap=el('div','mt-12 pt-8 border-t border-navy/10');
+  aiWrap.appendChild(el('div','flex items-center gap-2 mb-4',
+    '<i data-lucide="sparkles" class="w-4 h-4 text-tealgreen"></i><span class="text-sm font-bold text-navy">整理這一階段的結果</span>'));
+  const aiBtn=el('button','inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-tealdeep',
+    '<i data-lucide="sparkles" class="w-4 h-4"></i>請 AI 幫我整理');
+  aiBtn.disabled=readOnly();
+  aiWrap.appendChild(aiBtn);
+  const result=el('div','mt-6'); aiWrap.appendChild(result);
+  area.appendChild(aiWrap);
+
+  /** 只讀已存好的內容重畫，不呼叫 AI。 */
+  function paintM2(){
+    const checks={}; F.m2AllFieldIds().forEach(id=>checks[id]=c.fields[id]?.value);
+    drawM2(AI.runM2(checks));
+  }
+
+  /** 真的呼叫 AI，只在按下按鈕時。 */
+  async function generateM2(){
+    const checks={}; F.m2AllFieldIds().forEach(id=>checks[id]=c.fields[id]?.value);
+    let r=AI.runM2(checks);
+    // M2 之前完全沒接 AI，所以「承接的優先問題」「最低／理想改善程度」「限制」
+    // 這些在第一部其實都講過的欄位，全部停在待確認。這裡補上。
+    r=await runWithAi('M2-01',
+      '《職務需求界定書》整理這一階段的結論，並把上游《問題釐清定位書》已經談過的內容承接下來。'+
+      '\n請填寫這些欄位（他前面講過的就直接帶過來，不要因為這一頁沒重講就留白）：'+
+      '\n・m2.priority_problem｜本次要處理的優先問題'+
+      '\n・m2.min_improvement｜最低需要改善到什麼程度'+
+      '\n・m2.ideal_improvement｜理想希望改善到什麼程度'+
+      '\n・m2.constraints｜重要限制或不可犧牲條件'+
+      '\n・m2.pending_assumptions｜仍待驗證的假設或資訊'+
+      '\n・m2.out_of_scope｜暫時不處理的問題'+
+      '\n以及依他實際勾選的方案，整理人力策略結論與角色類型判斷。',
+      r, {目前為止談過的內容:caseBrief(), 他在這一頁的勾選與填寫:checks}, aiBtn);
+    S.recordAiJob(c,'M2-01');
+    // AI 補出來的欄位寫回案例，讓文件抓得到
+    Object.entries(r.organized_content||{}).forEach(([fid,v])=>{
+      if(fid.startsWith('m2.') && v!=null && v!=='') S.saveField(c,fid,v,'ai_organized','M2-01');
+    });
+    save();
+    drawM2(r);
+  }
+
+  function drawM2(r){
+    result.innerHTML='';
+    r.contradictions.forEach(x=>result.appendChild(el('div','rounded-xl bg-white border-2 border-accent p-5 mb-4',
+      `<div class="font-bold text-accent mb-2.5 flex items-center gap-1.5"><i data-lucide="alert-triangle" class="w-4 h-4"></i>需要回頭確認</div>
+       <p class="text-[15px] text-navy/75 leading-loose mb-2">${esc(x.message)}</p>
+       <p class="text-sm text-navy/55 leading-loose mb-4">${esc(x.detail)}</p>
+       <div class="p-3.5 rounded-lg bg-mist/50 border border-navy/10 text-sm text-navy/70 leading-loose"><b class="text-tealdeep">由你決定：</b>${esc(x.suggestion)}</div>`)));
+    if(r.warnings.length)result.appendChild(el('div','p-4 rounded-xl bg-accent/8 border border-accent/20 text-sm text-navy/70 leading-loose mb-4 space-y-1.5',
+      r.warnings.map(w=>`<div class="flex gap-2"><i data-lucide="info" class="w-4 h-4 text-accent shrink-0 mt-1"></i><span>${esc(w)}</span></div>`).join('')));
+
+    const oc=r.organized_content;
+    result.appendChild(el('div','bg-white rounded-xl border border-navy/10 p-5 mb-4',
+      `<div class="font-semibold text-navy mb-3.5 text-sm">整理結果</div>
+       <div class="text-sm space-y-2.5 text-navy/70 leading-relaxed">
+         <div><b class="text-tealdeep">第一類 改善既有資源：</b>${oc.first_class.length?oc.first_class.map(esc).join('；'):'<span class="text-accent">未勾選</span>'}</div>
+         <div><b class="text-tealdeep">第二類 增加能力或人力：</b>${oc.second_class.length?oc.second_class.map(esc).join('；'):'未勾選'}</div>
+         <div><b class="text-tealdeep">合作形式組合：</b>${oc.engagement_mix?esc(oc.engagement_mix):'<span class="text-accent">未填寫</span>'}</div>
+         <div><b class="text-tealdeep">預算配置：</b>${oc.budget_plan?esc(oc.budget_plan):'<span class="text-accent">未填寫</span>'}</div>
+         <div><b class="text-tealdeep">人力策略結論：</b>${oc.staffing_decision.map(esc).join('；')||'<span class="text-accent">未勾選</span>'}</div>
+         <div><b class="text-tealdeep">角色類型：</b>${oc.role_types.map(esc).join('；')||'<span class="text-accent">未勾選</span>'}</div>
+       </div>`));
+
+    refBlock(result,'交接至《職務與人才規格定位》',
+      F.M2_HANDOFF.map(h=>`<div style="margin-bottom:8px"><b style="color:#136E68">${h.to}</b><ul style="margin:4px 0 0 16px">${h.items.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')
+      +`<p style="color:#E88A55;margin-top:8px">${esc(F.M2_HANDOFF_NOTE)}</p>`);
+
+    const cf=el('button','mt-2 bg-tealgreen text-white px-5 py-2.5 rounded-lg font-semibold','確認需求界定，進入職務與人才規格');
+    cf.disabled=readOnly();
+    cf.addEventListener('click',()=>{S.setModuleStatus(c,'m2','confirmed');goModule('m3');});
+    result.appendChild(cf);
+    if(window.lucide)lucide.createIcons();
+  }
+  aiBtn.addEventListener('click',()=>{
+    const done=F.m2AllFieldIds().some(id=>c.fields[id]?.source_type==='ai_organized');
+    if(done && !confirm('重新整理會覆蓋目前的內容，也會再花一次 AI 用量。確定嗎？')) return;
+    generateM2();
+  });
+  // 進到這一頁只重畫已存好的內容，不呼叫 AI。
+  if(S.getModuleStatus(c,'m2')==='confirmed')paintM2();
 }
 
 
@@ -529,11 +1071,9 @@ function renderM2Block(b){
 
 // ═══════════ existing 基礎確認 ═══════════
 function renderExisting(area){
-  moduleHeader(area,'existing');
+  thinkHeader(area,{eyebrow:'既有職務盤點',title:'先把這個職務目前的樣子講清楚',
+    icon:'clipboard-list',coreQuestion:'這個職務現在實際上在做什麼？'});
   const grid=el('div','space-y-3'); area.appendChild(grid);
-  // 本次優化目標（案例層，唯讀顯示）
-  grid.appendChild(el('div','bg-mist/40 rounded-xl border border-navy/10 p-4 text-sm',
-    `<div class="font-semibold text-navy mb-1">本次優化目標</div><div class="text-navy/70">${(c.fields['case.optimization_goals']?.value||[]).map(esc).join('、')||'—'}</div>`));
   for(const f of F.EXISTING_FIELDS){
     grid.appendChild(inputCard(f, c.fields[f.id]?.value, v=>{ S.saveField(c,f.id,v,'user_input'); save(); }));
   }
@@ -541,10 +1081,18 @@ function renderExisting(area){
   const panel=el('div','mt-5'); area.appendChild(panel);
   const btnRow=el('div','flex items-center gap-3');
   const chkBtn=el('button','inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2.5 rounded-lg font-semibold hover:bg-tealdeep',
-    '<i data-lucide="scan-search" class="w-4 h-4"></i>檢查資訊是否足夠');
+    '<i data-lucide="scan-search" class="w-4 h-4"></i>看看目前整理成什麼樣');
   chkBtn.disabled=readOnly();
   btnRow.appendChild(chkBtn); panel.appendChild(btnRow);
   const result=el('div','mt-4'); panel.appendChild(result);
+
+  const continueBtn=el('button','mt-3 text-sm text-tealdeep font-semibold hover:underline','先保留目前內容，稍後補充');
+  continueBtn.disabled=readOnly();
+  continueBtn.addEventListener('click',()=>{
+    S.setModuleStatus(c,'existing','confirmed');
+    currentModule='m3'; c.current_module='m3'; save(); render();
+  });
+  panel.appendChild(continueBtn);
 
   chkBtn.addEventListener('click',()=>{
     const existing={}; F.EXISTING_FIELDS.forEach(f=>existing[f.id]=c.fields[f.id]?.value);
@@ -555,7 +1103,7 @@ function renderExisting(area){
       result.appendChild(el('div','p-4 rounded-xl bg-accent/10 border border-accent/30 mb-3',
         `<div class="font-semibold text-accent mb-1">尚需補齊 ${r.information_gaps.length} 項</div><ul class="text-sm text-navy/70 list-disc ml-5">${r.information_gaps.map(g=>`<li>${esc(g.message)}</li>`).join('')}</ul>`));
     }
-    // ── 矛盾路線：系統會擋，但不替你決定 ──
+    // ── 矛盾路線：保留提醒與選項，但不阻擋使用者繼續 ──
     const decided=c.modules.existing?.contradiction_decision;
     if(r.contradictions.length && !decided){
       r.contradictions.forEach(x=>{
@@ -585,31 +1133,32 @@ function renderExisting(area){
           const reason=prompt('切換路徑的理由（會寫入稽核紀錄）：','責任與授權不相符，需先重新界定需求');
           if(reason===null)return;
           S.switchPath(c,'full_design',reason);
-          S.addDiscussionItem(c,{module:'existing',topic:'權責矛盾：被要求負責結果但無相應決定權',reason:'已據此改走完整職務設計',by:'講師'});
+          S.addDiscussionItem(c,{module:'existing',topic:'要負責結果，但沒有相應的決定權',reason:'已據此改走完整職務設計',by:'講師'});
           if(!c.modules.existing)c.modules.existing={structured_values:{}};
           c.modules.existing.contradiction_decision={choice:'switch_to_path_a',at:new Date().toISOString()};
           currentModule='m1'; c.current_module='m1'; save(); render();
         });
         panel.querySelector('[data-act="keep"]').addEventListener('click',()=>{
-          S.addDiscussionItem(c,{module:'existing',topic:'權責矛盾：被要求負責結果但無相應決定權',reason:'學員選擇維持職務優化，此矛盾未解決，需課堂討論組織授權安排',by:'講師'});
-          S.addAuditEvent(c,'contradiction_deferred','維持職務優化，矛盾列為待課堂討論');
+          S.addDiscussionItem(c,{module:'existing',topic:'要負責結果，但沒有相應的決定權',reason:'選擇維持職務優化，授權的事留到課堂討論',by:'講師'});
+          S.addAuditEvent(c,'contradiction_deferred','維持職務優化，這件事留到課堂討論');
           if(!c.modules.existing)c.modules.existing={structured_values:{}};
           c.modules.existing.contradiction_decision={choice:'keep_path_b',at:new Date().toISOString()};
           save(); render();
-          alert('已列為待課堂討論。\n此項目會一路帶到最終文件的「待確認事項」，不會被藏起來。');
+          alert('記下來了。\n這件事會帶到最終文件，不會不見。');
         });
       });
     }
     if(decided){
       const isSwitch=decided.choice==='switch_to_path_a';
       result.appendChild(el('div','p-3 rounded-xl bg-mist/50 border border-navy/15 text-sm text-navy/70 mb-3',
-        `<span class="font-semibold text-tealdeep">已由人決定：</span>${isSwitch?'改走完整職務設計':'維持職務優化，權責矛盾列為待課堂討論（會出現在最終文件的待確認事項）'}`));
+        `<span class="font-semibold text-tealdeep">已由人決定：</span>${isSwitch?'改走完整職務設計':'維持職務優化，這件事留到課堂討論（會出現在最終文件裡）'}`));
     }
-    const blockedByContradiction=r.contradictions.length && !decided;
-    if(r.organized_content.readiness==='ready' && !blockedByContradiction){
+    {
+      const hasNotes=r.information_gaps.length||r.contradictions.length;
       result.appendChild(el('div','p-4 rounded-xl bg-tealgreen/10 border border-tealgreen/30',
-        `<div class="font-semibold text-tealdeep mb-2 flex items-center gap-1"><i data-lucide="check-circle" class="w-4 h-4"></i>資訊完整，可進入 M3</div>
-        <button id="confirmExisting" class="bg-tealgreen text-white px-4 py-2 rounded-lg font-semibold">確認基礎資訊並進入 M3</button>`));
+        `<div class="font-semibold text-tealdeep mb-2 flex items-center gap-1"><i data-lucide="check-circle" class="w-4 h-4"></i>${hasNotes?'已保留目前內容與待補充事項':'資訊已整理'}，可以繼續</div>
+        <p class="text-xs text-navy/55 mb-3">缺口、矛盾與尚未確認內容會留在思考歷程，不會阻擋後續。</p>
+        <button id="confirmExisting" class="bg-tealgreen text-white px-4 py-2 rounded-lg font-semibold">保留目前內容並進入職務與人才規格</button>`));
       $('#confirmExisting').addEventListener('click',()=>{
         F.EXISTING_FIELDS.forEach(f=>S.confirmField(c,f.id));
         S.setModuleStatus(c,'existing','confirmed');
@@ -635,11 +1184,9 @@ function renderM3(area){
   else renderMaturityAggregate(area);
 
   const isLast=i===steps.length-1;
-  const outputsOk=F.m3OutputFields().every(f=>S.isConfirmed(c,f.id));
-  const maturityOk=S.isConfirmed(c,'m3.maturity_anchors');
   stepNav(area,'m3',{
     nextLabel:isLast?'完成規格，進入正式文件':'下一題',
-    nextEnabled:!isLast||(outputsOk&&maturityOk),
+    nextEnabled:true,
     onNext:()=>{S.setModuleStatus(c,'m3','confirmed');goModule('m4');},
   });
 }
@@ -649,26 +1196,29 @@ function renderSection(area,s){
   const st=m3State().sections[s.code]||null;
   const allConfirmed=F.sectionOutputs(s).every(o=>S.isConfirmed(c,o.id));
 
-  thinkHeader(area,{eyebrow:`職務與人才規格 · ${s.code}`,title:s.title,icon:'target'});
-  questionBlock(area,s.questions);
+  thinkHeader(area,{eyebrow:`職務與人才規格 · ${s.code}`,title:s.title,icon:'target',coreQuestion:s.coreQuestion});
   answerBlock(area,s.rawId,s.responseHint);
 
   const aiRow=el('div','flex items-center gap-3 mt-5');
   const aiBtn=el('button','inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-tealdeep disabled:opacity-40',
     `<i data-lucide="sparkles" class="w-4 h-4"></i>${st?'重新整理':'請 AI 幫我整理'}`);
   aiBtn.disabled=readOnly();
-  aiBtn.addEventListener('click',()=>{
+  aiBtn.addEventListener('click',async()=>{
     const text=c.fields[s.rawId]?.value;
-    if(!text||!text.trim()){alert('請先在回應區說說你的想法。');return;}
+    // 沒寫東西也讓他按。整理不出來就整理不出來，不要用彈窗擋人。
     const ctx={existing:{'existing.role_reason':c.fields['existing.role_reason']?.value}};
     if(s.isAnchor) ctx.anchorItems=anchorSourceItems(s.code);
-    const r=AI.runSection(s.code,text,ctx);
+    let r=AI.runSection(s.code,text,ctx);
+    const rules=F.sectionOutputs(s).map(o=>`・${o.id}｜${o.name}｜${o.type}${o.rule?`｜${o.rule}`:''}`).join('\n');
+    r=await runWithAi(r.task_code,
+      `《職務與人才規格定位》${s.code} ${s.title}。依使用者的口述整理可編輯草稿。回應品質、資訊不足、推論或不同意見都不阻擋流程。\n各欄位的定義與轉換原則：\n${rules}`
+      +(s.guard?`\n特別注意：${s.guard}`:''),
+      r, {目前為止談過的內容:caseBrief(s.rawId), 這一題他說的:text, 可用的錨點項目:ctx.anchorItems}, aiBtn);
     S.recordAiJob(c,r.task_code);
-    if(r.cannot_complete){alert(r.cannot_complete_reason);return;}
     for(const [fid,v] of Object.entries(r.organized_content)){
       S.saveField(c,fid,v,s.isAnchor?'ai_inference':'ai_organized',r.task_code);
     }
-    m3State().sections[s.code]={inferences:r.inferences_requiring_confirmation,gaps:r.information_gaps,warnings:r.warnings};
+    m3State().sections[s.code]={inferences:r.inferences_requiring_confirmation,gaps:r.information_gaps,warnings:r.warnings,source:r._source,model:r._model};
     save();render();
   });
   aiRow.appendChild(aiBtn);
@@ -682,7 +1232,7 @@ function renderSection(area,s){
     st.warnings.map(w=>`<div class="flex gap-2"><i data-lucide="info" class="w-4 h-4 text-accent shrink-0 mt-1"></i><span>${esc(w)}</span></div>`).join('')));
 
   area.appendChild(el('div','mt-8 mb-3 flex items-center gap-2',
-    '<i data-lucide="list-checks" class="w-4 h-4 text-tealgreen"></i><span class="text-sm font-bold text-navy">AI 整理結果，請逐項確認</span>'));
+    '<i data-lucide="list-checks" class="w-4 h-4 text-tealgreen"></i><span class="text-sm font-bold text-navy">AI 整理草稿（可逐項保留，也可先繼續）</span>'));
   const outWrap=el('div','space-y-3'); area.appendChild(outWrap);
   s.outputs.forEach(o=>outWrap.appendChild(outputCard(o,st)));
 
@@ -717,12 +1267,6 @@ function outputCard(field,st){
        ${confirmed?'<span class="badge bg-tealgreen text-white">已確認</span>':''}
      </div>`));
 
-  // 轉換原則預設收起，需要時才展開，避免增加閱讀負荷
-  if(field.rule){
-    const d=el('details','ref mb-2');
-    d.innerHTML=`<summary>整理原則</summary><div class="body">${esc(field.rule)}</div>`;
-    box.appendChild(d);
-  }
 
   const body=el('div'); box.appendChild(body);
   const v=fv?.value;
@@ -759,16 +1303,14 @@ function outputCard(field,st){
   }
 
   if(inf) box.appendChild(el('div','mt-2 text-[11px] text-accent flex gap-1.5',
-    `<i data-lucide="git-branch" class="w-3.5 h-3.5 shrink-0 mt-0.5"></i>AI 推論待確認：${esc(inf.note)}`));
+    `<i data-lucide="git-branch" class="w-3.5 h-3.5 shrink-0 mt-0.5"></i>AI 提供的補充角度：${esc(inf.note)}`));
   gaps.forEach(g=>box.appendChild(el('div','mt-1 text-[11px] text-navy/50 flex gap-1.5',
-    `<i data-lucide="help-circle" class="w-3.5 h-3.5 shrink-0 mt-0.5"></i>缺口：${esc(g.message)}`)));
+    `<i data-lucide="help-circle" class="w-3.5 h-3.5 shrink-0 mt-0.5"></i>可選補充：${esc(g.message)}`)));
 
   // 確認／取消確認
   if(!confirmed){
-    const ok=el('button','mt-3 bg-tealgreen text-white px-3.5 py-1.5 rounded-lg text-sm font-semibold disabled:opacity-40','接受並確認');
-    const blocked=field.type==='anchors'&&!(c.fields[field.id]?.value||[]).every(a=>a.minimum_level);
-    ok.disabled=readOnly()||blocked;
-    if(blocked) box.appendChild(el('p','mt-1 text-[11px] text-accent','每個項目都需由人工設定「最低可接受等級」後才能確認。'));
+    const ok=el('button','mt-3 bg-tealgreen text-white px-3.5 py-1.5 rounded-lg text-sm font-semibold disabled:opacity-40','接受這項整理');
+    ok.disabled=readOnly();
     ok.addEventListener('click',()=>{S.confirmField(c,field.id);save();render();});
     box.appendChild(ok);
   }else{
@@ -780,7 +1322,120 @@ function outputCard(field,st){
 }
 
 // ── 重複物件編輯器（主要工作內容）──────────────────────
+/**
+ * 欄位一多，橫式表格每格只剩幾個字寬，內容會被截成「t所有的工」這種樣子。
+ * 超過四欄就改成一列一張卡片：欄名在上、內容在下、可以換行，讀得到也改得動。
+ */
+function cardRowsEditor(field,rows,disabled,onChange){
+  const wrap=el('div','space-y-3');
+  const ro=disabled||readOnly();
+  function redraw(){
+    wrap.innerHTML='';
+    rows.forEach((r,i)=>{
+      const card=el('div','rounded-xl border border-navy/12 bg-white p-4');
+      const head=el('div','flex items-center justify-between mb-3');
+      head.innerHTML=`<span class="text-[11px] font-bold tracking-wider text-tealdeep">第 ${i+1} 項</span>`;
+      if(!ro){
+        const b=el('button','text-navy/30 hover:text-accent','<i data-lucide="x" class="w-4 h-4"></i>');
+        b.addEventListener('click',()=>{rows.splice(i,1);onChange(rows);redraw();});
+        head.appendChild(b);
+      }
+      card.appendChild(head);
+      const grid=el('div','grid sm:grid-cols-2 gap-x-4 gap-y-3');
+      field.columns.forEach(col=>{
+        const cell=el('div', col.wide||(col.key==='statement')?'sm:col-span-2':'');
+        cell.innerHTML=`<label class="block text-[11px] font-semibold text-navy/55 mb-1">${col.name}</label>`;
+        const node=cellInput({...col,wide:col.type!=='select'&&col.type!=='suggest'},r[col.key],
+          'w-full border border-navy/15 rounded-lg px-2.5 py-2 text-sm leading-relaxed resize-y');
+        const inp=realInput(node);
+        inp.disabled=ro;
+        const upd=()=>{rows[i][col.key]=inp.value;onChange(rows);};
+        inp.addEventListener('input',upd); inp.addEventListener('change',upd);
+        cell.appendChild(node); grid.appendChild(cell);
+      });
+      card.appendChild(grid); wrap.appendChild(card);
+    });
+    if(!ro){
+      const add=el('button','text-sm text-tealdeep font-semibold','+ 新增一項');
+      add.addEventListener('click',()=>{rows.push(Object.fromEntries(field.columns.map(col=>[col.key,col.type==='select'?col.options[0]:''])));onChange(rows);redraw();});
+      wrap.appendChild(add);
+    }
+    if(window.lucide)lucide.createIcons();
+  }
+  redraw();
+  return wrap;
+}
+
+/**
+ * 建一個輸入框。type='suggest' 會附上建議選項（datalist）：
+ * 可以從清單挑，也可以直接打自己的，選項只是加速用的。
+ */
+let _dlSeq=0;
+function cellInput(col,value,cls){
+  if(col.type==='select'){
+    const s=el('select',cls+' bg-white');
+    s.innerHTML=(col.options||[]).map(o=>`<option ${value===o?'selected':''}>${esc(o)}</option>`).join('');
+    return s;
+  }
+  if(col.type==='multi'){
+    // 一格可以選多項。存成「A、B、C」的字串，下游文件與匯出不用改。
+    const wrap=el('details','relative border border-navy/15 rounded-lg bg-white');
+    const sum=el('summary','px-2.5 py-2 text-sm cursor-pointer select-none list-none leading-relaxed');
+    const picked=()=>String(value||'').split('、').map(s=>s.trim()).filter(Boolean);
+    const paintSum=()=>{
+      const p=picked();
+      sum.innerHTML=p.length
+        ? p.map(x=>`<span class="inline-block bg-mist/60 text-navy/75 rounded px-1.5 py-0.5 text-[12px] mr-1 mb-0.5">${esc(x)}</span>`).join('')
+        : `<span class="text-navy/35">${esc(col.placeholder||'點這裡選，可複選')}</span>`;
+    };
+    paintSum();
+    wrap.appendChild(sum);
+    const panel=el('div','px-2.5 pb-2.5 pt-1 max-h-52 overflow-y-auto space-y-1 border-t border-navy/10');
+    // 這個隱藏 input 是對外的統一介面：呼叫端照舊讀 .value、監聽 input
+    const hidden=el('input'); hidden.type='hidden'; hidden.value=value||'';
+    (col.options||[]).forEach(o=>{
+      const lab=el('label','flex items-start gap-2 text-[13px] text-navy/75 cursor-pointer py-0.5');
+      const cb=el('input'); cb.type='checkbox'; cb.className='mt-0.5'; cb.checked=picked().includes(o);
+      cb.addEventListener('change',()=>{
+        const set=new Set(picked());
+        cb.checked?set.add(o):set.delete(o);
+        // 依選項原始順序輸出，避免每次勾選順序都不一樣
+        const ordered=(col.options||[]).filter(x=>set.has(x));
+        [...set].filter(x=>!(col.options||[]).includes(x)).forEach(x=>ordered.push(x));
+        hidden.value=ordered.join('、'); value=hidden.value;
+        paintSum();
+        hidden.dispatchEvent(new Event('input',{bubbles:true}));
+      });
+      lab.appendChild(cb); lab.appendChild(el('span','',esc(o)));
+      panel.appendChild(lab);
+    });
+    wrap.appendChild(panel); wrap.appendChild(hidden);
+    wrap._input=hidden;
+    return wrap;
+  }
+  if(col.type==='suggest'){
+    const wrap=el('div','relative');
+    const i=el('input',cls);
+    const id='dl'+(++_dlSeq);
+    i.setAttribute('list',id);
+    i.value=value||''; if(col.placeholder)i.placeholder=col.placeholder;
+    const dl=el('datalist'); dl.id=id;
+    dl.innerHTML=(col.options||[]).map(o=>`<option value="${esc(o)}">`).join('');
+    wrap.appendChild(i); wrap.appendChild(dl);
+    wrap._input=i;
+    return wrap;
+  }
+  const i=el(col.wide?'textarea':'input',cls);
+  if(col.wide) i.rows=2;
+  i.value=value||''; if(col.placeholder)i.placeholder=col.placeholder;
+  return i;
+}
+/** cellInput 可能回傳包裝層，取出真正的輸入元素 */
+const realInput = n => n._input || n;
+
 function repeatEditor(field,rows,disabled,onChange){
+  // 欄位多的表格改用卡片，避免每格被壓到看不清楚
+  if((field.columns||[]).length>4) return cardRowsEditor(field,rows,disabled,onChange);
   const wrap=el('div','overflow-x-auto');
   const tbl=el('table','w-full text-sm border-collapse');
   tbl.innerHTML='<thead><tr>'+field.columns.map(col=>`<th class="text-left text-navy/50 font-medium px-2 py-1 border-b border-navy/10 text-xs">${col.name}</th>`).join('')+'<th></th></tr></thead>';
@@ -791,18 +1446,12 @@ function repeatEditor(field,rows,disabled,onChange){
       const tr=el('tr');
       field.columns.forEach(col=>{
         const td=el('td','px-1 py-1 border-b border-navy/5 align-top');
-        let inp;
-        if(col.type==='select'){
-          inp=el('select','w-full border border-navy/15 rounded px-1.5 py-1 text-sm bg-white');
-          inp.innerHTML=col.options.map(o=>`<option ${r[col.key]===o?'selected':''}>${o}</option>`).join('');
-        }else{
-          inp=el('input','w-full border border-navy/15 rounded px-1.5 py-1 text-sm');
-          inp.value=r[col.key]||''; if(col.placeholder)inp.placeholder=col.placeholder;
-        }
+        const node=cellInput({...col,wide:false},r[col.key],'w-full border border-navy/15 rounded px-1.5 py-1 text-sm');
+        const inp=realInput(node);
         inp.disabled=disabled||readOnly();
         const upd=()=>{rows[i][col.key]=inp.value;onChange(rows);};
         inp.addEventListener('input',upd); inp.addEventListener('change',upd);
-        td.appendChild(inp); tr.appendChild(td);
+        td.appendChild(node); tr.appendChild(td);
       });
       const del=el('td','px-1');
       if(!disabled&&!readOnly()){
@@ -843,12 +1492,15 @@ function fixedRowsEditor(field,rows,disabled,onChange){
     const tr=el('tr');
     tr.appendChild(el('td','px-2 py-1 border-b border-navy/5 font-semibold text-navy text-xs whitespace-nowrap',esc(r[field.rowKey])));
     field.columns.forEach(cc=>{
-      const td=el('td','px-1 py-1 border-b border-navy/5 align-top');
-      const inp=el('input','w-full border border-navy/15 rounded px-1.5 py-1 text-xs');
-      inp.value=r[cc.key]||''; inp.disabled=disabled||readOnly();
+      // 欄位少了以後空間夠，「主要負責事項」給多行，寫得下完整描述
+      const td=el('td',`px-1 py-1 border-b border-navy/5 align-top${cc.wide?'':' whitespace-nowrap'}`);
+      if(cc.wide) td.style.width='55%';
+      const node=cellInput(cc,r[cc.key],'w-full border border-navy/15 rounded px-1.5 py-1 text-xs leading-relaxed resize-y');
+      const inp=realInput(node);
+      inp.disabled=disabled||readOnly();
       const upd=()=>{base[i][cc.key]=inp.value;onChange(base);};
-      inp.addEventListener('input',upd);
-      td.appendChild(inp); tr.appendChild(td);
+      inp.addEventListener('input',upd); inp.addEventListener('change',upd);
+      td.appendChild(node); tr.appendChild(td);
     });
     tb.appendChild(tr);
   });
@@ -860,7 +1512,7 @@ function fixedRowsEditor(field,rows,disabled,onChange){
 // ── 五級錨點編輯器 ──────────────────────────────────────
 function anchorsEditor(field,anchors,disabled,onChange){
   const wrap=el('div','space-y-2');
-  if(!anchors.length){wrap.appendChild(el('p','text-sm text-navy/40','尚未產生錨點。'));return wrap;}
+  if(!anchors.length){wrap.appendChild(el('p','text-sm text-navy/40','還沒有錨點，先按上面的按鈕產生一份草稿。'));return wrap;}
   anchors.forEach((a,i)=>{
     const card=el('div','border border-navy/12 rounded-xl p-3');
     const head=el('div','flex items-center gap-2 mb-2');
@@ -908,10 +1560,9 @@ function anchorsEditor(field,anchors,disabled,onChange){
 // ── 第五章：組織合作、溝通與人才成熟度 ────────────────────
 // ── 第五章：一個成熟度維度一頁 ──
 function renderMaturityDim(area,d){
-  thinkHeader(area,{eyebrow:`人才成熟度 · ${d.code}`,title:d.name,icon:'trending-up'});
-  area.appendChild(el('p','text-[15px] text-navy/60 leading-loose mb-7 -mt-4',esc(d.definition)));
+  thinkHeader(area,{eyebrow:`人才成熟度 · ${d.code}`,title:d.name,icon:'trending-up',coreQuestion:d.definition});
 
-  questionBlock(area,d.questions);
+
 
   refBlock(area,'參考：這個維度的泛用五級',
     F.LEVELS.map(L=>`<div style="margin-bottom:6px"><b style="color:#136E68">${L}</b>　${esc(d.generic[L])}</div>`).join(''));
@@ -932,12 +1583,25 @@ function renderMaturityAggregate(area){
   const genBtn=el('button','inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-tealdeep disabled:opacity-40',
     '<i data-lucide="sparkles" class="w-4 h-4"></i>請 AI 幫我彙整');
   genBtn.disabled=readOnly();
-  genBtn.addEventListener('click',()=>{
+  genBtn.addEventListener('click',async()=>{
     const raws={};
     F.MATURITY_DIMENSIONS.forEach(d=>{raws[d.code]=c.fields['m3._raw_'+d.code.replace('.','_')]?.value||'';});
-    const r=AI.runMaturity(raws,c.fields['m3.maturity_anchors']?.value||[]); S.recordAiJob(c,'M3-09');
+    let r=AI.runMaturity(raws,c.fields['m3.maturity_anchors']?.value||[]);
+    // 成熟度先前只把泛用五級後面附一句情境註記，等於沒有 AI。
+    // 這裡接上真 AI：每一級都要用這個職務的實際情境重寫。
+    r=await runWithAi('M3-09',
+      '把五個人才成熟度維度的泛用 L1–L5 定義，改寫成「這個職務」專屬的行為錨點。'+
+      '每一級都要看得出在這份工作裡實際會出現什麼行為，不能只是把泛用定義抄過去再加一句情境。'+
+      '\n五個維度：'+F.MATURITY_DIMENSIONS.map(d=>`${d.code} ${d.name}（${d.definition||''}）`).join('、')+
+      '\n每個維度輸出：competency、description（需要具備的內容）、why（為什麼這個職務需要這個範圍）、L1～L5 五格行為、minimum_level、ideal_level。'+
+      '\nminimum_level 與 ideal_level 若使用者已經講了就照他說的填，沒講就留 null 讓他自己選。',
+      r,
+      {目前為止談過的內容:caseBrief(), 各維度他說的:raws,
+       泛用五級參考:Object.fromEntries(F.MATURITY_DIMENSIONS.map(d=>[d.name,d.generic]))},
+      genBtn);
+    S.recordAiJob(c,'M3-09');
     S.saveField(c,'m3.maturity_anchors',r.organized_content['m3.maturity_anchors'],'ai_inference','M3-09');
-    st.sections['5.6']={inferences:r.inferences_requiring_confirmation,gaps:r.information_gaps,warnings:r.warnings};
+    st.sections['5.6']={inferences:r.inferences_requiring_confirmation,gaps:r.information_gaps,warnings:r.warnings,source:r._source};
     save();render();
   });
   area.appendChild(genBtn);
@@ -1009,14 +1673,13 @@ function renderMaturityAggregate(area){
 
   const jdSel=anchors.filter(a=>a.jd_selected);
   const incomplete=anchors.filter(a=>!(a.minimum_level&&a.ideal_level&&a.why&&a.description));
-  const ready=anchors.length===5&&incomplete.length===0&&jdSel.length>0;
   if(!confirmed){
-    const cf=el('button',`mt-5 px-5 py-2.5 rounded-lg text-sm font-semibold ${ready?'bg-tealgreen text-white':'bg-navy/15 text-navy/40'}`,'確認五個維度');
-    cf.disabled=!ready||readOnly();
+    const cf=el('button','mt-5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-tealgreen text-white','保留目前的五維度內容');
+    cf.disabled=readOnly();
     cf.addEventListener('click',()=>{S.confirmField(c,'m3.maturity_anchors');save();render();});
     area.appendChild(cf);
     if(incomplete.length)area.appendChild(el('p','text-xs text-accent mt-2 leading-relaxed',
-      `尚未填齊：${incomplete.map(a=>esc(a.competency)).join('、')}`));
+      `尚未填齊：${incomplete.map(a=>esc(a.competency)).join('、')}。可先保留並繼續，之後再補。`));
     else if(!jdSel.length)area.appendChild(el('p','text-xs text-accent mt-2',`請勾選要放進對外 JD 的維度（挑 ${F.JD_TRAIT_COUNT} 個）。`));
   }else{
     area.appendChild(el('div','mt-5 text-sm text-tealdeep font-semibold flex items-center gap-1.5',
@@ -1024,6 +1687,26 @@ function renderMaturityAggregate(area){
   }
 }
 
+
+/** 取出所有已有內容的 M3 欄位值（確認狀態保留，但不阻擋文件草稿） */
+function confirmedM3(){
+  const out={};
+  [...F.m3OutputFields().map(f=>f.id),'m3.maturity_anchors'].forEach(id=>{
+    if(c.fields[id] && c.fields[id].value != null) out[id]=c.fields[id].value;
+  });
+  ['m5.candidate_process_info','m5.process_steps'].forEach(id=>{
+    if(c.fields[id]?.value) out[id]=c.fields[id].value;
+  });
+  return out;
+}
+
+/** 表格三來源：三張錨點表 ＋ 人才成熟度五個維度 */
+function allAnchors(){
+  return [
+    ...F.ANCHOR_FIELD_IDS.flatMap(id=>c.fields[id]?.value||[]),
+    ...(c.fields['m3.maturity_anchors']?.value||[]),
+  ];
+}
 
 // ═══════════ M4 職務說明書 ═══════════
 function renderM4(area){
@@ -1060,20 +1743,37 @@ function renderM4(area){
       const v=confirmed[id]; if(!v)return [];
       return Array.isArray(v)?v.map(x=>typeof x==='object'?(x.work||x.competency||''):x):[v];
     }).filter(Boolean);
-    const sec=(title,items)=>`<div><b class="text-tealdeep">${title}：</b>${items.length?items.map(esc).join('、'):'<span class="text-accent">待確認</span>'}</div>`;
+    // 大標與子標分層呈現，順序與實際文件一致（含「一、職務基本資料」）
+    const sec=(title,items)=>`<div class="pl-3 border-l-2 border-navy/10"><div class="text-[12px] font-semibold text-tealdeep mb-0.5">${title}</div><div>${items.length?items.map(esc).join('、'):'<span class="text-navy/40">還沒填</span>'}</div></div>`;
+    const h1=(t)=>`<div class="text-[13px] font-bold text-navy mt-4 mb-1.5 pb-1 border-b border-navy/10">${t}</div>`;
+    const info=c.fields['m4.job_basic_info']?.value||{};
+    const basicRows=[['職務名稱',info.job_title||c.fields['case.job_title_working']?.value],['合作形式',info.engagement],
+      ['招募人數',info.headcount],['同時在職人數',info.concurrent],['部門／單位',info.department],
+      ['主要對接窗口',info.report_to],['工作地點',info.location],['工作模式',info.work_mode],
+      ['工作時間／投入量',info.work_hours],['報酬範圍',info.salary_range]].filter(([,v])=>v);
     preview.appendChild(el('div','bg-white rounded-2xl border border-navy/10 p-5',`
       <h3 class="font-bold text-navy mb-1">職務說明書預覽</h3>
-      <p class="text-[11px] text-navy/45 mb-3">${esc(F.M4_EXCLUSIONS)}</p>
+      <p class="text-[11px] text-navy/45 mb-1">${esc(F.M4_EXCLUSIONS)}</p>
       <div class="text-sm space-y-2 text-navy/75">
-        ${sec('二、角色定位',L(['m3.role_positioning']))}
-        ${sec('三、預期價值產出',L(['m3.value_outputs']))}
-        ${sec('四、主要工作內容',L(['m3.work_items']))}
-        ${sec('五、組織關係與權責',(confirmed['m3.organization_relations']||[]).filter(x=>x.target||x.primary).map(x=>x.aspect))}
+        ${h1('一、職務基本資料')}
+        <div class="pl-3 border-l-2 border-navy/10 grid sm:grid-cols-2 gap-x-4 gap-y-1">
+          ${basicRows.length?basicRows.map(([k,v])=>`<div><span class="text-navy/45">${k}：</span>${esc(v)}</div>`).join(''):'<span class="text-navy/40">還沒填</span>'}
+        </div>
+        ${h1('二、角色定位')}
+        <div class="pl-3 border-l-2 border-navy/10">${L(['m3.role_positioning']).map(esc).join('、')||'<span class="text-navy/40">還沒填</span>'}</div>
+        ${c.case_summary?.text?`<div class="pl-3 border-l-2 border-navy/10"><div class="text-[12px] font-semibold text-tealdeep mb-0.5">2.1 這個角色的來龍去脈</div><div class="text-[13px] leading-relaxed text-navy/65">${esc(c.case_summary.text).slice(0,400)}…</div></div>`:''}
+        ${h1('三、預期價值產出')}
+        <div class="pl-3 border-l-2 border-navy/10">${L(['m3.value_outputs']).map(esc).join('、')||'<span class="text-navy/40">還沒填</span>'}</div>
+        ${h1('四、主要工作內容')}
+        <div class="pl-3 border-l-2 border-navy/10">${L(['m3.work_items']).map(esc).join('、')||'<span class="text-navy/40">還沒填</span>'}</div>
+        ${h1('五、組織關係與權責範圍')}
+        <div class="pl-3 border-l-2 border-navy/10">${(confirmed['m3.organization_relations']||[]).filter(x=>x.target||x.primary).map(x=>`${esc(x.aspect)}｜${esc(x.target||'—')}`).join('　')||'<span class="text-navy/40">還沒填</span>'}</div>
+        ${h1('六、適任條件')}
         ${sec('6.1 必要知識',L(['m3.prehire_knowledge','m3.trainable_knowledge','m3.organization_specific_knowledge']))}
         ${sec('6.2 工具與專業技術',L(['m3.required_tools','m3.professional_methods','m3.work_methods']))}
         ${sec('6.3 核心判斷與工作原則',L(['m3.core_judgments','m3.work_principles','m3.high_risk_escalations']))}
         ${sec('6.4 品質、責任與倫理',L(['m3.quality_requirements','m3.error_responsibility','m3.ethics_nonnegotiables']))}
-        ${sec('6.5 人才成熟度（五個維度全寫·不含等級）',(confirmed['m3.maturity_anchors']||[]).map(m=>m.competency))}
+        ${sec('6.5 人才成熟度（五個維度全寫，不含等級）',(confirmed['m3.maturity_anchors']||[]).map(m=>m.competency))}
       </div>`));
     const cf=el('button','mt-4 bg-tealgreen text-white px-4 py-2 rounded-lg font-semibold','確認職務說明書，進入甄選流程');
     cf.disabled=readOnly();
@@ -1091,7 +1791,7 @@ function renderM5(area){
   // 候選人流程資訊（H）
   const info=c.fields['m5.candidate_process_info']?.value||{};
   const infoWrap=el('div','bg-white rounded-2xl border border-navy/10 p-5 mb-5');
-  infoWrap.innerHTML='<div class="font-bold text-navy mb-3">候選人流程資訊（由你確認，AI 不補造）</div>';
+  infoWrap.innerHTML='<div class="font-bold text-navy mb-3">候選人流程資訊（這幾項留給你填）</div>';
   const grid=el('div','grid sm:grid-cols-2 gap-3');
   F.M5_CANDIDATE_INFO_FIELDS.forEach(col=>{
     const w=el('div');w.innerHTML=`<label class="block text-sm font-semibold text-navy mb-1">${col.name}</label>`;
@@ -1111,25 +1811,85 @@ function renderM5(area){
   area.appendChild(genBtn);
   const preview=el('div');area.appendChild(preview);
 
+  /** 產生一次草稿並存起來。之後的 paint() 只讀存好的內容，不再重跑，免得蓋掉人工修改。 */
+  function generate(){
+    const r=AI.runM5(confirmedM3());
+    S.recordAiJob(c,'M5-01');S.recordAiJob(c,'M5-02');S.recordAiJob(c,'M5-03');
+    S.saveField(c,'m5.process_steps',r.organized_content['m5.process_steps'],'ai_inference','M5-01');
+    S.saveField(c,'m5.interview_questions',r.organized_content['m5.interview_questions'],'ai_inference','M5-02');
+    S.saveField(c,'m5.behavior_anchors',r.organized_content['m5.behavior_anchors']||[],'ai_inference','M5-03');
+    save();paint();
+  }
+
   function paint(){
-    const confirmed=confirmedM3();
-    const r=AI.runM5(confirmed);S.saveField(c,'m5.process_steps',r.organized_content['m5.process_steps'],'ai_inference','M5-01');S.saveField(c,'m5.interview_questions',r.organized_content['m5.interview_questions'],'ai_inference','M5-02');
     const P=F.M5_PROCESS_TABLE, Q=F.M5_QUESTION_TABLE;
+    const steps=c.fields['m5.process_steps']?.value||[];
+    const qs=c.fields['m5.interview_questions']?.value||[];
+    const anchors=c.fields['m5.behavior_anchors']?.value||[];
     preview.innerHTML='';
-    preview.appendChild(el('div','bg-white rounded-2xl border border-navy/10 p-5 mb-3',`
-      <h3 class="font-bold text-navy mb-2">${P.name}</h3>
-      <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-navy/50 text-left">${P.columns.map(cc=>`<th class="px-2 py-1 border-b border-navy/10 text-xs">${cc.name}</th>`).join('')}</tr></thead><tbody>${r.organized_content['m5.process_steps'].map(s=>`<tr>${P.columns.map(cc=>`<td class="px-2 py-1 border-b border-navy/5">${esc(s[cc.key])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
-      <h3 class="font-bold text-navy mt-4 mb-2">${Q.name}</h3>
-      <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-navy/50 text-left">${Q.columns.map(cc=>`<th class="px-2 py-1 border-b border-navy/10 text-xs">${cc.name}</th>`).join('')}</tr></thead><tbody>${r.organized_content['m5.interview_questions'].map(q=>`<tr>${Q.columns.map(cc=>`<td class="px-2 py-1 border-b border-navy/5 text-xs">${esc(q[cc.key])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
-      <h3 class="font-bold text-navy mt-4 mb-2">表格三：各職能的行為定錨等級</h3>
-      <div class="text-sm space-y-1">${(r.organized_content['m5.behavior_anchors']||[]).map(a=>`<div class="flex justify-between border-b border-navy/5 py-1"><span>${esc(a.competency)}</span><span class="text-navy/50 text-xs">最低 ${esc(a.minimum_level||'待確認')}／理想 ${esc(a.ideal_level||'待確認')}</span></div>`).join('')||'<span class="text-accent">尚無錨點</span>'}</div>`));
-    if(r.warnings.length)preview.appendChild(el('div','p-3 rounded-lg bg-accent/10 border border-accent/25 text-sm text-navy/70 mb-3',r.warnings.map(esc).join('<br>')));
+    if(!steps.length && !qs.length){
+      preview.appendChild(el('p','text-sm text-navy/45','還沒有草稿。按上面的按鈕產生一份，產生後每一格都可以直接改。'));
+      return;
+    }
+
+    // 三張表都用可編輯的編輯器，不是唯讀 HTML。欄位多的會自動變成卡片式。
+    const box=(title,node,hint)=>{
+      const w=el('div','bg-white rounded-2xl border border-navy/10 p-5 mb-3');
+      w.innerHTML=`<h3 class="font-bold text-navy mb-1">${title}</h3>`+
+        (hint?`<p class="text-xs text-navy/45 mb-3">${hint}</p>`:'<div class="mb-3"></div>');
+      w.appendChild(node); preview.appendChild(w); return w;
+    };
+
+    box(P.name, repeatEditor(P,steps,false,rows=>{S.saveField(c,'m5.process_steps',rows,'user_input');save();}),
+      '階段可以增減、改名，順序不對就直接改。');
+    // 二十幾張卡片攤平在一頁會看不下去。改成依職能分組、預設收合，
+    // 一次只展開正在看的那一項。
+    const qBox=el('div');
+    const byComp=new Map();
+    qs.forEach((q,idx)=>{ const k=q.competency||'其他'; if(!byComp.has(k))byComp.set(k,[]); byComp.get(k).push({q,idx}); });
+    const saveQs=()=>{S.saveField(c,'m5.interview_questions',qs,'user_input');save();};
+    byComp.forEach((items,comp)=>{
+      const d=el('details','rounded-xl border border-navy/12 bg-white mb-2 overflow-hidden');
+      const lv=items[0].q.level?`　<span class="text-[11px] text-navy/40">最低 ${esc(items[0].q.level)}</span>`:'';
+      d.innerHTML=`<summary class="px-4 py-3 cursor-pointer select-none font-semibold text-navy text-sm">${esc(comp)}　<span class="text-[11px] text-navy/40">${items.length} 題</span>${lv}</summary>`;
+      const inner=el('div','px-4 pb-4 space-y-3');
+      items.forEach(({q,idx})=>{
+        const card=el('div','rounded-lg border border-navy/10 p-3');
+        card.innerHTML=`<div class="text-[11px] font-bold text-tealdeep mb-2">${esc(q.qtype||'')}</div>`;
+        [['question','核心問題'],['followup','結構化追問'],['evidence','需要取得的行為證據']].forEach(([k,label])=>{
+          const cell=el('div','mb-2');
+          cell.innerHTML=`<label class="block text-[11px] font-semibold text-navy/55 mb-1">${label}</label>`;
+          const ta=el('textarea','w-full border border-navy/15 rounded-lg px-2.5 py-2 text-sm leading-relaxed resize-y');
+          ta.rows=2; ta.value=q[k]||''; ta.disabled=readOnly();
+          ta.addEventListener('input',()=>{qs[idx][k]=ta.value;saveQs();});
+          cell.appendChild(ta); card.appendChild(cell);
+        });
+        const del=el('button','text-[11px] text-navy/35 hover:text-accent','刪掉這一題');
+        del.addEventListener('click',()=>{qs.splice(idx,1);saveQs();paint();});
+        if(!readOnly()) card.appendChild(del);
+        inner.appendChild(card);
+      });
+      d.appendChild(inner); qBox.appendChild(d);
+    });
+    if(!qs.length) qBox.appendChild(el('p','text-sm text-navy/40','目前沒有題目。'));
+    box(Q.name, qBox, `只針對核心職能出題，一項兩題。點開職能可以改，用不到的直接刪。目前 ${qs.length} 題。`);
+
+    const aWrap=el('div','text-sm space-y-1');
+    aWrap.innerHTML=anchors.length
+      ? anchors.map(a=>`<div class="flex justify-between border-b border-navy/5 py-1"><span>${esc(a.competency)}</span><span class="text-navy/50 text-xs">最低 ${esc(a.minimum_level||'—')}／理想 ${esc(a.ideal_level||'—')}</span></div>`).join('')
+      : '<span class="text-navy/40">還沒有錨點。</span>';
+    box('表格三：各職能的行為定錨等級', aWrap, '等級在「職務與人才規格」那一段設定，這裡只顯示結果。');
+
     const cf=el('button','bg-tealgreen text-white px-4 py-2 rounded-lg font-semibold','確認甄選流程，進入 JD');
     cf.disabled=readOnly();
     cf.addEventListener('click',()=>{S.setModuleStatus(c,'m5','confirmed');currentModule='m6';c.current_module='m6';save();render();});
     preview.appendChild(cf);
   }
-  genBtn.addEventListener('click',()=>{S.recordAiJob(c,'M5-01');S.recordAiJob(c,'M5-02');S.recordAiJob(c,'M5-03');paint();});
+  genBtn.addEventListener('click',()=>{
+    const has=(c.fields['m5.process_steps']?.value||[]).length;
+    if(has && !confirm('重新產生會覆蓋你在這一頁改過的內容，也會再花一次 AI 用量。確定嗎？')) return;
+    generate();
+  });
   if(S.getModuleStatus(c,'m5')==='confirmed')paint();
 }
 
@@ -1137,125 +1897,226 @@ function renderM5(area){
 function renderM6(area){
   moduleHeader(area,'m6');
   const ready=S.getModuleStatus(c,'m4')==='confirmed'&&S.getModuleStatus(c,'m5')==='confirmed';
-  if(!ready){area.appendChild(el('div','p-4 rounded-xl bg-accent/10 border border-accent/30 text-sm text-navy/70','JD 必須等職務說明書與甄選流程設計書都確認後才能產生。'));return;}
+  if(!ready){area.appendChild(el('div','p-4 rounded-xl bg-accent/10 border border-accent/30 text-sm text-navy/70','先把職務說明書與甄選流程設計書確認好，這裡的內容才抓得到。'));return;}
   const genBtn=el('button','inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2.5 rounded-lg font-semibold hover:bg-tealdeep mb-4','<i data-lucide="megaphone" class="w-4 h-4"></i>產生候選人版 JD');
   genBtn.disabled=readOnly();
   area.appendChild(genBtn);
   const preview=el('div');area.appendChild(preview);
 
-  function paint(){
+  /** 真的呼叫 AI，只在按鈕被按下時。 */
+  async function generate(btn){
     const confirmed=confirmedM3();
     const caseFields={'case.job_title_working':c.fields['case.job_title_working']?.value};
-    const r=AI.runM6(confirmed,caseFields);
+    let r=AI.runM6(confirmed,caseFields);
+    r=await runWithAi('M6-01',
+      `依《6.JD對外文案》寫出候選人版 JD。只公開角色定位、工作內容、到職最低必要職能、情境化工作特質與面試流程。` +
+      `
+嚴禁出現：完整面試題目、L1–L5 等級代碼、行為錨點、內部評分、表現過度風險、組織內部敏感資訊。` +
+      `
+語氣用招募文案的第二人稱，例如「你具備⋯能夠⋯」「面對⋯時，你能⋯」。` +
+      `
+口述裡的「我」是說話的那位主管在講自己。寫進對外文案時要換成角色稱謂（用人主管、專案負責人、活動負責人等），或改寫成組織的口吻，不要留下第一人稱。`,
+      r, {目前為止談過的內容:caseBrief(), 已確認的職務規格:confirmed, 職務名稱:caseFields['case.job_title_working']}, btn);
+    S.recordAiJob(c,'M6-01');
     for(const[fid,v]of Object.entries(r.organized_content))S.saveField(c,fid,v,'ai_organized','M6-01');
-    // QA-02 揭露檢查
-    const jdText=JSON.stringify(r.organized_content);
-    const qa=AI.runQA02(jdText);S.recordAiJob(c,'QA-02');
+    save(); paint();
+  }
+
+  /** 只讀已存好的內容重畫，不呼叫 AI。 */
+  function paint(){
+    const oc={};
+    ['m6.job_title','m6.role_positioning','m6.work_items','m6.minimum_competencies','m6.work_traits','m6.interview_process']
+      .forEach(id=>{ if(c.fields[id]?.value!=null) oc[id]=c.fields[id].value; });
     preview.innerHTML='';
-    preview.appendChild(el('div','p-3 rounded-lg mb-3 text-sm '+(qa.organized_content.pass?'bg-tealgreen/10 border border-tealgreen/30 text-tealdeep':'bg-accent/10 border-2 border-accent text-navy/70'),
-      qa.organized_content.pass?'<b>對外揭露檢查通過</b>：未偵測到完整題目／L1–L5／內部評分。':'<b>揭露檢查未通過</b>：'+qa.warnings.map(esc).join('；')));
+    if(!oc['m6.job_title'] && !oc['m6.role_positioning']){
+      preview.appendChild(el('p','text-sm text-navy/45','還沒有 JD 草稿。按上面的按鈕產生一份，產生後可以直接改。'));
+      return;
+    }
+    const r={organized_content:{
+      'm6.job_title':oc['m6.job_title']||'',
+      'm6.role_positioning':oc['m6.role_positioning']||'',
+      'm6.work_items':oc['m6.work_items']||[],
+      'm6.minimum_competencies':oc['m6.minimum_competencies']||[],
+      'm6.interview_process':oc['m6.interview_process']||[],
+    }};
+    const qa=AI.runQA02(JSON.stringify(r.organized_content));
+    preview.appendChild(el('div','p-3 rounded-lg mb-3 text-sm '+(qa.warnings.length?'bg-mist/50 border border-navy/15 text-navy/75':'bg-tealgreen/10 border border-tealgreen/30 text-tealdeep'),
+      qa.warnings.length?'<b>發布前，這幾個地方你自己看一眼</b><ul class="list-disc ml-5 mt-1">'+qa.warnings.map(w=>'<li>'+esc(w)+'</li>').join('')+'</ul>':'<b>看起來沒有帶到內部用語</b>：要不要發布仍由你決定。'));
     preview.appendChild(el('div','bg-white rounded-2xl border border-navy/10 p-5 mb-3',`
       <div class="text-[11px] text-navy/40 mb-2">下列為對外可揭露內容</div>
       <h3 class="text-lg font-bold text-navy">${esc(r.organized_content['m6.job_title'])}</h3>
       <div class="text-sm space-y-2 mt-2 text-navy/75">
         <div><b class="text-tealdeep">角色定位：</b>${esc(r.organized_content['m6.role_positioning'])}</div>
         <div><b class="text-tealdeep">工作內容：</b><ul class="list-disc ml-5">${r.organized_content['m6.work_items'].map(w=>`<li>${esc(w)}</li>`).join('')}</ul></div>
-        <div><b class="text-tealdeep">需要具備的職能：</b>${r.organized_content['m6.minimum_competencies'].map(esc).join('、')||'<span class="text-accent">尚未設定最低等級</span>'}</div>
+        <div><b class="text-tealdeep">需要具備的職能：</b>${r.organized_content['m6.minimum_competencies'].map(esc).join('、')||'<span class="text-navy/40">還沒設最低等級</span>'}</div>
         <div><b class="text-tealdeep">面試流程：</b>${r.organized_content['m6.interview_process'].map(esc).join(' → ')}</div>
       </div>`));
-    const cf=el('button',`px-4 py-2 rounded-lg font-semibold ${qa.organized_content.pass?'bg-tealgreen text-white':'bg-navy/15 text-navy/40'}`,'發布前確認，完成三份正式輸出');
-    cf.disabled=!qa.organized_content.pass||readOnly();
-    cf.addEventListener('click',()=>{S.saveField(c,'m6.publish_confirmation',{confirmed:true,at:new Date().toISOString()},'user_input');S.confirmField(c,'m6.job_title');S.confirmField(c,'m6.role_positioning');S.setModuleStatus(c,'m6','confirmed');c.overall_status='output_ready';currentModule='output';c.current_module='output';save();render();});
+    const cf=el('button','px-4 py-2 rounded-lg font-semibold bg-tealgreen text-white','確認並完成三份正式輸出');
+    cf.disabled=readOnly();
+    cf.addEventListener('click',()=>{S.saveField(c,'m6.publish_confirmation',{confirmed:true,disclosure_pass:!!qa.organized_content.pass,at:new Date().toISOString()},'user_input');S.confirmField(c,'m6.job_title');S.confirmField(c,'m6.role_positioning');S.setModuleStatus(c,'m6','confirmed');c.overall_status='output_ready';currentModule='output';c.current_module='output';save();render();});
     preview.appendChild(cf);
     if(window.lucide)lucide.createIcons();
   }
-  genBtn.addEventListener('click',()=>{S.recordAiJob(c,'M6-01');paint();});
-  if(S.getModuleStatus(c,'m6')==='confirmed')paint();
+  genBtn.addEventListener('click',()=>{
+    if(c.fields['m6.job_title']?.value && !confirm('重新產生會覆蓋目前的 JD 內容，也會再花一次 AI 用量。確定嗎？')) return;
+    generate(genBtn);
+  });
+  // 只要有存過就直接畫，不再重跑 AI。
+  // （之前這裡是 paint() 內含 AI 呼叫，每次切回這一頁都會再燒一次用量。）
+  paint();
 }
 
-// ═══════════ output 預覽與下載 ═══════════
+// ═══════════ output 文件預覽 ═══════════
 function renderOutput(area){
   moduleHeader(area,'output');
   const pending=countPending(c);
   const allConfirmed=['m4','m5','m6'].every(m=>S.getModuleStatus(c,m)==='confirmed');
 
-  // 產生前檢查
-  const check=el('div','bg-white rounded-2xl border border-navy/10 p-5 mb-4');
-  check.innerHTML=`<div class="font-bold text-navy mb-3">產生前檢查</div>
-    <div class="space-y-1.5 text-sm">
-      ${checkRow('三份正式輸出已確認',allConfirmed)}
-      ${checkRow('JD 通過對外揭露檢查',S.getModuleStatus(c,'m6')==='confirmed')}
-      ${checkRow('最低適任等級已由人工確認',allAnchors().length>0&&allAnchors().every(a=>a.minimum_level))}
-      ${checkRow(`待確認事項：${pending} 項`+(pending?'（一般補充，警告後可輸出）':''),true,pending>0)}
-    </div>`;
-  area.appendChild(check);
+  // 產出前檢查收成一行狀態列。要看細節再展開。
+  // 之前它是一整張卡片壓在文件預覽上面，真的要讀文件時很擠。
+  const anchors=allAnchors();
+  const items=[
+    ['三份正式輸出已確認',allConfirmed],
+    ['JD 已完成',S.getModuleStatus(c,'m6')==='confirmed'],
+    ['最低適任等級已由人工確認',anchors.length>0&&anchors.every(a=>a.minimum_level)],
+  ];
+  const okCount=items.filter(([,v])=>v).length;
+  const chk=el('details','mb-4 rounded-xl border border-navy/12 bg-white');
+  chk.innerHTML=`<summary class="px-4 py-2.5 cursor-pointer select-none text-sm text-navy/70 flex items-center gap-2">
+      <i data-lucide="${okCount===items.length?'check-circle':'circle-dashed'}" class="w-4 h-4 ${okCount===items.length?'text-tealgreen':'text-navy/35'}"></i>
+      產出前檢查　<span class="text-navy/45">${okCount}/${items.length} 完成${pending>0?`　·　待確認 ${pending} 項`:''}</span>
+    </summary>`;
+  const chkBody=el('div','px-4 pb-4 space-y-2 text-sm');
+  chkBody.innerHTML=items.map(([t,v])=>checkRow(t,v)).join('')+checkRow(`待確認事項：${pending} 項`,true,pending>0);
+  chk.appendChild(chkBody);
+  area.appendChild(chk);
 
-  // 四份獨立文件：分頁預覽 + 單獨下載
-  const docWrap=el('div','bg-white rounded-2xl border border-navy/10 overflow-hidden mb-4');
-  docWrap.innerHTML='<div class="px-5 py-3 border-b border-navy/10 font-bold text-navy flex items-center gap-2"><i data-lucide="files" class="w-4 h-4"></i>四份獨立文件</div>';
+  // 四份獨立文件：預覽 + 下載
+  const docWrap=el('div','bg-white rounded-2xl border border-navy/10 overflow-hidden');
+  const docHead=el('div','px-5 py-3.5 border-b border-navy/10 flex items-center justify-between gap-3 flex-wrap');
+  docHead.innerHTML='<div class="font-bold text-navy flex items-center gap-2"><i data-lucide="files" class="w-4 h-4 text-tealgreen"></i>四份獨立文件</div>';
+  const dlAll=el('button','inline-flex items-center gap-1.5 bg-navy text-ivory px-4 py-2 rounded-lg text-sm font-semibold hover:bg-tealdeep transition',
+    '<i data-lucide="download" class="w-4 h-4"></i>下載全部四份');
+  dlAll.addEventListener('click',()=>{
+    dlAll.disabled=true;
+    const old=dlAll.innerHTML;
+    dlAll.innerHTML='<i data-lucide="loader" class="w-4 h-4 animate-spin"></i>下載中…';
+    if(window.lucide)lucide.createIcons();
+    downloadAllDocuments(c,()=>{});
+    // 四份之間有間隔，等最後一份送出再恢復
+    setTimeout(()=>{ dlAll.disabled=false; dlAll.innerHTML=old; if(window.lucide)lucide.createIcons(); }, DOCUMENTS.length*700+400);
+  });
+  // 文件狀態由你決定，不由系統判定。這個值會印在四份文件的抬頭上。
+  const statusWrap=el('div','flex items-center gap-2 mr-auto ml-4');
+  statusWrap.innerHTML='<span class="text-xs text-navy/45">狀態</span>';
+  const statusSel=el('select','border border-navy/15 rounded-lg px-2.5 py-1.5 text-sm bg-white');
+  statusSel.innerHTML=DOC_STATUS.map(x=>`<option ${docStatus(c)===x?'selected':''}>${x}</option>`).join('');
+  statusSel.disabled=readOnly();
+  statusSel.addEventListener('change',()=>{
+    const v=statusSel.value, pend=countPending(c);
+    if(v==='正式發布' && pend>0
+       && !confirm(`目前還有 ${pend} 項沒確認。要不要先看過再發布？\n\n（要直接標成正式發布也可以，這是你的判斷。）`)){
+      statusSel.value=docStatus(c); return;
+    }
+    c.doc_status=v; save(); paintDoc();
+  });
+  statusWrap.appendChild(statusSel);
+  docHead.appendChild(statusWrap);
+  docHead.appendChild(dlAll);
+  docWrap.appendChild(docHead);
   const tabs=el('div','flex flex-wrap gap-1.5 px-5 pt-4');
   const meta=el('div','px-5 pt-3 text-xs');
-  const iframe=el('iframe','w-full bg-white mt-3');iframe.style.height='460px';iframe.style.border='0';iframe.style.borderTop='1px solid #14203318';
-  docWrap.appendChild(tabs);docWrap.appendChild(meta);docWrap.appendChild(iframe);
+  const iframe=el('iframe','w-full bg-white mt-3');
+  // 真的要讀文件時 520px 太矮，一直捲。改成跟著視窗高度走。
+  iframe.style.height='min(78vh, 900px)'; iframe.style.border='0'; iframe.style.borderTop='1px solid #14203318';
+  docWrap.appendChild(tabs); docWrap.appendChild(meta); docWrap.appendChild(iframe);
   area.appendChild(docWrap);
 
   let activeKey=DOCUMENTS[0].key;
+  let editing=false;
   function paintDoc(){
+    editing=false;
     tabs.innerHTML='';
     DOCUMENTS.forEach(d=>{
       const on=d.key===activeKey;
-      const b=el('button',`px-3 py-1.5 rounded-lg text-sm font-semibold border ${on?'bg-navy text-ivory border-navy':'bg-white text-navy/60 border-navy/15 hover:border-tealgreen/50'}`,d.name);
+      const b=el('button',`px-3.5 py-2 rounded-lg text-sm font-semibold border transition-colors ${on?'bg-navy text-ivory border-navy':'bg-white text-navy/55 border-navy/15 hover:border-tealgreen/50'}`,d.name);
       b.addEventListener('click',()=>{activeKey=d.key;paintDoc();});
       tabs.appendChild(b);
     });
     const d=getDocument(activeKey);
-    meta.innerHTML=`<span class="badge ${d.external?'bg-tealgreen/15 text-tealdeep':'bg-accent/15 text-accent'}">${d.external?'可對外提供':'內部資料，不對外公開'}</span>
-      <span class="text-navy/45 ml-2">${d.kind}</span>
-      <button id="dlOne" class="ml-2 text-tealdeep font-semibold hover:underline">下載這一份</button>`;
-    iframe.srcdoc=d.build(c);
-    $('#dlOne').addEventListener('click',()=>{
-      const n=downloadDocument(c,d.key);
-      c.exports.push({at:new Date().toISOString(),file:n,doc:d.key});
-      if(allConfirmed)S.markFirstDownload(c);
-      save();render();
+    meta.innerHTML='';
+    const metaRow=el('div','flex items-center justify-between gap-3 flex-wrap');
+    metaRow.innerHTML=`<div><span class="badge ${d.external?'bg-tealgreen/15 text-tealdeep':'bg-accent/15 text-accent'}">${d.external?'可對外提供':'內部資料，不對外公開'}</span>
+      <span class="text-navy/45 ml-2">${d.kind}</span></div>`;
+    // 直接在畫面上改文件。改完存進案例，下載時帶走人工版。
+    const btns=el('div','flex items-center gap-2');
+    const editBtn=el('button','inline-flex items-center gap-1.5 border border-navy/20 text-navy px-3 py-1.5 rounded-lg text-xs font-semibold hover:border-tealgreen/60 hover:text-tealdeep transition','');
+    const dlOne=el('button','inline-flex items-center gap-1.5 border border-navy/20 text-navy px-3 py-1.5 rounded-lg text-xs font-semibold hover:border-tealgreen/60 hover:text-tealdeep transition',
+      `<i data-lucide="download" class="w-3.5 h-3.5"></i>下載這一份`);
+    dlOne.addEventListener('click',()=>{ downloadDocument(c,d.key); });
+
+    const setEditLabel=()=>{
+      editBtn.innerHTML = editing
+        ? '<i data-lucide="check" class="w-3.5 h-3.5"></i>完成編輯'
+        : '<i data-lucide="pencil" class="w-3.5 h-3.5"></i>直接編輯';
+      editBtn.className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition '
+        + (editing ? 'bg-tealgreen text-white' : 'border border-navy/20 text-navy hover:border-tealgreen/60 hover:text-tealdeep');
+    };
+    editBtn.addEventListener('click',()=>{
+      const body=iframe.contentDocument&&iframe.contentDocument.body;
+      if(!body) return;
+      if(editing){                      // 收工：把改過的內容存起來
+        c.doc_overrides=c.doc_overrides||{};
+        const html=iframe.contentDocument.documentElement.outerHTML;
+        c.doc_overrides[d.key]={html,at:new Date().toISOString()};
+        body.contentEditable='false'; editing=false; save();
+        // 人工改過的內容沒有經過任何檢查，這裡補跑一次發布前提醒（只提醒，不擋）
+        const qa=AI.runQA02(body.innerText||'');
+        if(qa.warnings.length){
+          alert('改好了。順帶一提，這幾個地方你可能想再看一眼：\n\n・'+qa.warnings.join('\n・'));
+        }
+        paintDoc();
+      }else{
+        body.contentEditable='true'; body.focus(); editing=true; setEditLabel();
+      }
     });
+    setEditLabel();
+    btns.appendChild(editBtn);
+    if(isEdited(c,d.key)){
+      const reset=el('button','text-xs text-navy/40 hover:text-accent px-2','還原成系統版本');
+      reset.addEventListener('click',()=>{
+        if(!confirm('確定要丟掉這一份的人工修改，改回系統組裝的版本？')) return;
+        delete c.doc_overrides[d.key]; save(); paintDoc();
+      });
+      btns.appendChild(reset);
+    }
+    btns.appendChild(dlOne);
+    metaRow.appendChild(btns);
+    if(isEdited(c,d.key)) metaRow.querySelector('div').insertAdjacentHTML('beforeend',
+      '<span class="badge bg-navy/10 text-navy/60 ml-2">已人工修改</span>');
+    meta.appendChild(metaRow);
+    iframe.srcdoc=documentHtml(c,d.key);
     if(window.lucide)lucide.createIcons();
   }
   paintDoc();
 
-  // 下載
-  const dlWrap=el('div','bg-navy text-ivory rounded-2xl p-5');
-  if(!allConfirmed){
-    dlWrap.innerHTML='<div class="font-bold mb-1">尚未可下載</div><p class="text-ivory/70 text-sm">請先完成並確認 M4／M5／M6 三份正式輸出。</p>';
-  }else if(c.access.first_final_download_at){
-    dlWrap.innerHTML=`<div class="font-bold mb-1 flex items-center gap-2"><i data-lucide="check-circle" class="w-5 h-5 text-tealgreen"></i>已完成首次下載</div>
-      <p class="text-ivory/70 text-sm mb-3">首次下載：${new Date(c.access.first_final_download_at).toLocaleString('zh-TW',{timeZone:'Asia/Taipei',hour12:false})}；預定關閉：${c.access.scheduled_close_at?new Date(c.access.scheduled_close_at).toLocaleString('zh-TW',{timeZone:'Asia/Taipei',hour12:false}):'—'}</p>
-      <button id="dlAgain" class="bg-ivory text-navy px-4 py-2 rounded-lg font-semibold">再次下載全部四份</button>`;
-  }else{
-    dlWrap.innerHTML=`<div class="font-bold mb-1">產生並下載四份文件</div>
-      <p class="text-ivory/70 text-sm mb-3">引導與思考、職務說明書、甄選流程設計書、JD 對外文案，各自獨立成檔（Word 可開啟的 .doc）。<strong class="text-accent">成功下載後將啟動 72 小時關閉倒數</strong>，關閉後不可編輯與呼叫 AI。</p>
-      <button id="dlBtn" class="bg-accent text-white px-5 py-2.5 rounded-lg font-bold inline-flex items-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>產生並下載全部四份</button>`;
-  }
-  area.appendChild(dlWrap);
-
-  const dlBtn=$('#dlBtn');
-  if(dlBtn)dlBtn.addEventListener('click',()=>{
-    if(!confirm('將產生四份文件並進入最終確認，成功下載後開始 72 小時關閉倒數。確定繼續？'))return;
-    downloadAllDocuments(c,(doc,name)=>{c.exports.push({at:new Date().toISOString(),file:name,doc:doc.key});save();});
-    // 兩段式：下載觸發成功後才記錄首次下載（05 第 8–9 步）
-    S.markFirstDownload(c);save();
-    setTimeout(()=>{render();alert('四份文件已下載。\n72 小時關閉倒數已啟動。');},DOCUMENTS.length*700+400);
-  });
-  const dlAgain=$('#dlAgain');
-  if(dlAgain)dlAgain.addEventListener('click',()=>{
-    downloadAllDocuments(c,(doc,name)=>{c.exports.push({at:new Date().toISOString(),file:name,doc:doc.key});save();});
-  });
+  area.appendChild(el('p','mt-5 text-sm text-navy/45 leading-relaxed flex gap-2',
+    '<i data-lucide="info" class="w-4 h-4 shrink-0 mt-0.5"></i><span>按「直接編輯」可以在這裡改內容，改完按「完成編輯」存起來，下載時帶走的就是你改過的版本。下載的是 Word 檔（.doc）。</span>'));
   if(window.lucide)lucide.createIcons();
 }
+
 function checkRow(label,ok,warn){
   const icon=ok?(warn?'alert-circle':'check-circle'):'x-circle';
   const color=ok?(warn?'text-accent':'text-tealgreen'):'text-accent';
   return `<div class="flex items-center gap-2 ${color}"><i data-lucide="${icon}" class="w-4 h-4"></i><span class="text-navy/75">${label}</span></div>`;
+}
+
+// 引導者視窗：隱藏編輯用的框架，只留唯讀內容
+if(IS_GUIDE){
+  document.title='引導者｜'+(c.fields['case.title']?.value||'案例');
+  const hdr=document.querySelector('header'); if(hdr)hdr.remove();
+}else{
+  $('#openGuideBtn').addEventListener('click',openGuideWindow);
 }
 
 render();

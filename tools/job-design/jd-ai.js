@@ -57,7 +57,7 @@ function firebaseBits() {
   return _fbPromise;
 }
 
-/** 目前登入的使用者（未登入回 null）。等 Auth 還原完成才回answer。 */
+/** 目前登入的使用者（未登入回 null）。等 Auth 還原完成才回覆。 */
 export async function currentUser() {
   try {
     const { auth, authMod } = await firebaseBits();
@@ -72,20 +72,20 @@ export async function signIn() {
   const { auth, authMod } = await firebaseBits();
   const provider = new authMod.GoogleAuthProvider();
   const cred = await authMod.signInWithPopup(auth, provider);
-  _status = null;                     // 身分變了，狀態要重算
+  _status = null; _access = null;     // 身分變了，狀態與配額都要重算
   return cred.user;
 }
 
 export async function signOut() {
   const { auth, authMod } = await firebaseBits();
   await authMod.signOut(auth);
-  _status = null;
+  _status = null; _access = null;
 }
 
 /** 監看登入狀態變化，讓畫面可以即時更新。 */
 export async function onAuth(cb) {
   const { auth, authMod } = await firebaseBits();
-  return authMod.onAuthStateChanged(auth, (u) => { _status = null; cb(u); });
+  return authMod.onAuthStateChanged(auth, (u) => { _status = null; _access = null; cb(u); });
 }
 
 /**
@@ -126,11 +126,61 @@ export const aiReady = async () => (await aiStatus()).ready === true;
 export function whyNotReady(status) {
   switch (status?.reason) {
     case 'signed_out': return { short: '請先登入', detail: 'AI 整理需要登入才能使用。' };
+    case 'no_code':    return { short: '還沒輸入授權碼', detail: '輸入課程授權碼之後才能使用 AI 整理。' };
+    case 'exhausted':  return { short: 'AI 次數已用完', detail: '人工填寫、修改與下載都不受影響。' };
     case 'no_key':     return { short: '尚未設定 API Key', detail: '本機代理已啟動，但還沒填入 API Key。' };
     case 'proxy_error':return { short: 'AI 代理異常', detail: '本機代理回應不正常，請檢查終端機。' };
-    case 'not_allowed':return { short: '帳號未開放', detail: 'AI 整理目前僅開放給指定帳號測試，課程授權碼上線後才會開放。' };
+    case 'not_allowed':return { short: '帳號未開放', detail: 'AI 整理目前僅開放給指定帳號測試。' };
     default:           return { short: '目前無法使用 AI', detail: '請稍後再試，或改用人工填寫。' };
   }
+}
+
+/* ══════════ 課程授權碼與配額 ══════════ */
+
+let _access = null;   // 快取，避免每次重繪都問一次後端
+
+/** 呼叫一個 callable function。 */
+async function callFn(name, data, timeout = 20000) {
+  const { fnMod, appMod } = await firebaseBits();
+  const fns = fnMod.getFunctions(appMod.getApp(), FN_REGION);
+  const res = await fnMod.httpsCallable(fns, name, { timeout })(data);
+  return res.data;
+}
+
+/**
+ * 目前帳號的授權與用量。
+ * 沒登入回 null；登入但沒兌換過碼回 { hasCode:false }。
+ */
+export async function myAccess(force = false) {
+  if (_access && !force) return _access;
+  if (!(await currentUser())) { _access = null; return null; }
+  try {
+    _access = await callFn('myAccess', {});
+  } catch (e) {
+    console.warn('[配額] 查詢失敗', e.message);
+    _access = null;
+  }
+  return _access;
+}
+
+/** 兌換授權碼。成功後更新快取。 */
+export async function redeemCode(code) {
+  const r = await callFn('redeemCode', { code });
+  _access = { ok: true, hasCode: true, ...r };
+  _status = null;
+  return _access;
+}
+
+/** 讓畫面在用量變動後拿到最新數字 */
+export function setAccessCache(partial) {
+  if (_access && partial) _access = { ..._access, ...partial };
+  return _access;
+}
+
+/** 剩餘次數。講師或無配額制回 null（代表不顯示數字）。 */
+export function remaining(access) {
+  if (!access?.hasCode || access.isInstructor) return null;
+  return Math.max(0, (access.quotaTotal ?? 0) - (access.quotaUsed ?? 0));
 }
 
 /* ══════════ 共通提示詞 ══════════
@@ -212,7 +262,15 @@ function shapeHint(sample) {
   "information_gaps": [{"field": "欄位ID", "message": "這一格還沒談到（沒有就給空陣列）"}],
   "contradictions": [{"message": "他講了哪兩種說法", "detail": "差在哪", "suggestion": "留給他決定"}],
   "warnings": ["真的有事才寫，平常空陣列"]
-}`;
+}
+
+⚠️ organized_content 裡面填的是**給人看的中文內容**，絕對不要填欄位代號。
+像 m1.first_noticed_at、m3.work_items、existing.role_reason 這種是程式用的識別碼，
+它們只能出現在 information_gaps 與 inferences 的 "field" 位置，不能當成內容。
+
+特別注意：organized_content 裡可能有一個叫 m1.information_gaps 的**內容欄位**
+（意思是「他還想補充哪些資料」），那跟上面那個 information_gaps 中繼欄位是兩回事。
+前者要填中文句子，後者才填欄位代號。沒東西可寫就給空陣列，不要拿代號充數。`;
 }
 
 /** 呼叫端用來分辨「沒整理」的原因，決定要顯示什麼 */
@@ -235,7 +293,7 @@ export class AiUnavailable extends Error {
  * @param sample 欄位形狀（只取鍵名與型別，不帶值）
  * @param input 使用者的原始輸入與已確認上游
  */
-export async function askAi(taskCode, instruction, sample, input) {
+export async function askAi(taskCode, instruction, sample, input, caseId) {
   const st = await aiStatus();
   if (!st.ready) throw new AiUnavailable(st.reason || 'unavailable');
   // 使用者在正式文件裡逐節寫好的「AI 轉換原則」，決定這一節該整理成什麼形狀。
@@ -272,18 +330,56 @@ export async function askAi(taskCode, instruction, sample, input) {
     const { fnMod, appMod } = await firebaseBits();
     const fns = fnMod.getFunctions(appMod.getApp(), FN_REGION);
     const call = fnMod.httpsCallable(fns, 'jdAi', { timeout: 120000 });
-    const res = await call({ taskCode, system, user });
+    const res = await call({ taskCode, system, user, caseId });
     const j = res.data || {};
     if (!j.ok) throw new AiUnavailable('provider_error', j.message || 'AI 呼叫失敗');
+    // 後端回傳最新用量，畫面上的「剩幾次」不用再多問一趟
+    if (j.quotaTotal != null) setAccessCache({ quotaUsed: j.quotaUsed, quotaTotal: j.quotaTotal });
     return { ...j.data, _usage: j.usage, _model: j.model, _provider: j.provider };
   } catch (e) {
     if (e instanceof AiUnavailable) throw e;
     // callable 的錯誤碼對應到畫面說明
     const code = String(e.code || '').replace(/^functions\//, '');
     if (code === 'unauthenticated') throw new AiUnavailable('signed_out', e.message);
-    if (code === 'permission-denied') throw new AiUnavailable('not_allowed', e.message);
+    if (code === 'resource-exhausted') { myAccess(true).catch(()=>{}); throw new AiUnavailable('exhausted', e.message); }
+    if (code === 'permission-denied') {
+      // 後端在沒兌換碼時也回這個碼；訊息裡有「授權碼」就導向兌換
+      const noCode = /授權碼/.test(String(e.message||''));
+      throw new AiUnavailable(noCode ? 'no_code' : 'not_allowed', e.message);
+    }
     throw new AiUnavailable('provider_error', e.message || String(e));
   }
+}
+
+/**
+ * 欄位代號長這樣：m1.first_noticed_at、m3.work_items、existing.role_reason。
+ * 它們是程式用的識別碼，不該出現在給人看的內容裡。
+ */
+const FIELD_ID_RE = /^(m[1-6]|case|existing)\.[a-z0-9_]+$/i;
+
+/**
+ * 把 AI 誤填的欄位代號清掉。
+ *
+ * 為什麼會發生：輸出格式裡有一個 information_gaps（中繼資料，記錄「哪個欄位
+ * 還沒談到」），而 M1 第一章剛好也有一個內容欄位叫 m1.information_gaps
+ * （畫面上的「仍需要補充的資料」）。名字太像，模型會把欄位代號填進內容欄，
+ * 使用者就看到「m1.first_noticed_at」這種東西。
+ *
+ * 提示詞已經講明不要這樣做，但模型輸出本來就不保證，所以這裡再攔一次。
+ */
+function stripFieldIds(v) {
+  if (typeof v === 'string') return FIELD_ID_RE.test(v.trim()) ? '' : v;
+  if (Array.isArray(v)) {
+    return v
+      .map(stripFieldIds)
+      .filter(x => !(x === '' || x == null || (typeof x === 'object' && !Array.isArray(x) && Object.keys(x).length === 0)));
+  }
+  if (v && typeof v === 'object') {
+    const out = {};
+    for (const [k, val] of Object.entries(v)) out[k] = stripFieldIds(val);
+    return out;
+  }
+  return v;
 }
 
 /** 把真 AI 的結果併入 Mock 的信封，確保缺欄位時仍有預設值 */
@@ -291,7 +387,7 @@ export function mergeIntoEnvelope(mock, ai) {
   if (!ai) return mock;
   return {
     ...mock,
-    organized_content: { ...mock.organized_content, ...(ai.organized_content || {}) },
+    organized_content: stripFieldIds({ ...mock.organized_content, ...(ai.organized_content || {}) }),
     // 真 AI 回傳空陣列代表「本次沒有這類提醒」，不可再把 Mock 的
     // 關鍵字警告強行加回來；只有欄位缺失時才使用 Mock 保底。
     inferences_requiring_confirmation: Array.isArray(ai.inferences_requiring_confirmation)

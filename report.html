@@ -225,8 +225,16 @@ const CAT_COLOR = {
 };
 
 // ================= 三態 + 九格分類演算法 =================
-function classifyNeed(current, ideal) {
-  if (ideal === 0 && current === 0) return null; // 未評分
+// touched 為選填（TWA-STATE-004）：新紀錄會帶 {cur, ide} 兩個布林，舊紀錄為 undefined。
+function classifyNeed(current, ideal, touched) {
+  if (touched) {
+    // 新紀錄：以實際作答狀態判定，讓「刻意選 0」得以正常分類
+    // 只要理想尚未作答就不分類 —— 否則「只填現況」的未完成項會被誤判為盈餘
+    if (!touched.ide || !touched.cur) return null; // 未評分
+  } else {
+    // 舊紀錄：無作答狀態可用，維持原判定，確保既有報告結論不變
+    if (ideal === 0 && current === 0) return null; // 未評分
+  }
 
   // 三態：差距 >= 2 才分渴望/盈餘
   let tier;
@@ -630,6 +638,10 @@ function renderTWAReport(data, matrix) {
   const rawData = data.rawData || {};
   const scores = rawData.scores || {};
   const currentScores = rawData.currentScores || {};
+  // 作答狀態（TWA-STATE-004）；舊紀錄兩者皆 undefined → classifyNeed 走舊判定
+  const touchedCurrent = rawData.touchedCurrent;
+  const touchedIdeal = rawData.touchedIdeal;
+  const hasTouchedData = !!(touchedCurrent || touchedIdeal);
   const selectedItems = rawData.selectedItems || {};
   const insight = rawData.insight || '';
   const focusType = rawData.focusType || '精準分析';
@@ -646,7 +658,9 @@ function renderTWAReport(data, matrix) {
     const id = 'n' + idx;
     const cur = Number(currentScores[id]) || 0;
     const ide = Number(scores[id]) || 0;
-    const cls = classifyNeed(cur, ide);
+    const cls = classifyNeed(cur, ide, hasTouchedData
+      ? { cur: !!(touchedCurrent && touchedCurrent[id]), ide: !!(touchedIdeal && touchedIdeal[id]) }
+      : undefined);
     const selList = selectedItems[id] || [];
     const totalInd = Array.isArray(m.indicators) ? m.indicators.length : 0;
 

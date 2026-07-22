@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>課程授權碼管理｜職務設計與甄選</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="../../brand.css">
+<link rel="stylesheet" href="./jd-theme.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@1.8.0"></script>
+<style>
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+</style>
+</head>
+<body class="site-page jd-app min-h-screen font-sans">
+
+<div class="jd-appbar">
+  <div class="site-container site-container--wide jd-appbar__inner flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="jd-tool-mark" aria-hidden="true">職</div>
+      <div>
+        <div class="font-bold leading-tight">課程授權碼管理</div>
+        <div class="text-[11px] text-navy/50 leading-tight">職務設計與甄選 · 僅限管理者</div>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <button id="acctBtn" class="inline-flex items-center gap-1.5 bg-white border border-navy/20 text-navy px-3.5 py-2 rounded-lg text-sm font-semibold hover:border-tealgreen/60 transition">
+        <i data-lucide="user" class="w-4 h-4"></i><span id="acctTxt">檢查中…</span>
+      </button>
+      <a href="./index.html" class="text-sm font-bold text-tealdeep">回案例列表</a>
+    </div>
+  </div>
+</div>
+
+<main id="main-content" class="max-w-5xl mx-auto px-5 py-8">
+
+  <div id="gate" class="rounded-xl border border-navy/12 bg-white p-6 text-sm text-navy/70">
+    載入中…
+  </div>
+
+  <div id="app" class="hidden">
+    <!-- 產碼 -->
+    <section class="rounded-2xl border border-navy/12 bg-white p-6 mb-6">
+      <h1 class="text-lg font-black text-navy mb-1">產生授權碼</h1>
+      <p class="text-sm text-navy/55 mb-5">一人一碼。碼一旦被兌換就綁定該帳號，別人拿到也用不了。</p>
+      <div class="grid sm:grid-cols-4 gap-4">
+        <label class="sm:col-span-2 block">
+          <span class="block text-sm font-semibold text-navy mb-1">梯次名稱</span>
+          <input id="cohort" class="w-full border border-navy/20 rounded-lg px-3 py-2 text-sm" placeholder="2026 秋季職務設計班">
+        </label>
+        <label class="block">
+          <span class="block text-sm font-semibold text-navy mb-1">產幾組</span>
+          <input id="count" type="number" min="1" max="200" value="10" class="w-full border border-navy/20 rounded-lg px-3 py-2 text-sm">
+        </label>
+        <label class="block">
+          <span class="block text-sm font-semibold text-navy mb-1">每人幾次 AI</span>
+          <input id="quota" type="number" min="0" max="999" value="30" class="w-full border border-navy/20 rounded-lg px-3 py-2 text-sm">
+        </label>
+      </div>
+      <label class="flex items-center gap-2 mt-4 text-sm text-navy/70">
+        <input id="isInstructor" type="checkbox" class="w-4 h-4">
+        講師碼（不扣次數，上課示範用）
+      </label>
+      <div class="flex items-center gap-3 mt-5">
+        <button id="issueBtn" class="inline-flex items-center gap-2 bg-navy text-ivory px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-tealdeep">
+          <i data-lucide="ticket" class="w-4 h-4"></i>產生
+        </button>
+        <span id="issueMsg" class="text-sm"></span>
+      </div>
+      <div id="fresh" class="hidden mt-5 p-4 rounded-xl bg-mist/50 border border-navy/12">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-bold text-navy">剛產生的碼</span>
+          <button id="copyBtn" class="text-xs font-semibold text-tealdeep hover:underline">複製全部</button>
+        </div>
+        <div id="freshList" class="mono text-sm text-navy/80 leading-relaxed"></div>
+      </div>
+    </section>
+
+    <!-- 清單 -->
+    <section class="rounded-2xl border border-navy/12 bg-white p-6">
+      <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+        <h2 class="text-lg font-black text-navy">已發出的碼</h2>
+        <div class="flex items-center gap-2">
+          <select id="filterCohort" class="border border-navy/20 rounded-lg px-3 py-1.5 text-sm bg-white">
+            <option value="">全部梯次</option>
+          </select>
+          <button id="reloadBtn" class="border border-navy/20 text-navy px-3 py-1.5 rounded-lg text-sm font-semibold hover:border-tealgreen/60">重新整理</button>
+        </div>
+      </div>
+      <div id="tableWrap" class="overflow-x-auto"></div>
+    </section>
+  </div>
+</main>
+
+<script type="module">
+import * as AIX from './jd-ai.js';
+
+const $ = (s, r = document) => r.querySelector(s);
+const el = (t, cls, html) => { const e = document.createElement(t); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+let rows = [];
+
+async function callFn(name, data) {
+  const [fnMod, appMod] = await Promise.all([
+    import('https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js'),
+    import('https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js'),
+  ]);
+  const fns = fnMod.getFunctions(appMod.getApp(), 'asia-east1');
+  const res = await fnMod.httpsCallable(fns, name, { timeout: 30000 })(data);
+  return res.data;
+}
+
+function paintTable() {
+  const wrap = $('#tableWrap');
+  const filter = $('#filterCohort').value;
+  const list = filter ? rows.filter(r => r.cohort === filter) : rows;
+
+  if (!list.length) {
+    wrap.innerHTML = '<p class="text-sm text-navy/45 py-6">還沒有授權碼。</p>';
+    return;
+  }
+
+  const head = ['授權碼', '梯次', '狀態', '用量', '兌換帳號', ''];
+  const t = el('table', 'w-full text-sm');
+  t.innerHTML = '<thead><tr class="text-left text-navy/50 text-xs">'
+    + head.map(h => `<th class="px-2 py-2 border-b border-navy/10 font-medium">${h}</th>`).join('')
+    + '</tr></thead>';
+  const tb = el('tbody');
+
+  list.forEach(r => {
+    const tr = el('tr', 'border-b border-navy/5');
+    const state = r.revoked ? '<span class="text-accent font-semibold">已停權</span>'
+      : r.redeemedBy ? '<span class="text-tealdeep font-semibold">已兌換</span>'
+      : '<span class="text-navy/45">未使用</span>';
+    const usage = r.isInstructor ? '講師 · 不計次'
+      : r.redeemedBy ? `${r.quotaUsed ?? 0}／${r.quotaTotal}`
+      : `— ／${r.quotaTotal}`;
+    tr.innerHTML = `<td class="px-2 py-2 mono">${esc(r.code)}</td>
+      <td class="px-2 py-2 text-navy/70">${esc(r.cohort || '—')}</td>
+      <td class="px-2 py-2">${state}</td>
+      <td class="px-2 py-2 text-navy/70">${esc(usage)}</td>
+      <td class="px-2 py-2 text-navy/55 text-xs">${esc(r.redeemedEmail || '—')}</td>`;
+    const td = el('td', 'px-2 py-2 text-right');
+    const b = el('button', 'text-xs font-semibold ' + (r.revoked ? 'text-tealdeep' : 'text-navy/40 hover:text-accent'),
+      r.revoked ? '恢復' : '停權');
+    b.addEventListener('click', async () => {
+      const next = !r.revoked;
+      if (next && !confirm(`要停用 ${r.code} 嗎？\n\n對方會立刻無法使用 AI 整理，但已經寫好的內容不受影響。`)) return;
+      b.disabled = true;
+      try { await callFn('setCodeRevoked', { code: r.code, revoked: next }); await load(); }
+      catch (e) { alert('操作失敗：' + (e.message || e)); b.disabled = false; }
+    });
+    td.appendChild(b); tr.appendChild(td); tb.appendChild(tr);
+  });
+
+  t.appendChild(tb);
+  wrap.innerHTML = ''; wrap.appendChild(t);
+}
+
+async function load() {
+  try {
+    const r = await callFn('listCodes', {});
+    rows = r.rows || [];
+    const sel = $('#filterCohort'); const keep = sel.value;
+    sel.innerHTML = '<option value="">全部梯次</option>'
+      + (r.cohorts || []).map(c => `<option ${keep === c ? 'selected' : ''}>${esc(c)}</option>`).join('');
+    paintTable();
+  } catch (e) {
+    $('#tableWrap').innerHTML = `<p class="text-sm text-accent py-4">${esc(e.message || '讀取失敗')}</p>`;
+  }
+}
+
+$('#issueBtn').addEventListener('click', async () => {
+  const cohort = $('#cohort').value.trim();
+  const msg = $('#issueMsg');
+  if (!cohort) { msg.className = 'text-sm text-accent'; msg.textContent = '請先填梯次名稱。'; return; }
+  const btn = $('#issueBtn'); btn.disabled = true;
+  msg.className = 'text-sm text-navy/55'; msg.textContent = '產生中…';
+  try {
+    const r = await callFn('issueCodes', {
+      cohort,
+      count: Number($('#count').value) || 1,
+      quota: Number($('#quota').value) || 30,
+      isInstructor: $('#isInstructor').checked,
+    });
+    $('#fresh').classList.remove('hidden');
+    $('#freshList').innerHTML = r.codes.map(esc).join('<br>');
+    msg.className = 'text-sm text-tealdeep'; msg.textContent = `已產生 ${r.codes.length} 組。`;
+    await load();
+  } catch (e) {
+    msg.className = 'text-sm text-accent'; msg.textContent = e.message || '產生失敗';
+  } finally { btn.disabled = false; }
+});
+
+$('#copyBtn').addEventListener('click', () => {
+  const text = $('#freshList').innerText;
+  navigator.clipboard.writeText(text).then(
+    () => { $('#copyBtn').textContent = '已複製'; setTimeout(() => $('#copyBtn').textContent = '複製全部', 1500); },
+    () => alert('複製失敗，請手動選取。'),
+  );
+});
+
+$('#filterCohort').addEventListener('change', paintTable);
+$('#reloadBtn').addEventListener('click', load);
+
+$('#acctBtn').addEventListener('click', async () => {
+  try {
+    const u = await AIX.currentUser();
+    if (u) { if (confirm('要登出嗎？')) await AIX.signOut(); }
+    else await AIX.signIn();
+  } catch (e) { if (e?.code !== 'auth/popup-closed-by-user') alert('登入失敗：' + (e.message || e)); }
+});
+
+AIX.onAuth(async (u) => {
+  $('#acctTxt').textContent = u ? (u.displayName || u.email || '已登入').split(' ')[0] : '登入';
+  if (window.lucide) lucide.createIcons();
+  if (!u) {
+    $('#gate').classList.remove('hidden'); $('#app').classList.add('hidden');
+    $('#gate').innerHTML = '請先用管理者帳號登入。';
+    return;
+  }
+  // 用一次 listCodes 當權限檢查：不是管理者會被後端擋下來
+  try {
+    await callFn('listCodes', {});
+    $('#gate').classList.add('hidden'); $('#app').classList.remove('hidden');
+    await load();
+  } catch (e) {
+    $('#gate').classList.remove('hidden'); $('#app').classList.add('hidden');
+    $('#gate').innerHTML = `<span class="text-accent">${esc(e.message || '沒有權限')}</span>`;
+  }
+}).catch(() => {});
+
+if (window.lucide) lucide.createIcons();
+</script>
+</body>
+</html>

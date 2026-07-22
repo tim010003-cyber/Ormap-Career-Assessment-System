@@ -1179,6 +1179,10 @@ let focusConfig = {};
 let landing = null;
 let scores = {};
 let currentScores = {};
+// 作答狀態（TWA-STATE-004）：0 分可以是有效答案，因此「碰過滑桿」必須與「分數 > 0」分開記錄。
+// 不可用分數大小反推 —— scores 於 init 一律補 0，資訊會遺失。
+let touchedCurrent = {}; // touchedCurrent[id] = true → 使用者操作過階段 1
+let touchedIdeal = {};   // touchedIdeal[id]   = true → 使用者操作過階段 2
 let selected = {}; // selected[id] = ["indicator text", ...]
 let notes = {};
 let radarFinalChart = null;
@@ -1248,6 +1252,13 @@ window.loadData = async function() {
     }
 };
 
+// 舊資料相容：沒有 touched 紀錄時，以「分數 > 0」回填，等同改動前的判定
+function inferTouched(scoreMap) {
+    const t = {};
+    Object.keys(scoreMap || {}).forEach(id => { if ((scoreMap[id] || 0) > 0) t[id] = true; });
+    return t;
+}
+
 // ── init ──
 window.init = function() {
     hasSeenRealityCheck = localStorage.getItem('LPK_TWA_REALITY_CHECK') === 'true';
@@ -1257,6 +1268,9 @@ window.init = function() {
             const p = JSON.parse(saved);
             scores = p.scores || {};
             currentScores = p.currentScores || {};
+            // 舊草稿沒有 touched 欄位 → 以 > 0 回填，維持與改動前完全相同的行為
+            touchedCurrent = p.touchedCurrent || inferTouched(currentScores);
+            touchedIdeal = p.touchedIdeal || inferTouched(scores);
             selected = p.selected || {};
             notes = p.notes || {};
             const jEl = document.getElementById('user-job'); if (jEl) jEl.value = p.job || '';
@@ -1695,7 +1709,7 @@ function buildNeedCard(m) {
         '<div class="stage ' + stageState.s1 + ' relative py-5 -mx-3 px-5 mb-3 rounded-2xl" id="stage-' + id + '-1">' +
             '<span class="stage-active-bar"></span>' +
             '<h5 class="text-lg font-black text-slate-800 mb-1 tracking-tight">現況滿意度：你目前有多滿意？</h5>' +
-            '<p class="text-sm text-slate-500 leading-relaxed mb-5">回想目前（或上一份）工作，這項條件被滿足到什麼程度。這個分數不影響報告結論，只是讓你看見現實與理想的落差。</p>' +
+            '<p class="text-sm text-slate-500 leading-relaxed mb-5">回想目前（或上一份）工作，這項條件被滿足到什麼程度。這個分數不代表你的能力或價值高低；系統會將它與理想期待相比，協助你看見目前的滿足、落差與可能的餘裕。</p>' +
             '<div class="bg-slate-50 rounded-2xl p-5 border border-slate-100">' +
                 '<div class="flex items-center gap-4 mb-3">' +
                     '<input type="range" min="0" max="10" value="' + (currentScores[id] || 0) + '" class="slider-current flex-1" data-id="' + id + '" oninput="handleCurrentSlide(this)">' +
@@ -1712,7 +1726,7 @@ function buildNeedCard(m) {
         '<div class="stage ' + stageState.s2 + ' relative py-5 -mx-3 px-5 mb-3 rounded-2xl" id="stage-' + id + '-2">' +
             '<span class="stage-active-bar"></span>' +
             '<h5 class="text-lg font-black text-slate-800 mb-1 tracking-tight">理想期待值：你希望被滿足到什麼程度？</h5>' +
-            '<p class="text-sm text-slate-500 leading-relaxed mb-5">這個分數代表你的「期待強度」，會決定你待會能選的環境指標預算：5 分 = 6 點、8 分 = 13 點。越期待、能投注的注意力越多。</p>' +
+            '<p class="text-sm text-slate-500 leading-relaxed mb-5">這個分數代表你的「期待強度」，會決定你待會能選的環境指標預算：5 分 = 6 點、8 分 = 12 點。越期待、能投注的注意力越多。</p>' +
             '<div class="bg-teal-50 rounded-2xl p-5 border border-teal-100">' +
                 '<div class="flex items-center gap-4 mb-3">' +
                     '<input type="range" min="0" max="10" value="' + (scores[id] || 0) + '" class="slider-ideal flex-1" data-id="' + id + '" oninput="handleSlide(this)">' +
@@ -1748,16 +1762,14 @@ function buildNeedCard(m) {
 // ── Gated-lite helpers ──
 // 根據現有分數決定三階段各自的狀態
 function computeStageFor(id) {
-    const cur = currentScores[id] || 0;
-    const ide = scores[id] || 0;
-    // 階段 1 → 一有現況分數就 done，否則 active
-    // 階段 2 → 現況>0 才解鎖，有理想分數 → done，無 → active
-    // 階段 3 → 理想>0 才解鎖
-    if (ide > 0) {
-        // 全部完成過
+    // 以「是否操作過」而非「分數 > 0」判定，讓刻意選 0 也能推進（TWA-STATE-004）
+    // 階段 1 → 操作過就 done，否則 active
+    // 階段 2 → 階段 1 操作過才解鎖；操作過 → done，未操作 → active
+    // 階段 3 → 階段 2 操作過才解鎖
+    if (touchedIdeal[id]) {
         return { s1: 'done', s2: 'done', s3: 'active' };
     }
-    if (cur > 0) {
+    if (touchedCurrent[id]) {
         return { s1: 'done', s2: 'active', s3: 'locked' };
     }
     return { s1: 'active', s2: 'locked', s3: 'locked' };
@@ -1820,11 +1832,11 @@ function highlightNextNeed(currentId) {
     }
 }
 
-// 計算已完成的需求數（理想分數 > 0 代表此需求有推進到階段 3）
+// 計算已完成的需求數（操作過階段 2 代表此需求有推進到階段 3；含刻意選 0）
 function countCompletedNeeds() {
     let n = 0;
     for (let i = 0; i < matrix.length; i++) {
-        if ((scores['n' + i] || 0) > 0) n++;
+        if (touchedIdeal['n' + i]) n++;
     }
     return n;
 }
@@ -1842,10 +1854,8 @@ function updateGlobalProgress() {
 
 // ── 目錄渲染 ──
 function getNeedStatus(id) {
-    const ide = scores[id] || 0;
-    const cur = currentScores[id] || 0;
-    if (ide > 0) return 'done';
-    if (cur > 0) return 'progress';
+    if (touchedIdeal[id]) return 'done';
+    if (touchedCurrent[id]) return 'progress';
     return 'pending';
 }
 
@@ -2067,6 +2077,7 @@ function refreshIndicatorArea(id) {
 // ── Slider Handlers ──
 function handleSlide(el) {
     const id = el.dataset.id;
+    touchedIdeal[id] = true;  // 操作即記錄，含刻意維持 0 分
     const val = parseInt(el.value);
     const total = Object.values(scores).reduce((a, b) => a + b, 0);
     const diff = val - scores[id];
@@ -2092,7 +2103,7 @@ function handleSlide(el) {
     applyStageStates(id);
     updateGlobalProgress();
     renderCatalog();  // 讓目錄狀態點即時更新
-    if (scores[id] > 0) highlightNextNeed(id);
+    highlightNextNeed(id);  // 已操作過階段 2 即可引導下一項（刻意選 0 也算完成）
     window._wbActiveId = id;
     ctxFocusNeed(id);
     syncEverything();
@@ -2102,9 +2113,10 @@ window.handleSlide = handleSlide;
 
 function handleCurrentSlide(el) {
     const id = el.dataset.id;
+    touchedCurrent[id] = true;  // 操作即記錄，含刻意維持 0 分
     currentScores[id] = parseInt(el.value);
     const cv = document.getElementById('cv-' + id); if (cv) cv.innerText = currentScores[id];
-    // Gated-lite：現況分數 > 0 → 階段 2 解鎖
+    // Gated-lite：操作過階段 1 → 階段 2 解鎖
     applyStageStates(id);
     renderCatalog();  // 同步目錄狀態點
     window._wbActiveId = id;
@@ -2304,7 +2316,7 @@ function syncEverything() {
 
     // Assessed count
     const ac = document.getElementById('assessed-count');
-    if (ac) ac.innerText = Object.values(scores).filter(s => s > 0).length;
+    if (ac) ac.innerText = countCompletedNeeds();
 
     // Focus type
     const hc = Object.values(scores).filter(s => s >= 8).length;
@@ -2333,7 +2345,7 @@ function syncEverything() {
 
 function updateDebrief() {
     // 3 stats
-    const assessedCount = Object.values(scores).filter(s => s > 0).length;
+    const assessedCount = countCompletedNeeds();
     const usedBudget = Object.values(scores).reduce((a, b) => a + b, 0);
     var selectedCount = 0;
     Object.keys(selected || {}).forEach(function(k) {
@@ -2418,19 +2430,19 @@ function updateRadar() {
 function updateNavList() {
     const list = document.getElementById('mobile-nav-list'); if (!list) return;
     const badge = document.getElementById('fab-badge');
-    const activeCount = Object.values(scores).filter(s => s > 0).length;
+    const activeCount = countCompletedNeeds();
     if (badge) { badge.innerText = activeCount; badge.classList.toggle('hidden', activeCount === 0); }
     const cats = ['成就','舒適','地位','利他','安全','自主'];
     let html = '';
     cats.forEach(cat => {
-        const items = matrix.map((m, i) => ({ ...m, id: 'n'+i, score: scores['n'+i] })).filter(m => m.v === cat);
+        const items = matrix.map((m, i) => ({ ...m, id: 'n'+i, score: scores['n'+i], done: !!touchedIdeal['n'+i] })).filter(m => m.v === cat);
         html += '<div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4 mb-2 px-1">' + cat + '</div>';
         items.forEach(n => {
-            html += '<div class="flex items-center justify-between p-2.5 rounded-xl border ' + (n.score > 0 ? 'border-teal-200 bg-teal-50/50' : 'border-slate-100') + ' mb-1.5">' +
-                '<button onclick="scrollToItem(\'' + n.id + '\');toggleMobileNav()" class="flex-1 text-left text-xs font-bold ' + (n.score > 0 ? 'text-teal-700' : 'text-slate-600') + ' flex items-center gap-2">' +
-                    '<span class="w-1.5 h-1.5 rounded-full ' + (n.score > 0 ? 'bg-teal-500' : 'bg-slate-300') + '"></span>' + n.n +
+            html += '<div class="flex items-center justify-between p-2.5 rounded-xl border ' + (n.done ? 'border-teal-200 bg-teal-50/50' : 'border-slate-100') + ' mb-1.5">' +
+                '<button onclick="scrollToItem(\'' + n.id + '\');toggleMobileNav()" class="flex-1 text-left text-xs font-bold ' + (n.done ? 'text-teal-700' : 'text-slate-600') + ' flex items-center gap-2">' +
+                    '<span class="w-1.5 h-1.5 rounded-full ' + (n.done ? 'bg-teal-500' : 'bg-slate-300') + '"></span>' + n.n +
                 '</button>' +
-                '<span class="text-xs font-black ' + (n.score > 0 ? 'text-teal-600' : 'text-slate-300') + '">' + n.score + ' pt</span>' +
+                '<span class="text-xs font-black ' + (n.done ? 'text-teal-600' : 'text-slate-300') + '">' + n.score + ' pt</span>' +
             '</div>';
         });
     });
@@ -2460,7 +2472,7 @@ window.saveAll = function() {
     const job = document.getElementById('user-job')?.value || '';
     const goal = document.getElementById('user-goal')?.value || '';
     const insight = document.getElementById('final-insight')?.value || '';
-    localStorage.setItem(LS_KEY, JSON.stringify({ scores, currentScores, selected, notes, job, goal, insight, email: window.currentUserEmail || '' }));
+    localStorage.setItem(LS_KEY, JSON.stringify({ scores, currentScores, touchedCurrent, touchedIdeal, selected, notes, job, goal, insight, email: window.currentUserEmail || '' }));
     window._wbDebouncedSync?.();
 };
 
@@ -2499,6 +2511,7 @@ window.submitAssessment = async function() {
             email: window.currentUserEmail || '',
             job, goal,
             rawScores: { ...scores }, rawCurrentScores: { ...currentScores },
+            rawTouchedCurrent: { ...touchedCurrent }, rawTouchedIdeal: { ...touchedIdeal },
             rawSelected: { ...selected }, rawNotes: { ...notes },
             radarScores, insight, top5, focusType
         });
@@ -2531,6 +2544,8 @@ window.applyMirrorLiveData = function(liveData) {
     if (!liveData) return;
     if (liveData.scores) {
         scores = { ...liveData.scores };
+        // liveData 目前不帶 touched（白板已於 2026-07-20 移除，此路徑休眠中）→ 以 > 0 推得，維持原顯示
+        touchedIdeal = liveData.touchedIdeal || inferTouched(scores);
         matrix.forEach((_, idx) => {
             const id = 'n' + idx;
             const vEl = document.getElementById('v-' + id); if (vEl) vEl.innerText = scores[id] || 0;
@@ -2541,6 +2556,7 @@ window.applyMirrorLiveData = function(liveData) {
     }
     if (liveData.currentScores) {
         currentScores = { ...liveData.currentScores };
+        touchedCurrent = liveData.touchedCurrent || inferTouched(currentScores);
         matrix.forEach((_, idx) => {
             const id = 'n' + idx;
             const cv = document.getElementById('cv-' + id); if (cv) cv.innerText = currentScores[id] || 0;
@@ -2712,6 +2728,8 @@ async function loadHistoryFromUrl(uid) {
             const rd = d.rawData || {};
             const payload = {
                 scores: rd.scores || {}, currentScores: rd.currentScores || {},
+                // 舊紀錄無 touched 欄位 → 交給 init 的 inferTouched 以 > 0 回填
+                touchedCurrent: rd.touchedCurrent, touchedIdeal: rd.touchedIdeal,
                 selected: rd.selectedItems || {}, notes: rd.notes || {},
                 job: d.clientInfo?.job || '', goal: d.clientInfo?.goal || '',
                 insight: rd.insight || '', email: d.clientInfo?.email || ''
@@ -2765,6 +2783,10 @@ window.saveToFirestore = async function(payloadData) {
         rawData: {
             scores: payloadData.rawScores,
             currentScores: payloadData.rawCurrentScores,
+            // 作答狀態（TWA-STATE-004）：讓報告能區分「刻意選 0」與「尚未作答」。
+            // 舊紀錄無此欄位，report.html 會退回原本的 > 0 判定。
+            touchedCurrent: payloadData.rawTouchedCurrent,
+            touchedIdeal: payloadData.rawTouchedIdeal,
             selectedItems: payloadData.rawSelected,
             notes: payloadData.rawNotes,
             radarScores: payloadData.radarScores,

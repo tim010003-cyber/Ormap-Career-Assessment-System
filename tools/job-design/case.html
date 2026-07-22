@@ -71,8 +71,9 @@ async function runWithAi(taskCode, instruction, mock, input, btn){
   const label = btn ? btn.innerHTML : null;
   if(btn){ btn.disabled=true; btn.innerHTML='<i data-lucide="loader" class="w-4 h-4 animate-spin"></i>AI 整理中…'; if(window.lucide)lucide.createIcons(); }
   try{
-    const ai = await AIX.askAi(taskCode, instruction, mock.organized_content, input);
+    const ai = await AIX.askAi(taskCode, instruction, mock.organized_content, input, c.case_id);
     const merged = AIX.mergeIntoEnvelope(mock, ai);
+    paintQuotaChip();   // 用量變了，頂列的剩餘次數要跟著更新
     // 整理完就把整體敘述更新一次（不擋畫面）。
     // 下一題拿到的背景就是含這一題在內的完整理解，而不是一堆碎片。
     if(taskCode!=='SYNTH-01') setTimeout(()=>{ refreshSummary().catch(()=>{}); }, 50);
@@ -121,6 +122,27 @@ function showAiUnavailable(err, btn){
     });
     note.appendChild(b);
   }
+
+  // 還沒兌換授權碼：直接在這裡讓他輸入，不用跑回案例列表
+  if(err.reason === 'no_code'){
+    const wrap = el('div','mt-2.5 ml-6 flex flex-wrap items-center gap-2');
+    const inp = el('input','border border-navy/20 rounded-lg px-3 py-1.5 text-sm font-mono w-52');
+    inp.placeholder='ORMAP-XXXX-XXXX'; inp.setAttribute('aria-label','課程授權碼');
+    const go = el('button','bg-navy text-ivory px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-tealdeep','兌換');
+    const msg = el('span','text-xs text-accent');
+    const doIt = async()=>{
+      const code=inp.value.trim(); if(!code) return;
+      go.disabled=true; msg.textContent='';
+      try{ await AIX.redeemCode(code); note.remove(); paintQuotaChip(); render(); }
+      catch(e){ msg.textContent=e.message||'兌換失敗'; go.disabled=false; }
+    };
+    go.addEventListener('click',doIt);
+    inp.addEventListener('keydown',e=>{ if(e.key==='Enter') doIt(); });
+    wrap.append(inp,go,msg); note.appendChild(wrap);
+  }
+
+  // 次數用完：把剩餘次數更新一次，讓頂列數字跟訊息一致
+  if(err.reason === 'exhausted') paintQuotaChip();
 
   // 掛在按鈕所在的那一列後面；找不到按鈕才退回頁面頂端的區塊
   const anchor = btn && btn.isConnected ? (btn.closest('div') || btn) : null;
@@ -632,9 +654,25 @@ function refBlock(area,label,html){
  * 存取期限與講師身分之後由後端的 jd_users / jd_codes 提供。
  */
 function renderAccess(){
-  const chip=$('#accessChip'), banner=$('#closedBanner');
-  if(chip) chip.classList.add('hidden');
+  const banner=$('#closedBanner');
   if(banner) banner.classList.add('hidden');
+  paintQuotaChip();
+}
+
+/** 頂列常駐顯示 AI 剩餘次數。低於 5 次變色，讓人自己斟酌。 */
+async function paintQuotaChip(){
+  const chip=$('#accessChip'); if(!chip) return;
+  const a=await AIX.myAccess();
+  if(!a?.hasCode){ chip.classList.add('hidden'); return; }
+  chip.classList.remove('hidden');
+  if(a.isInstructor){
+    chip.className='badge bg-tealgreen/15 text-tealdeep shrink-0';
+    chip.textContent='講師模式 · 不計次';
+    return;
+  }
+  const left=AIX.remaining(a);
+  chip.className='badge shrink-0 '+(left<=5?'bg-accent/15 text-accent':'bg-tealgreen/15 text-tealdeep');
+  chip.textContent=`AI 還有 ${left} 次`;
 }
 
 const readOnly=()=>S.isClosed(c);

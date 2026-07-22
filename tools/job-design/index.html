@@ -127,7 +127,7 @@ import { CASE_FIELDS, PATHS, pathName } from './jd-fields.js';
 import { listCases, createCase, deleteCase, getModuleStatus } from './jd-store.js';
 import { countPending } from './jd-word.js';
 import { seedDemoCase, seedContradictionCase, seedPathACase } from './jd-seed.js';
-import { aiStatus } from './jd-ai.js';
+import { aiStatus, isLocalEnv } from './jd-ai.js';
 
 const $ = (s, r=document) => r.querySelector(s);
 const el = (t, cls, html) => { const e=document.createElement(t); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e; };
@@ -290,8 +290,12 @@ render();
 
 // AI 狀態指示：讓人一眼知道現在是真 AI 還是模擬整理
 (async()=>{
-  const s=await aiStatus(true);
   const chip=$('#aiChip'), txt=$('#aiChipText');
+  // 公開站上不顯示這個入口。AI 設定頁有 API Key 輸入框，
+  // 放在公開網址等於教人把金鑰打進網頁——那個習慣本身就是風險，
+  // 而且線上也連不到本機代理，點進去只會看到一個沒有用的表單。
+  if(!isLocalEnv()){ chip.remove(); return; }
+  const s=await aiStatus(true);
   if(s.ok && s.hasKey){
     txt.textContent='AI 設定 · 已啟用';
     chip.className='inline-flex items-center gap-1.5 bg-tealgreen/10 border border-tealgreen/40 text-tealdeep px-3.5 py-2 rounded-lg text-sm font-semibold hover:bg-tealgreen/15 transition';

@@ -20,8 +20,26 @@ export const setProxy = (u) => localStorage.setItem(PROXY_KEY, u);
 
 let _status = null;   // 快取，避免每次呼叫都問一次
 
+/**
+ * 本機代理只在本機環境有意義。
+ *
+ * 部署到 HTTPS 之後，從網頁 fetch http://127.0.0.1:8788 屬於 mixed content，
+ * 瀏覽器會直接封鎖，而且那個錯誤**攔不住**——try/catch 接得到 fetch 的 rejection，
+ * 但攔不掉 console 上的封鎖訊息。結果就是公開站每次載入都噴一條紅字。
+ *
+ * 所以非本機環境一律不發這個請求，直接視為沒有 AI，安靜退回 Mock。
+ */
+export function isLocalEnv() {
+  const h = location.hostname;
+  return h === 'localhost' || h === '127.0.0.1' || h === '[::1]' || h.endsWith('.localhost');
+}
+
 export async function aiStatus(force = false) {
   if (_status && !force) return _status;
+  if (!isLocalEnv()) {
+    _status = { ok: false, hasKey: false, offline: true, remote: true };
+    return _status;
+  }
   try {
     const r = await fetch(defaultProxy() + '/api/status', { signal: AbortSignal.timeout(2500) });
     _status = await r.json();

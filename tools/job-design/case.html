@@ -2119,6 +2119,12 @@ if(IS_GUIDE){
   $('#openGuideBtn').addEventListener('click',openGuideWindow);
 }
 
+// 公開站不顯示「AI 設定」入口：那一頁有 API Key 輸入框，
+// 放在公開網址等於教人把金鑰打進網頁；而且線上連不到本機代理，點進去也沒有用。
+if(!AIX.isLocalEnv()){
+  document.querySelectorAll('a[href$="settings.html"]').forEach(a=>a.remove());
+}
+
 render();
 </script>
 </body>

@@ -10,10 +10,17 @@
  * 目前進度
  *   ✅ 第一步：專案結構、供應商轉接層、健康檢查
  *   ✅ 第二步：jdAi() 帶著 Secret 呼叫 AI
- *   ⬜ 第三步：課程授權碼與配額（redeemCode / 扣次數）
+ *   ✅ 第三步：課程授權碼與配額（一人一碼、每人 30 次、伺服器端扣減）
+ *   ⬜ 第四步：案例資料上雲（jd_cases）
  *
- * ⚠️ 目前 jdAi() **沒有配額限制**。第三步完成前不要把網址給客戶，
- *    否則用量無上限。
+ * 函式一覽
+ *   ping            健康檢查
+ *   jdAi            AI 整理（扣配額、失敗退費、寫稽核）
+ *   redeemCode      兌換授權碼
+ *   myAccess        查自己的剩餘次數
+ *   issueCodes      批次產碼（限 Super Admin）
+ *   listCodes       列出碼與使用狀態（限 Super Admin）
+ *   setCodeRevoked  停權／恢復（限 Super Admin）
  *
  * 設計規格：PRD/職務設計App_課程授權與AI配額_工作包_v1_2026-07-22.md
  */
@@ -241,4 +248,61 @@ export const issueCodes = onCall(async (req) => {
   await batch.commit();
   logger.info('產生授權碼', { uid: req.auth.uid, cohort, count: n, isInstructor });
   return { ok: true, codes };
+});
+
+/** listCodes — 列出某梯次的授權碼與使用狀態。限 Super Admin。 */
+export const listCodes = onCall(async (req) => {
+  if (!req.auth) throw new HttpsError('unauthenticated', '請先登入。');
+  const { getFirestore } = await import('firebase-admin/firestore');
+  const db = getFirestore();
+  const me = await db.collection('counselors').doc(req.auth.uid).get();
+  if (!me.exists || me.data().isSuperAdmin !== true || me.data().isActive !== true) {
+    throw new HttpsError('permission-denied', '只有管理者可以查看授權碼。');
+  }
+
+  const { cohort } = req.data || {};
+  let q = db.collection('jd_codes');
+  if (cohort) q = q.where('cohort', '==', cohort);
+  const snap = await q.limit(500).get();
+
+  // 用量要從 jd_users 反查，因為碼上只記綁定了誰
+  const rows = await Promise.all(snap.docs.map(async (d) => {
+    const c = d.data();
+    let used = null;
+    if (c.redeemedBy) {
+      const u = await db.collection('jd_users').doc(c.redeemedBy).get();
+      if (u.exists) used = { quotaUsed: u.data().quotaUsed ?? 0, email: u.data().email ?? null };
+    }
+    return {
+      code: d.id,
+      cohort: c.cohort ?? null,
+      quotaTotal: c.quotaTotal ?? 0,
+      isInstructor: c.isInstructor === true,
+      revoked: c.revoked === true,
+      redeemedBy: c.redeemedBy ?? null,
+      redeemedEmail: used?.email ?? null,
+      quotaUsed: used?.quotaUsed ?? null,
+      createdAt: c.createdAt ?? null,
+    };
+  }));
+  rows.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+
+  const cohorts = [...new Set(rows.map(r => r.cohort).filter(Boolean))];
+  return { ok: true, rows, cohorts };
+});
+
+/** setCodeRevoked — 停權或恢復一組授權碼。限 Super Admin。 */
+export const setCodeRevoked = onCall(async (req) => {
+  if (!req.auth) throw new HttpsError('unauthenticated', '請先登入。');
+  const { getFirestore } = await import('firebase-admin/firestore');
+  const db = getFirestore();
+  const me = await db.collection('counselors').doc(req.auth.uid).get();
+  if (!me.exists || me.data().isSuperAdmin !== true || me.data().isActive !== true) {
+    throw new HttpsError('permission-denied', '只有管理者可以停權授權碼。');
+  }
+  const { code, revoked } = req.data || {};
+  if (!code) throw new HttpsError('invalid-argument', '缺少授權碼。');
+  await db.collection('jd_codes').doc(String(code)).update({ revoked: revoked === true });
+  logger.info('授權碼狀態變更', { uid: req.auth.uid, code, revoked: revoked === true });
+  return { ok: true };
 });

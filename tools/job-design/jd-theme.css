@@ -394,3 +394,15 @@
 @media (prefers-reduced-motion: reduce) {
   .jd-app button, .jd-app a, .jd-app .pathcard { transition: none !important; }
 }
+
+/* ── 多選欄位（case.html 的 cellInput type='multi'）────────────────
+   summary 用了 list-none 隱藏原生三角形，等於沒有「這裡可以展開」的提示，
+   使用者按開之後不知道怎麼收合。補一個會翻轉的 chevron 當開合指示。
+   只用 transform，不新增色票（本檔色階為手寫列舉，未列舉的會靜默失效）。 */
+.jd-multi > summary::-webkit-details-marker { display: none; }
+.jd-multi .jd-multi-caret { transition: transform .15s ease; }
+.jd-multi[open] .jd-multi-caret { transform: rotate(180deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .jd-multi .jd-multi-caret { transition: none !important; }
+}

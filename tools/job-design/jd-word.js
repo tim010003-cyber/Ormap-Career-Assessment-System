@@ -63,6 +63,8 @@ const allAnchors = (c) => [
 const STYLE = `
 <style>
   @page{margin:2cm 2.2cm;}
+  @page WordSection1{size:21cm 29.7cm;margin:2cm 2.2cm;}
+  div.WordSection1{page:WordSection1;}
   body{font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;color:#000;
        line-height:1.45;font-size:10.5pt;}
   h1{font-size:13pt;font-weight:700;margin:16pt 0 6pt;padding-bottom:3pt;
@@ -76,7 +78,7 @@ const STYLE = `
   th,td{border:.5pt solid #666;padding:3pt 5pt;text-align:left;
         vertical-align:top;line-height:1.35;word-wrap:break-word;}
   th{background:#e8e8e8;font-weight:700;}
-  td ul{margin:0 0 0 14pt;padding:0;} td li{margin:0;}
+  td ul{margin:2pt 0 2pt 16pt;padding:0;} td li{margin:1pt 0;}
   ul{margin:2pt 0 2pt 16pt;padding:0;} li{margin:1pt 0;line-height:1.4;}
   .tbc{color:#666;}
   .cover{padding:0 0 8pt;margin-bottom:4pt;border-bottom:1.5pt solid #000;}
@@ -163,7 +165,68 @@ function depersonalize(html, roleName) {
     .replace(/(^|[，。；、（\s])我(需要|會|要|來|是|的)/g, (m, p, v) => `${p}${r}${v}`);
 }
 
-const wrap = (inner, c) => `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="utf-8">${STYLE}</head><body>${c ? depersonalize(inner, reporterRole(c)) : inner}</body></html>`;
+/**
+ * Word 的 HTML 引擎只吃得下最基本的樣式表：
+ * 後代選擇器（`.cover .doc-title`、`td ul`）與 class 選擇器（`.tbc`、`.note`）
+ * 一律被忽略，所以下載的 .doc 會把封面大標、meta 行、待確認灰字全部退回內文樣式，
+ * 跟網頁預覽長得完全不一樣。
+ *
+ * 解法：輸出前把 STYLE 裡的視覺一份不漏地「攤平」成 inline style。
+ * inline 優先權最高，所以預覽端的呈現不變；就算 Word 把整個 <style> 丟掉，
+ * 版面依然正確。STYLE 保留，因為它仍是預覽與人工編輯時的基準。
+ *
+ * 只加 style 屬性，不動任何標籤、文字、class 或既有屬性；
+ * 既有的 style（例如 `<th style="width:170px">`）擺在最後，維持原本的優先權。
+ */
+const TD_STYLE = 'border:.5pt solid #666;padding:3pt 5pt;text-align:left;vertical-align:top;line-height:1.35;word-wrap:break-word;';
+const TAG_STYLE = {
+  h1: 'font-size:13pt;font-weight:700;margin:16pt 0 6pt;padding-bottom:3pt;border-bottom:1pt solid #000;letter-spacing:.5pt;',
+  h2: 'font-size:11.5pt;font-weight:700;margin:14pt 0 5pt;padding:2pt 0 2pt 7pt;border-left:3pt solid #000;background:#f2f2f2;',
+  h3: 'font-size:10.5pt;font-weight:700;margin:10pt 0 3pt;',
+  h4: 'font-size:10pt;font-weight:700;margin:9pt 0 3pt;',
+  p: 'margin:3pt 0;',
+  table: 'border-collapse:collapse;width:100%;margin:4pt 0 8pt;font-size:9.5pt;table-layout:fixed;',
+  th: TD_STYLE + 'background:#e8e8e8;font-weight:700;',
+  td: TD_STYLE,
+  ul: 'margin:2pt 0 2pt 16pt;padding:0;',
+  li: 'margin:1pt 0;line-height:1.4;',
+};
+const CLASS_STYLE = {
+  tbc: 'color:#666;',
+  cover: 'padding:0 0 8pt;margin-bottom:4pt;border-bottom:1.5pt solid #000;',
+  'doc-title': 'font-size:19pt;font-weight:900;line-height:1.2;margin:0 0 4pt;letter-spacing:1pt;',
+  'meta-line': 'font-size:9.5pt;color:#333;margin:1pt 0;',
+  note: 'border:.5pt solid #999;background:#f7f7f7;padding:5pt 8pt;font-size:9.5pt;margin:5pt 0;',
+  part: 'color:#666;font-size:9pt;letter-spacing:1.5pt;font-weight:400;',
+  lvmark: 'margin-top:1pt;font-size:8.5pt;font-weight:700;color:#333;',
+  trait: 'font-size:8pt;border:.5pt solid #666;padding:0 3pt;color:#333;',
+};
+// 字體名稱用單引號：這串會被塞進 style="..." 屬性裡，用雙引號會把屬性提早收掉。
+const BODY_STYLE = "font-family:'Noto Sans TC','Microsoft JhengHei',sans-serif;color:#000;line-height:1.45;font-size:10.5pt;";
+
+function inlineStyles(html) {
+  return String(html).replace(
+    /<(h1|h2|h3|h4|p|table|th|td|ul|li|div|span|section)\b([^>]*)>/gi,
+    (m, tag, attrs) => {
+      const cls = /class\s*=\s*"([^"]*)"/i.exec(attrs);
+      const base = [TAG_STYLE[tag.toLowerCase()] || ''];
+      if (cls) cls[1].trim().split(/\s+/).forEach(k => { if (CLASS_STYLE[k]) base.push(CLASS_STYLE[k]); });
+      const add = base.join('');
+      if (!add) return m;
+      const own = /\sstyle\s*=\s*"([^"]*)"/i.exec(attrs);
+      if (own) {
+        const merged = add + (own[1].trim().endsWith(';') || !own[1].trim() ? own[1] : own[1] + ';');
+        return `<${tag}${attrs.replace(own[0], ` style="${merged}"`)}>`;
+      }
+      return `<${tag}${attrs} style="${add}">`;
+    }
+  );
+}
+
+/** 讓 @page 邊界在 Word 生效：Word 只認 WordSection1 這個慣例名稱 */
+const MSO_HEAD = `<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->`;
+
+const wrap = (inner, c) => `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="utf-8">${MSO_HEAD}${STYLE}</head><body style="${BODY_STYLE}"><div class="WordSection1">${inlineStyles(c ? depersonalize(inner, reporterRole(c)) : inner)}</div></body></html>`;
 
 /** 對外要用的角色稱謂：優先用實際填的對接窗口職稱，否則統稱主管 */
 function reporterRole(c) {
@@ -248,6 +311,7 @@ export function buildGuideDoc(c) {
   ${strategyTable(c, '引入外部專業與彈性人力', 'm2.strategies_c')}
   ${strategyTable(c, '增加內部人力與正式編制', 'm2.strategies_d')}
   <h3>合作形式與資源配置決策</h3>
+  ${resourcePlanTable(c)}
   <table>
     <tr><th style="width:170px">預計採用的合作形式組合</th><td>${val(F('m2.engagement_mix'))}</td></tr>
     <tr><th>各自負責的範圍與分工</th><td>${val(F('m2.engagement_split'))}</td></tr>
@@ -634,6 +698,21 @@ function strategyTable(c, label, optionsId) {
   };
   return `<p><b>${label}</b></p><table><tr><th style="width:34%">採用的方案</th><th>原因</th><th>後續行動</th></tr>` +
     picked.map(p => `<tr><td>${esc(p)}</td><td>${cell(notes[p], 'reason')}</td><td>${cell(notes[p], 'action')}</td></tr>`).join('') + '</table>';
+}
+
+/**
+ * M2 整合決策：人力與資源配置表。
+ *
+ * 這是使用者實際要拿去談預算的一張表，所以照原樣印成表格，
+ * 不要壓成一段文字——「1 位正職 + 2 位兼職 + 外包攝影」攤平成句子就沒法對帳了。
+ */
+function resourcePlanTable(c) {
+  const rows = fieldVal(c, 'm2.resource_plan');
+  if (!Array.isArray(rows) || !rows.length) return '';
+  const cell = (v) => String(v ?? '').trim() ? esc(v) : TBC;
+  return '<table><tr><th style="width:24%">合作形式</th><th style="width:12%">人數</th><th>負責範圍</th><th style="width:22%">預估成本</th></tr>'
+    + rows.map(r => `<tr><td>${cell(r.form)}</td><td>${cell(r.count)}</td><td>${cell(r.scope)}</td><td>${cell(r.cost)}</td></tr>`).join('')
+    + '</table>';
 }
 
 // M1 第二章：問題清單

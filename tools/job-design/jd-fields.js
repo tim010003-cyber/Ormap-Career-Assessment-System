@@ -415,6 +415,12 @@ export const M2_CATEGORY_D = optionSet(
   ],
   '增加正式編制不只是支付一份薪資，也代表公司需要投入管理、訓練、協作、工具與長期發展成本。');
 
+/** 合作形式清單。參考表與配置表的下拉選單共用同一份，避免兩邊講法不一致。 */
+export const ENGAGEMENT_FORMS = [
+  '全職正職', '部分工時／定期人力', '專案型／按件計酬',
+  '固定週期外包／顧問', '委託專業公司／團隊', '外部建置後移轉',
+];
+
 // 合作形式的取捨（第四部分參考表）
 export const ENGAGEMENT_TRADEOFFS = [
   { form: '全職正職', fit: '需求長期穩定、需累積內部知識、需參與決策與跨部門協作', cost: '招募、管理、訓練、薪酬與長期發展成本；調整彈性低' },
@@ -443,24 +449,45 @@ export const M2_PARTS = [
   { code: '第二類', title: M2_CATEGORY_D.title, coreQuestion: M2_CATEGORY_D.coreQuestion,
     categories: [M2_CATEGORY_D] },
   {
+    /*
+     * 這一節原本只有五格空白 textarea 加一份勾選清單，等於要人憑空把
+     * 「幾個正職、幾個兼職、外包多少錢」一次想清楚再寫出來，思考負擔太重，
+     * 實際使用時多半只寫得出幾句籠統的話。（2026-07-22 使用者回饋）
+     *
+     * 改成跟其他章節一致的節奏：先口述 → AI 整合成量化配置表 → 人再改數字。
+     * AI 先把基礎內容填好，回應者是在既有草稿上修正，不是從零開始估算。
+     */
     code: '整合決策', title: '合作形式與資源配置', coreQuestion: '綜合起來，要用什麼方式承擔？',
-    note: '前面勾選的方案可能同時成立——例如一位正職加上一位接案者，或同時委託多位不同專業的外部夥伴。這裡要把它們整合成一個可執行的決定。',
+    note: '前面勾選的方案可能同時成立——例如一位正職加上一位接案者，或同時委託多位不同專業的外部夥伴。這裡要把它們整合成一個可執行的決定，並且實際估算一次要投入多少人與多少錢。',
     questions: [
       '前面勾選的方案，是要綜合採用，還是擇一？為什麼？',
       '如果綜合採用，各自負責哪一塊？彼此如何分工與銜接？',
+      '整體的工作量，大概需要幾個人承擔？其中幾個要是正職？',
+      '哪些部分適合用部分工時、專案型或外包來處理？各需要幾個人？',
       '本次可投入的預算大約是多少？要怎麼分配？',
       '選擇正職代表的是一整個團隊的建構（招募、管理、訓練、發展），組織目前準備好了嗎？',
       '選擇外部合作，誰負責定義需求、對接與驗收？',
       '如果先用外部合作測試，什麼條件成立時才轉為正式編制？',
     ],
     showTradeoffs: true,
+    rawId: 'm2._raw_mix', task: 'M2-05',
+    purpose: '把前面勾選的方案整合成一個可執行、可估算的人力與資源配置。',
+    responseHint: '用講的就好，不用先算清楚。講講你打算怎麼配人、哪幾塊想找誰做、預算大概抓多少，AI 會幫你整理成一張可以直接改數字的配置表。',
     blocks: [
       { type: 'fields', fields: [
-        { id: 'm2.engagement_mix', name: '預計採用的合作形式組合', type: 'textarea' },
-        { id: 'm2.engagement_split', name: '各自負責的範圍與分工', type: 'textarea' },
-        { id: 'm2.budget_plan', name: '可投入的預算範圍與分配方式', type: 'textarea' },
-        { id: 'm2.prerequisite_improvements', name: '增加人才前必須先完成的改善', type: 'textarea' },
-        { id: 'm2.decision_reason', name: '決策理由', type: 'textarea' },
+        { id: 'm2.resource_plan', name: '人力與資源配置表', type: 'repeat', ai: 'AI-I',
+          note: '一列一種合作形式。數字先由 AI 依你講的內容估一個起點，直接改成你認為合理的值即可；成本可以填月薪、時薪、專案報價或總額，寫得出單位就好。',
+          columns: [
+            { key: 'form',  name: '合作形式', type: 'select', options: ENGAGEMENT_FORMS },
+            { key: 'count', name: '人數',     type: 'text', placeholder: '例：1 人' },
+            { key: 'scope', name: '負責範圍', type: 'text', placeholder: '這一塊主要承擔什麼' },
+            { key: 'cost',  name: '預估成本', type: 'text', placeholder: '例：月薪 4.5 萬／專案 8 萬' },
+          ] },
+        { id: 'm2.engagement_mix', name: '預計採用的合作形式組合', type: 'textarea', ai: 'AI-O' },
+        { id: 'm2.engagement_split', name: '各自負責的範圍與分工', type: 'textarea', ai: 'AI-O' },
+        { id: 'm2.budget_plan', name: '可投入的預算範圍與分配方式', type: 'textarea', ai: 'AI-O' },
+        { id: 'm2.prerequisite_improvements', name: '增加人才前必須先完成的改善', type: 'textarea', ai: 'AI-I' },
+        { id: 'm2.decision_reason', name: '決策理由', type: 'textarea', ai: 'AI-O' },
       ] },
       { type: 'checklist', title: '人力策略結論', id: 'm2.staffing_decision',
         options: [

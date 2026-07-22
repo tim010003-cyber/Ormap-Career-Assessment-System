@@ -8,7 +8,7 @@
  * 不評價、不追問、不判定、不阻擋——那些都是人在現場做的事。
  */
 
-import { MATURITY_DIMENSIONS, RESPONSIBILITY_TYPES, WORK_NATURE, M1_CHAPTERS } from './jd-fields.js';
+import { MATURITY_DIMENSIONS, RESPONSIBILITY_TYPES, WORK_NATURE, M1_CHAPTERS, M2_PARTS } from './jd-fields.js';
 
 function envelope(taskCode, over = {}) {
   return {
@@ -344,6 +344,28 @@ const M1_HANDLERS = {
 };
 
 /* ═══════════ M2 職務需求界定（勾選式）═══════════ */
+
+/**
+ * 整合決策（M2-05）的欄位形狀。
+ *
+ * 這一節沒有規則式 handler——關鍵字比對算不出「幾個正職、月薪多少」，
+ * 硬湊只會給出誤導人的數字。所以這裡只負責把欄位形狀交給 AI，
+ * 由它依前面談過的工作量估一個起點，人再改。
+ *
+ * 形狀直接從 M2_PARTS 讀，不另外手抄一份，避免欄位改了這裡沒跟著改。
+ */
+export function runM2Mix() {
+  const part = M2_PARTS.find(p => p.task === 'M2-05');
+  if (!part) throw new Error('M2_PARTS 找不到 task 為 M2-05 的部分');
+  const shape = {};
+  for (const f of (part.blocks || []).flatMap(b => b.fields || [])) {
+    shape[f.id] = f.type === 'repeat'
+      // 給一列樣本，shapeHint 才看得到每一欄的 key
+      ? [Object.fromEntries((f.columns || []).map(col => [col.key, '']))]
+      : (f.type === 'list' ? [] : '');
+  }
+  return envelope(part.task, { organized_content: shape });
+}
 
 /**
  * @param checks { [fieldId]: string[] | string }  勾選與填寫結果

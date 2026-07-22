@@ -59,7 +59,7 @@
         </label>
         <label class="block">
           <span class="block text-sm font-semibold text-navy mb-1">每人幾次 AI</span>
-          <input id="quota" type="number" min="0" max="999" value="30" class="w-full border border-navy/20 rounded-lg px-3 py-2 text-sm">
+          <input id="quota" type="number" min="0" max="999" value="60" class="w-full border border-navy/20 rounded-lg px-3 py-2 text-sm">
         </label>
       </div>
       <label class="flex items-center gap-2 mt-4 text-sm text-navy/70">
@@ -186,7 +186,7 @@ $('#issueBtn').addEventListener('click', async () => {
     const r = await callFn('issueCodes', {
       cohort,
       count: Number($('#count').value) || 1,
-      quota: Number($('#quota').value) || 30,
+      quota: Number($('#quota').value) || 60,
       isInstructor: $('#isInstructor').checked,
     });
     $('#fresh').classList.remove('hidden');

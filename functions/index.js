@@ -235,7 +235,9 @@ export const issueCodes = onCall(async (req) => {
     const code = `ORMAP-${rand(4)}-${rand(4)}`;
     batch.set(db.collection('jd_codes').doc(code), {
       cohort,
-      quotaTotal: Number(quota) || 30,
+      // 60 次。實測一個欄位常要按到近 30 次，30 次連一輪都跑不完，
+      // 使用者拿到報告後想回頭修就沒額度了。（2026-07-22 使用者決策）
+      quotaTotal: Number(quota) || 60,
       isInstructor: isInstructor === true,
       redeemedBy: null,
       redeemedAt: null,

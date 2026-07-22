@@ -4,12 +4,8 @@
  * 以規則式方式模擬 AI 任務，完全不呼叫外部 API。輸出遵守
  * 《04_AI任務規格》共通輸出契約，轉換原則照抄《3.職務與人才規格定位》。
  *
- * 全域禁止（04 第四節 ＋ M3 文件各節守則）
- *   - 不把「缺人」當已證實問題；資訊不足不補造。
- *   - 推論一律進 inferences_requiring_confirmation。
- *   - 不自行設定最低／理想等級（一律人工 H）。
- *   - 不以年資、學歷、職稱或人格標籤代替可觀察行為。
- *   - 不把可培訓內容寫成必要先備條件。
+ * 共通原則：把使用者說的話整理好，其餘都不做。
+ * 不評價、不追問、不判定、不阻擋——那些都是人在現場做的事。
  */
 
 import { MATURITY_DIMENSIONS, RESPONSIBILITY_TYPES, WORK_NATURE } from './jd-fields.js';
@@ -25,29 +21,84 @@ function envelope(taskCode, over = {}) {
   };
 }
 
+/**
+ * 引導者的問句。現場是一問一答，貼進來的常常是整段逐字稿，裡面夾著引導者問的問題。
+ * 那些是「問題」不是「回答」，不能當成回應者說的內容填進欄位。
+ */
+// 注意：切句時 ？ 會被當成分隔符吃掉，所以不能只靠句尾問號判斷，
+// 要認疑問語尾詞（嗎／呢／怎麼樣）與疑問句型。
+const QUESTION_RE = /(嗎|呢|如何|怎麼樣|怎樣)\s*[?？]?\s*$|[?？]\s*$/;
+const FACILITATOR_RE = /^(那|所以|好|嗯|ok|OK)?\s*(你|您|他|我們)?\s*(覺得|認為|會不會|有沒有|是不是|要不要|想不想|可不可以|可以說說|要不要說)/;
+
+/** 口語贅詞：整理時先剝掉，留下真正的內容（可能連續好幾個，所以要重複剝） */
+const FILLER_RE = /^(就是說?|那個|這個|其實|對對對|對啊|嗯+|欸|我覺得|我想說|我想|反正|基本上|老實說|然後|那)[，,、]?\s*/;
+const stripFillers = (s) => {
+  let out = s, prev;
+  do { prev = out; out = out.replace(FILLER_RE, '').trim(); } while (out !== prev && out);
+  return out;
+};
+
 /** 把口述切成語意條列（規則式，非 AI） */
 function splitPoints(text) {
   if (!text) return [];
   return String(text)
-    .split(/[\n;；。]+/)
+    .split(/[\n;；。！？!?]+|\s*(?:然後|另外|再來|後來|接著)\s*/)
     .map(s => s.replace(/^[\s、,，·\-\*\d\.]+/, '').trim())
+    // 逐字稿的編號與引言（"(a)"、"主要可以整理成以下幾大項："）不是內容
+    .map(s => stripFillers(s.replace(/^\(?[a-zA-Z0-9]{1,2}\)\s*/, '')))
+    .filter(s => s.length >= 2)
+    // 引導者的問句剔除，不要當成他的回答
+    .filter(s => !(QUESTION_RE.test(s) || FACILITATOR_RE.test(s)));
+}
+
+const CONFIRMED_STAFFING_RE = /(?:已(?:經)?(?:決定|核准|確認)|就是|確定|確實)(?:要|會)?(?:找人|加人|增聘|補人|招募)|(?:找人|加人|增聘|補人|招募).{0,8}(?:已(?:經)?(?:決定|核准|確認)|確定)/;
+
+/**
+ * 「需求觸發」優先找最近發生的事件，而不是把「我要找人」這個決策
+ * 或輸入的第一句直接當成觸發事件。找不到事件時才忠實退回第一段。
+ */
+function findTriggerEvent(raw, points) {
+  const clauses = String(raw || '')
+    .split(/[\n;；。！？!?，,]+/)
+    .map(s => s.trim())
     .filter(s => s.length >= 2);
+  const eventRe = /最近|近期|剛|突然|開始|發生|離職|異動|新案|專案|服務|上線|客戶|訂單|工作量|延誤|加班|品質|客訴|需求|成長|擴大|啟動/;
+  const candidates = clauses
+    .map((text, index) => ({
+      text,
+      index,
+      score: (eventRe.test(text) ? 4 : 0)
+        + (/最近|近期|剛|突然|開始|發生/.test(text) ? 3 : 0)
+        + (/離職|異動|新案|上線|訂單|延誤|加班|客訴|工作量/.test(text) ? 3 : 0)
+        - (CONFIRMED_STAFFING_RE.test(text) && !eventRe.test(text) ? 5 : 0),
+    }))
+    .filter(x => x.score > 0)
+    .sort((a, b) => b.score - a.score || b.index - a.index);
+  return candidates[0]?.text || points[0] || '';
 }
 
 const asList = v => Array.isArray(v) ? v.filter(x => (x ?? '').toString().trim()) : splitPoints(v);
 
-/** 依關鍵字分派到多個桶；未命中者進 fallback 桶 */
+/**
+ * 依關鍵字分派到多個桶；未命中者進 fallback 桶。
+ *
+ * 關鍵字比對本來就會猜錯，所以另外把「沒命中任何規則」的內容記在
+ * `out._unmatched`，讓畫面可以誠實說「這幾句我不確定該放哪，你來指認」，
+ * 而不是靜默塞進某一格，讓人以為系統看懂了。
+ */
 function bucketize(points, rules, fallbackKey) {
   const out = {};
   Object.keys(rules).forEach(k => out[k] = []);
   out[fallbackKey] = out[fallbackKey] || [];
+  const unmatched = [];
   for (const p of points) {
     let placed = false;
     for (const [key, re] of Object.entries(rules)) {
       if (re.test(p)) { out[key].push(p); placed = true; break; }
     }
-    if (!placed) out[fallbackKey].push(p);
+    if (!placed) { out[fallbackKey].push(p); unmatched.push(p); }
   }
+  Object.defineProperty(out, '_unmatched', { value: unmatched, enumerable: false });
   return out;
 }
 
@@ -63,72 +114,86 @@ export function runPath01(existing) {
   for (const [fid, name] of required) {
     const v = existing[fid];
     const empty = v == null || (Array.isArray(v) ? v.length === 0 : String(v).trim() === '');
-    if (empty) gaps.push({ field: fid, message: `「${name}」尚未填寫，進入 M3 前建議補齊。` });
+    if (empty) gaps.push({ field: fid, message: `「${name}」還沒談到。想補再補，不補也可以往下走。` });
   }
   const contradictions = [];
   const resText = String(existing['existing.resources_authority'] || '');
   const issuesText = asList(existing['existing.current_issues']).join(' ');
-  const noAuthority = /沒有授權|無權|不能決定|沒有.{0,4}決定權|無法調度|說了不算|要等.{0,6}裁示|需.{0,4}核可/.test(resText);
-  const heldAccountable = /要負責|被要求負責|背責任|扛|承擔.{0,4}成敗/.test(issuesText);
+  /*
+   * 真人講話中間會夾代名詞：「要**我**負責」「都是**我**在扛」。
+   * 舊的正則寫死「要負責」，所以只有種子資料那種書面寫法才比對得到，
+   * 實際逐字稿幾乎不會觸發。這裡放寬成「動詞 + 最多幾個字 + 負責類詞」。
+   */
+  const noAuthority = new RegExp([
+    '沒(有)?.{0,6}(授權|權限|決定權|核決權|裁量權)',
+    '無(權|權限|法決定|法調度)',
+    '不能.{0,4}決定', '不能.{0,4}作主', '沒辦法.{0,4}決定',
+    '說了不算', '作不了主', '做不了主',
+    '要等.{0,8}(裁示|核准|同意|點頭)',
+    '(需|要).{0,6}(核可|核准|簽核|上面同意)',
+  ].join('|')).test(resText);
+
+  const heldAccountable = new RegExp([
+    '(要|得|得要|都是|還是|最後).{0,6}(負責|扛|承擔|背)',
+    '被要求.{0,4}負責',
+    '(責任|成敗|結果).{0,6}(算|落|歸|在).{0,4}(我|他|這個人|這個角色)',
+    '出事.{0,8}(找|算|怪|問)',
+    '背(黑鍋|責任)',
+  ].join('|')).test(issuesText);
   if (noAuthority && heldAccountable) {
     contradictions.push({
       type: 'authority_accountability',
-      message: '偵測到「被要求負責結果」但「沒有相應決定權」的張力，這是典型的權責矛盾。',
-      detail: '這類問題通常不是「找到對的人」就能解決；若直接進入職務規格，容易把組織的授權問題轉嫁成人才條件。',
+      message: '你提到要對結果負責，但也提到沒有相應的決定權。這兩件事放在一起看，值得聊一下。',
+      detail: '這種情況有時候換個人也不會變，可能跟授權方式比較有關。當然，實際狀況你最清楚。',
       fields: ['existing.resources_authority', 'existing.current_issues'],
-      suggestion: '建議由人決定：改走「完整職務設計」重新界定需求，或維持「職務優化」並把此矛盾列為待課堂討論。系統不自行切換路線，也不覆蓋你已填的資料。',
+      suggestion: '要不要改走「完整職務設計」重新界定，或就維持現在的路線把這件事記下來，都由你決定。系統不會自己切換，也不會動你填的東西。',
     });
   }
   return envelope('PATH-01', {
     organized_content: { readiness: gaps.length === 0 ? 'ready' : 'missing_information' },
     information_gaps: gaps, contradictions,
-    warnings: contradictions.length ? ['出現權責矛盾提示，是否切換路徑由人工決定。'] : [],
+    warnings: [],
   });
 }
 
 /* ═══════════ M1 問題釐清定位（逐章）═══════════
-   依《1.問題釐清定位書》各章的 AI 轉換原則。
-   全域禁止：不得把「主管想找人」改寫成已證實的人力需求；
-   不得把時間先後判定為因果；不得用人格歸因替代問題分析。 */
+   依《1.問題釐清定位書》各章整理思考歷程。
+   使用者明確表示增員已決定時，保留為已確認前提；其他觀點以提醒呈現。 */
 
 export function runM1Chapter(chapterCode, rawText, ctx = {}) {
   const pts = splitPoints(rawText);
   const h = M1_HANDLERS[chapterCode];
   if (!h) return envelope('M1', { cannot_complete: true, cannot_complete_reason: '未知的章節。' });
-  if (!pts.length) return envelope('M1', { cannot_complete: true, cannot_complete_reason: '尚未提供本章的口述內容。' });
+  // 還沒講話不是錯誤，只是還沒開始。回空的整理結果，流程照走。
+  if (!pts.length) return envelope('M1', { warnings: ['這一章還沒有內容。想先跳過、之後再回來補都可以。'] });
   return h(pts, ctx, rawText);
 }
-
-// 「缺人＝問題」的偵測：只能當假設，不能當結論
-const HIRING_AS_ANSWER = /缺人|人不夠|人力不足|要找人|多一個|多找一|增加人力|增聘|招募|補人|加人/;
 
 const M1_HANDLERS = {
   '第一章': (pts, ctx, raw) => {
     const b = bucketize(pts, {
+      'm1.confirmed_facts': CONFIRMED_STAFFING_RE,
       'm1.supporting_evidence': /資料|紀錄|報表|數據|統計|多人|大家都/,
       'm1.feelings_claims': /覺得|感覺|好像|應該是|聽說|印象/,
       'm1.hypotheses_pending': /可能|推測|懷疑|我猜|也許/,
     }, 'm1.confirmed_facts');
-    const warnings = [];
-    if (HIRING_AS_ANSWER.test(raw)) {
-      warnings.push('偵測到「缺人／要找人」的說法。這只能列為**假設**，不能當成已證實的人力需求，也不能當成問題結論。');
-    }
+    const trigger = findTriggerEvent(raw, pts);
     return envelope('M1-01', {
       organized_content: {
-        'm1.trigger_event': pts[0],
+        'm1.trigger_event': trigger,
         'm1.first_noticed_at': (raw.match(/(\d+\s*[年月週天]|最近|去年|今年|上季|這season)/) || [''])[0],
         'm1.affected_roles': pts.filter(p => /主管|同事|客戶|團隊|部門|老闆|我/.test(p)).slice(0, 5),
         ...b,
-        'm1.information_gaps': b['m1.feelings_claims'].length
-          ? [`需補充資料以驗證：${b['m1.feelings_claims'].slice(0, 2).join('；')}`] : [],
+        // 感受就是感受，不需要「補資料驗證」。這一格留給人自己想填什麼。
+        'm1.information_gaps': [],
       },
       inferences_requiring_confirmation: [
-        { field: 'm1.demand_nature', note: '需求性質（新需求／長期累積／異動缺口／商業機會）為推論，請確認。' },
-        { field: 'm1.hypotheses_pending', note: '此區為尚待驗證的推論，不可當成已確認事實。' },
+        { field: 'm1.demand_nature', note: '需求性質是我猜的，你看看對不對。' },
+        { field: 'm1.hypotheses_pending', note: '這幾項目前是推測，之後如果想找依據可以回來看。' },
       ],
-      information_gaps: b['m1.confirmed_facts'].length === 0
-        ? [{ field: 'm1.confirmed_facts', message: '尚未辨識出有依據的已確認事實，目前多為感受或推測，建議補充實際案例或紀錄。' }] : [],
-      warnings,
+      // 沒有「已確認事實」不是缺陷。現階段本來就常常只有感受，照實整理就好。
+      information_gaps: [],
+      warnings: [],
     });
   },
 
@@ -147,21 +212,18 @@ const M1_HANDLERS = {
     };
     const problems = pts.slice(0, 6).map((p, i) => ({
       statement: p, type: typeOf(p), primary: i === 0 ? '主要問題' : '關聯問題',
-      phenomena: '', causes: '', downstream: '', confirmed_vs_hypo: '待確認',
+      phenomena: '', causes: '', downstream: '', confirmed_vs_hypo: '',
     }));
-    const warnings = [];
-    if (HIRING_AS_ANSWER.test(raw)) warnings.push('「缺人」不得作為問題結論；請確認真正卡住的是工作量、能力、流程、工具、管理、激勵、商業或組織結構。');
     const unTyped = problems.filter(p => !p.type);
     return envelope('M1-02', {
       organized_content: { 'm1.problem_statements': problems, 'm1.next_bottleneck': [] },
       inferences_requiring_confirmation: [
-        { field: 'm1.problem_statements', note: '問題類型與主／次為 AI 推論，請逐項確認。可同時屬於一至兩類，但需說明主次。' },
+        { field: 'm1.problem_statements', note: '問題類型與主次是我先歸的，你直接改比較快。' },
       ],
       information_gaps: [
-        ...(unTyped.length ? [{ field: 'm1.problem_statements', message: `${unTyped.length} 項問題未能歸類到八種問題類型，請人工判斷。` }] : []),
-        { field: 'm1.next_bottleneck', message: '「若只處理局部問題，可能出現的下一個瓶頸」需人工判斷，AI 不補造。' },
+        ...(unTyped.length ? [{ field: 'm1.problem_statements', message: `有 ${unTyped.length} 項我沒把握該歸到哪一類，你來看比較準。` }] : []),
       ],
-      warnings: [...warnings, '不得把時間上先發生的事情直接判定為原因；不得用「不夠積極」「抗壓性不足」等人格歸因替代問題分析。'],
+      warnings: [],
     });
   },
 
@@ -185,14 +247,14 @@ const M1_HANDLERS = {
         { field: 'm1.importance', message: '影響程度與判斷依據須由人工判斷。' },
         { field: 'm1.time_sensitivity', message: '時間敏感性與關鍵期限須由人工判斷。' },
       ],
-      warnings: ['緊急與重要必須分開：很急不代表值得建立長期職務；不急也不代表沒有高額累積成本。'],
+      warnings: [],
     });
   },
 
   '第四章': (pts, ctx, raw) => {
     const warnings = [];
     if (/招到|找到人|導入完成|上線/.test(raw)) {
-      warnings.push('偵測到把「招到一個人／完成導入」當成改善成果的說法。活動不等於成果，請改以結果改變描述。');
+      warnings.push('已保留你以「招到人／完成導入」描述成果的方式；若需要，也可以再補充完成後希望看見的改變。');
     }
     return envelope('M1-04', {
       organized_content: {
@@ -227,8 +289,8 @@ const M1_HANDLERS = {
         { field: 'm1.investment_status', message: '建議狀態須由人工決定（四選一）。' },
       ],
       warnings: [
-        '成本不只薪資或採購，還有管理、訓練、溝通、工具及轉換成本；沒有依據時不自行估價。',
-        '若問題、改善目標或投入邊界仍高度矛盾，不得直接建議建立職務。',
+        '若需要更完整估算，可另外考慮管理、訓練、溝通、工具及轉換成本；沒有資料時維持留白。',
+        '不同想法或投入邊界可以先並列保留，再由你決定是否進入職務設計。',
       ],
     });
   },
@@ -243,77 +305,98 @@ const M1_HANDLERS = {
  */
 export function runM2(checks = {}) {
   const arr = (id) => Array.isArray(checks[id]) ? checks[id] : (checks[id] ? [checks[id]] : []);
-  const env = arr('m2.environment_checks');
-  const internal = arr('m2.internal_staffing_strategies');
+  const A = arr('m2.strategies_a');          // 工作與流程改善
+  const B = arr('m2.strategies_b');          // 人員配置與管理改善
+  const C = arr('m2.strategies_c');          // 引入外部專業與彈性人力
+  const D = arr('m2.strategies_d');          // 增加內部人力與正式編制
   const roles = arr('m2.role_types');
   const mgmt = arr('m2.management_responsibility');
   const decision = arr('m2.staffing_decision');
   const support = arr('m2.organization_support');
+  const notes = (id) => checks[id + '_notes'] || {};
 
   const contradictions = [];
   const warnings = [];
 
-  // 管理／流程／工具／授權問題 vs. 只加執行人力
-  const structural = env.filter(x => /流程反覆|工具、系統|主管尚未|重要決策|責任增加後/.test(x));
-  const onlyExecutor = internal.some(x => /執行型/.test(x)) &&
-    !arr('m2.process_strategies').length && !arr('m2.people_management_strategies').length;
-  if (structural.length && onlyExecutor) {
+  // ① 若增員仍在探索，可提醒檢視既有資源；若使用者已明確選定增員，
+  //    就把它當作確認前提，不再用此提醒質疑決策。
+  const firstClass = [...A, ...B];
+  const secondClass = [...C, ...D];
+  const staffingConfirmed = D.length > 0 || decision.some(x => /需要新增內部人力|需要人力與其他改善策略同步進行|採用混合形式/.test(x));
+  if (secondClass.length && firstClass.length === 0 && !staffingConfirmed) {
     contradictions.push({
-      type: 'structural_vs_headcount',
-      message: '盤點顯示問題來自流程、工具、管理或授權，但策略只勾選了「增加執行型人力」。',
-      detail: '這類問題不能只靠新增人才解決；只加人可能讓同樣的問題換人承擔。',
-      suggestion: '建議同時勾選流程／制度或既有人員管理改善，或改採「增加人力並同步改善」。是否調整由人決定。',
+      type: 'skipped_first_class',
+      message: '已勾選「增加能力或人力供給」，但「改善與重整既有資源」完全沒有勾選任何項目。',
+      detail: '目前只有外部或彈性資源選項，既有流程與人員配置尚未留下紀錄。這不影響繼續，但之後可能較難回看當時的取捨。',
+      suggestion: '若有幫助，可以補記哪些既有做法已評估過；也可以先保留目前選擇，之後再補。',
     });
   }
 
-  // 有管理問題卻要建立無授權的執行職務
+  // ② 有管理問題卻要建立沒有授權的執行職務
   const needMgmtRole = mgmt.some(x => /組織確實缺少/.test(x));
   const execRole = roles.some(x => /執行型/.test(x));
-  if (env.some(x => /重要決策|主管尚未/.test(x)) && execRole && !needMgmtRole) {
+  const mgmtIssue = B.some(x => /主管職責|管理與績效|不適任/.test(x));
+  if (mgmtIssue && execRole && !needMgmtRole) {
     contradictions.push({
       type: 'authority_mismatch',
-      message: '盤點指出決策或管理卡關，但角色類型選擇「執行型」，且未認定組織缺少管理／整合角色。',
+      message: '既有資源盤點指出管理或主管配置有問題，但角色類型選擇「執行型」，且未認定組織缺少管理／整合角色。',
       detail: '不能建立一個沒有相應授權的執行職務，卻期待他解決主管、決策或跨部門管理問題。',
       suggestion: '請確認這些管理問題應由現任主管改善，還是確實需要具正式授權的管理／整合角色。',
     });
   }
 
-  // 工作量不足以形成完整職務，卻要開全職
-  if (env.some(x => /不足以形成完整職務|一次性、階段性/.test(x)) && internal.some(x => /全職/.test(x))) {
-    contradictions.push({
-      type: 'workload_vs_fulltime',
-      message: '盤點指出工作量或需求可能不足以形成完整職務，但策略勾選了新增全職人力。',
-      detail: '需求尚未穩定時建立正式編制，風險較高。',
-      suggestion: '可考慮先用部分工時、試行性或外部彈性資源測試需求。是否調整由人決定。',
-    });
+  // ③ 需求不穩定卻直接開全職
+  const unstable = C.some(x => /短期|階段性|測試需求|按件計酬/.test(x));
+  const fullTime = D.some(x => /全職/.test(x));
+  if (unstable && fullTime && !arr('m2.engagement_mix').length && !(checks['m2.engagement_mix'] || '').trim()) {
+    warnings.push('同時勾選了「短期／專案型外部合作」與「增加全職人力」，但尚未說明合作形式如何組合。請在第四部分寫下決策。');
   }
 
-  // 需要諮詢的項目
-  const needConsult = [...arr('m2.need_consult_1'), ...roles, ...mgmt, ...decision, ...support]
+  // ④ 只勾不寫：原因與後續行動分開檢查
+  const missingReason = [], missingAction = [];
+  [['m2.strategies_a', A], ['m2.strategies_b', B], ['m2.strategies_c', C], ['m2.strategies_d', D]]
+    .forEach(([id, picked]) => {
+      const n = notes(id);
+      picked.forEach(opt => {
+        const v = n[opt];
+        const reason = typeof v === 'string' ? v : (v?.reason || '');
+        const action = typeof v === 'string' ? '' : (v?.action || '');
+        if (!String(reason).trim()) missingReason.push(opt);
+        if (!String(action).trim()) missingAction.push(opt);
+      });
+    });
+  if (missingReason.length) warnings.push(`有 ${missingReason.length} 個已勾選方案尚未記錄原因；可以先繼續，之後再補上當時的考量。`);
+  if (missingAction.length) warnings.push(`有 ${missingAction.length} 個已勾選方案尚未記錄後續行動；可以先保留目前決定，之後再安排下一步。`);
+
+  // ⑤ 待諮詢
+  const needConsult = [...roles, ...mgmt, ...decision, ...support]
     .filter(x => /諮詢|無法判斷|無法確認/.test(x));
   if (needConsult.length) warnings.push(`有 ${needConsult.length} 項標示為「需要進一步確認／諮詢」，將列為待課堂討論。`);
 
-  if (!decision.length) warnings.push('尚未做出人力策略結論（第二部分最後一組勾選）。');
-  if (!roles.length) warnings.push('尚未判斷角色類型（第三部分）。');
+  if (!decision.length) warnings.push('尚未做出人力策略結論（第四部分）。');
+  if (!roles.length) warnings.push('尚未判斷角色類型（第五部分）。');
 
   return envelope('M2-01..03', {
     organized_content: {
-      environment_summary: env,
-      strategy_combination: [
-        ...arr('m2.process_strategies'), ...arr('m2.people_management_strategies'),
-        ...arr('m2.external_strategies'), ...internal,
-      ],
+      first_class: firstClass,
+      second_class: secondClass,
+      strategy_combination: [...firstClass, ...secondClass],
+      engagement_mix: checks['m2.engagement_mix'] || '',
+      budget_plan: checks['m2.budget_plan'] || '',
       staffing_decision: decision,
       role_types: roles,
       organization_support: support,
       need_consult: needConsult,
+      missing_reason: missingReason,
+      missing_action: missingAction,
     },
     contradictions, warnings,
     inferences_requiring_confirmation: [
-      { field: 'm2.suggested_role_type', note: '建議角色類型與理由由人工填寫，AI 不代為決定是否增聘。' },
+      { field: 'm2.suggested_role_type', note: '角色類型建議是可修改草稿；不會改變使用者已確認的增員決策。' },
     ],
   });
 }
+
 
 /* ═══════════ M3 逐節整理 ═══════════
    runSection(sectionCode, rawText, ctx) → envelope
@@ -323,40 +406,55 @@ export function runSection(sectionCode, rawText, ctx = {}) {
   const pts = splitPoints(rawText);
   const handler = SECTION_HANDLERS[sectionCode];
   if (!handler) return envelope(sectionCode, { cannot_complete: true, cannot_complete_reason: '未知的小節。' });
+  // 還沒講話不是錯誤，只是還沒開始。
   if (pts.length === 0) {
-    return envelope(sectionCode, { cannot_complete: true, cannot_complete_reason: '尚未提供本節的口述內容。' });
+    return envelope(sectionCode, { warnings: ['這一節還沒有內容。想先跳過、之後再回來補都可以。'] });
   }
   return handler(pts, ctx, rawText);
 }
 
 const SECTION_HANDLERS = {
   // 1.1 角色定位與預期價值產出
+  // 1.1 結果與價值（先問產出什麼，不先問角色定位）
   '1.1': (pts, ctx) => {
-    const positioning = ctx.existing?.['existing.role_reason']
-      ? `${pts[0]}（承接既有職務存在理由）`
-      : pts[0];
-    const values = pts.slice(1).length >= 2 ? pts.slice(1) : pts;
+    const b = bucketize(pts, {
+      'm3.error_consequences': /做錯|出錯|沒做好|漏掉|失誤|後果/,
+      'm3.observable_changes': /改變|之後|因此|才能|就會|準時|下降|提升/,
+    }, 'm3.concrete_outputs');
+    const outputs = b['m3.concrete_outputs'];
+    const positioning = outputs.length
+      ? (ctx.existing?.['existing.role_reason']
+          ? `負責產出${outputs[0]}，並確保後續使用者能順利接手。（承接既有職務存在理由）`
+          : `負責產出${outputs[0]}，並確保後續使用者能順利接手。`)
+      : '';
+    const vals = b['m3.observable_changes'].length ? b['m3.observable_changes'] : outputs;
     const gaps = [];
-    if (values.length < 3) gaps.push({ field: 'm3.value_outputs', message: '預期價值產出少於三項，正式文件要求三至六項，建議補充。' });
-    if (values.length > 6) gaps.push({ field: 'm3.value_outputs', message: '預期價值產出超過六項，建議合併或聚焦。' });
-    const vals = values.slice(0, 6);
+    // 產出與價值項數只是參考範圍，不是門檻。少幾項也照樣往下走。
+    if (!outputs.length) gaps.push({ field: 'm3.concrete_outputs', message: '還沒談到這項工作實際交付了什麼，想補再補。' });
     return envelope('M3-01', {
-      explicit_content: [{ field: 'm3.role_positioning', value: positioning, source: '1.1 口述' }],
+      explicit_content: outputs.map(o => ({ field: 'm3.concrete_outputs', value: o, source: '1.1 口述' })),
       organized_content: {
+        'm3.concrete_outputs': outputs,
+        'm3.observable_changes': b['m3.observable_changes'],
+        'm3.error_consequences': b['m3.error_consequences'],
         'm3.role_positioning': positioning,
-        'm3.value_outputs': vals,
-        // 產出至甄選流程設計書（doc 3 §1.1）
-        'm3.sel_value_evidence': vals.map(v => `候選人是否做出過「${v}」這類成果`),
+        'm3.value_outputs': vals.slice(0, 6),
+        'm3.sel_value_evidence': vals.slice(0, 6).map(v => `候選人是否做出過「${v}」這類成果`),
         'm3.sel_value_understanding': [`候選人能否說出這個角色為什麼存在，以及${vals[0] ? `「${vals[0]}」` : '主要價值'}為何重要`],
-        'm3.sel_outcome_criteria': vals.map(v => `以「${v}」是否實際發生、而非做了多少事來判斷`),
+        'm3.sel_outcome_criteria': vals.slice(0, 6).map(v => `以「${v}」是否實際發生、而非做了多少事來判斷`),
       },
+      inferences_requiring_confirmation: [
+        { field: 'm3.role_positioning', note: '角色定位是依你講的結果推導出來的，請確認是否忠實。' },
+      ],
       information_gaps: gaps,
-      warnings: ['角色存在理由屬人工確認項，請確認整理是否忠實，且未把所有組織問題塞入同一個角色。'],
+      warnings: [],
     });
   },
 
-  // 1.2 主要工作內容與頻率
+  // 1.2 工作流程（還原實際步驟，不是列工作清單）
   '1.2': (pts) => {
+    // 依口述順序還原步驟；每一句就是流程中的一個環節
+    const steps = pts.map((p, i) => `${i + 1}. ${p}`);
     const items = pts.map(p => ({
       work: p,
       responsibility_type: /協助|幫忙|支援他人/.test(p) ? '協助'
@@ -365,10 +463,14 @@ const SECTION_HANDLERS = {
       frequency_share: (p.match(/每[日天週月季年]|不定期|約\s*\d+\s*%/) || [''])[0],
     }));
     const core = items.filter(w => w.nature === '核心工作');
+    const collab = pts.filter(p => /一起|共同|協同|請|交給|對接|協調/.test(p));
+    const objects = pts.filter(p => /系統|表單|文件|資料|檔案|平台|報表|訂單/.test(p));
     return envelope('M3-02', {
       organized_content: {
+        'm3.work_steps': steps,
         'm3.work_items': items,
-        // 產出至甄選流程設計書（doc 3 §1.2）
+        'm3.collaboration_items': collab,
+        'm3.data_objects': objects,
         'm3.sel_key_experience': core.map(w => `是否實際做過「${w.work}」`),
         'm3.sel_work_sample': core.map(w => `以「${w.work}」設計工作樣本或情境題`),
         'm3.sel_stage_scope': [
@@ -379,6 +481,7 @@ const SECTION_HANDLERS = {
       },
       inferences_requiring_confirmation: [
         { field: 'm3.work_items', note: '「責任區分／工作性質」為 AI 初步推論，請逐項確認。「負責」代表要對結果承擔主要責任，「協助」不得寫成主要責任。' },
+        { field: 'm3.work_steps', note: '步驟順序依你講述的先後排列，請確認是否與實際一致。' },
       ],
       information_gaps: [{ field: 'm3.work_items', message: '未提供的頻率／時間占比一律留空，未自動填數字。採用百分比時總和應接近 100%。' }],
     });
@@ -409,7 +512,7 @@ const SECTION_HANDLERS = {
         { field: 'm3.organization_relations', note: '關係面向的歸類為 AI 推論，請逐列確認並補齊主要對象。' },
       ],
       information_gaps: empty.length ? [{ field: 'm3.organization_relations', message: `「${empty.map(r => r.aspect).join('、')}」關係尚未辨識到內容，請補充或標示不適用。` }] : [],
-      warnings: ['若出現「需要負責，但沒有相應資訊或授權」，屬待確認的組織設計問題，不可直接轉成人才條件。'],
+      warnings: [],
     });
   },
 
@@ -439,7 +542,7 @@ const SECTION_HANDLERS = {
     }, 'm3.core_judgments');
     return envelope('M3-05', {
       organized_content: b,
-      warnings: ['重要工作原則避免只寫「憑經驗」或「看情況」，請確認已轉成可重複使用的判斷原則。'],
+      warnings: [],
     });
   },
 
@@ -483,7 +586,7 @@ const SECTION_HANDLERS = {
     }, 'm3.quality_requirements');
     return envelope('M3-07', {
       organized_content: b,
-      warnings: ['避免只寫「細心、負責、有責任感」，必須轉成實際情境與行為。'],
+      warnings: [],
     });
   },
 
@@ -496,7 +599,7 @@ const SECTION_HANDLERS = {
     }, 'm3.ethics_nonnegotiables');
     return envelope('M3-07', {
       organized_content: b,
-      warnings: ['請確認已區分「真正的法律或倫理底線」與「主管個人偏好或服從期待」。'],
+      warnings: [],
     });
   },
 
@@ -513,7 +616,7 @@ function buildAnchors(fieldId, pts, ctx, task, itemName) {
   const src = ctx.anchorItems && ctx.anchorItems.length ? ctx.anchorItems : pts.slice(0, 4);
   const items = src.map(it => (typeof it === 'string' ? it : (it.name || it.work || ''))).filter(Boolean).slice(0, 6);
   if (!items.length) {
-    return envelope(task, { cannot_complete: true, cannot_complete_reason: `尚無可建立錨點的${itemName}。` });
+    return envelope(task, { warnings: [`目前還沒有可以用來建立錨點的${itemName}。先往下走，之後回來補也可以。`] });
   }
   // L1–L5 每一格填的就是該等級的行為特徵（BARS），不另立「行為特徵」欄
   const anchors = items.map(name => ({
@@ -532,7 +635,7 @@ function buildAnchors(fieldId, pts, ctx, task, itemName) {
     inferences_requiring_confirmation: [
       { field: fieldId, note: 'L1–L5 為依口述推論的連續行為，最低／理想等級一律由人工確認，AI 不預設。' },
     ],
-    warnings: ['不以年資、學歷、職稱或術語量判定等級；不得把所有項目都提高到 L5。'],
+    warnings: [],
   });
 }
 
@@ -582,43 +685,61 @@ export function runMaturity(perDimensionRaw = {}, prev = []) {
 export function runM4(confirmed) {
   const required = ['m3.role_positioning', 'm3.value_outputs', 'm3.work_items'];
   const missing = required.filter(f => !confirmed[f]);
-  if (missing.length) {
-    return envelope('M4-01', {
-      cannot_complete: true,
-      cannot_complete_reason: 'M3 尚有未確認的必要欄位，無法組裝職務說明書。',
-      information_gaps: missing.map(f => ({ field: f, message: '需先確認' })),
-    });
-  }
   return envelope('M4-01', {
     organized_content: { assembled: true },
-    warnings: [
-      '職務基本資料由組織直接填寫，不由 AI 推論。',
-      '完整行為錨點、面試題目與評分標準不放入職務說明書。',
-    ],
+    information_gaps: missing.map(f => ({ field: f, message: '目前沒有內容，文件會先以「待確認」保留。' })),
+    warnings: ['職務基本資料那一區留給你填。'],
   });
 }
 
 /* ═══════════ M5 甄選流程設計書 ═══════════ */
 export function runM5(confirmed) {
   const anchors = mergeAnchors(confirmed);
+  // 階段是時間軸，方法可複選。「結構化面試」不是階段——那是題目有沒有設計過，
+  // 每一關都該成立，所以不放進流程名稱。
   const steps = [
-    { step: '初步篩選', role: '招募／HR', task: '書面與經歷檢視', focus: '到職底線與動機' },
-    { step: '結構化面試', role: '職務主管＋HR', task: '行為事例訪談', focus: '核心職能與專業判斷' },
-    { step: '實作／情境', role: '團隊資深成員', task: '工作樣本或情境模擬', focus: '工作品質與方法' },
-    { step: '最終確認', role: '單位主管', task: '綜合評估與等級核對', focus: '最低可接受等級核對' },
+    { step: '書面與經歷檢視', role: 'HR／行政',
+      task: '書面與經歷檢視', focus: '到職底線與必備條件' },
+    { step: '第一次面談', role: '用人主管',
+      task: '行為事例訪談（過去經驗）、情境判斷提問（未來情境）、工作動機了解',
+      focus: '核心職能與專業判斷、投入動機與持續性' },
+    { step: '實作評估／試做', role: '團隊資深成員',
+      task: '工作樣本評量、實際帶班／試做觀察',
+      focus: '工作品質與方法、面對變動與壓力的反應' },
+    { step: '最終確認與條件談定', role: '單位主管',
+      task: '人才成熟度核對、綜合評估與等級核對、條件與期待對齊',
+      focus: '最低可接受等級核對、價值觀是否相容' },
   ];
-  const questions = anchors.flatMap(a => ([
-    { stage: '結構化面試', competency: a.competency, qtype: '過去經驗',
+  /*
+   * 出題要收斂，不是有幾個職能就出幾題。
+   * 一場面試問得完的大概就十題上下，二十幾題那張表沒有人會照著用。
+   *
+   * 1. L1 不出題——L1 是「需要明確指令才會動」，那種程度問不出東西。
+   * 2. 依重要性排序：等級要求越高越該問；有勾進 JD 的優先。
+   * 3. 最多取六項核心職能，一項兩題，上限十二題。其餘列出來讓人自己決定要不要加。
+   */
+  const CORE_MAX = 6;
+  const lvNum = (a) => { const m = /L(\d)/.exec(String(a.minimum_level || '')); return m ? +m[1] : 0; };
+  const worthAsking = (a) => lvNum(a) !== 1;
+  const ranked = anchors.filter(worthAsking)
+    .map((a, i) => ({ a, i, score: lvNum(a) * 10 + (a.jd_selected ? 5 : 0) }))
+    .sort((x, y) => y.score - x.score || x.i - y.i);
+  const core = ranked.slice(0, CORE_MAX).map(x => x.a);
+  const deferred = ranked.slice(CORE_MAX).map(x => x.a.competency);
+
+  const questions = core.flatMap(a => ([
+    { competency: a.competency, qtype: '過去經驗',
       question: `請描述一次你實際處理「${a.competency}」的經驗，當時的情況、你的做法與結果。`,
       followup: '當時有哪些資訊不足或限制？你如何判斷要自己處理還是求助？',
       evidence: '能否獨立完成、面對例外情境的處理層級與求助時機。',
       level: a.minimum_level || '' },
-    { stage: '實作／情境', competency: a.competency, qtype: '未來情境',
+    { competency: a.competency, qtype: '未來情境',
       question: `如果在「${a.competency}」上遇到時間更緊或資源更少的情況，你會怎麼調整？`,
       followup: '你會優先犧牲什麼、守住什麼？依據是什麼？',
       evidence: '取捨原則是否穩定，是否理解品質底線。',
       level: a.minimum_level || '' },
   ]));
+  const skippedL1 = anchors.filter(a => !worthAsking(a)).map(a => a.competency);
   const noMin = anchors.filter(a => !a.minimum_level).map(a => a.competency);
   return envelope('M5-01..03', {
     organized_content: {
@@ -631,7 +752,11 @@ export function runM5(confirmed) {
       { field: 'm5.interview_questions', note: '題目與評分用途需人工確認；所有候選人應接受一致的核心問題與主要追問。' },
     ],
     information_gaps: noMin.length ? [{ field: 'm5.behavior_anchors', message: `「${noMin.join('、')}」尚未設定最低可接受等級（人工項）。` }] : [],
-    warnings: ['候選人流程說明資訊由組織直接確認，AI 不補造。'],
+    warnings: [
+      '流程期間、地點、要準備什麼、怎麼通知結果，這幾項留給你填。',
+      ...(deferred.length ? [`只針對最核心的 ${core.length} 項職能出題。「${deferred.join('、')}」先沒出題——一場面試問得完的大概十題上下，需要的話再自己加。`] : []),
+      ...(skippedL1.length ? [`「${skippedL1.join('、')}」最低只要 L1，那個程度不用靠面試題驗證。`] : []),
+    ],
   });
 }
 
@@ -702,46 +827,73 @@ export function runM6(confirmed, caseFields) {
   });
 }
 
-/* ═══════════ QA-02 對外揭露邊界檢查 ═══════════ */
+/* ═══════════ QA-02 發布前自我複查清單 ═══════════
+   這裡不是檢查，是**把幾個地方指出來讓人自己看一眼**。
+   系統不判定通過或不通過，也不阻擋發布——要不要改、能不能發，都是人決定。 */
 export function runQA02(jdContent) {
   const t = typeof jdContent === 'string' ? jdContent : JSON.stringify(jdContent);
-  const hits = [];
-  if (/L[1-5]\b/.test(t)) hits.push('偵測到 L1–L5 等級代碼。');
-  if (/行為錨點|錨點/.test(t)) hits.push('偵測到「行為錨點」字樣。');
-  if (/最低可接受等級|評分|計分|分數/.test(t)) hits.push('偵測到內部評分或最低等級敘述。');
-  if (/表現過度|過度風險|不適任/.test(t)) hits.push('偵測到表現過度風險假設。');
-  if (/結構化追問|需要取得的行為證據/.test(t)) hits.push('偵測到完整面試題目或追問內容。');
+  const items = [];
+
+  /*
+   * 就業歧視風險提醒。
+   * 《就業服務法》第 5 條禁止以種族、國籍、性別、年齡、婚育、宗教、
+   * 容貌、身心障礙、星座血型等與工作無關的條件限制求職者。
+   * 這裡只提醒、不改寫、不阻擋——要怎麼處理是人的判斷。
+   */
+  const BIAS = [
+    [/中國|大陸籍|外籍|本國籍|國籍|僑生/, '這裡提到國籍或族群。如果是資訊安全的考量，改成「依資料分類與授權範圍處理」會比較準確，也避開就業歧視的疑慮。'],
+    [/限男|限女|男性佳|女性佳|限.{0,2}性/, '這裡對性別做了限制。除非是法律允許的真實職業資格，否則寫進招募文件有《就業服務法》第 5 條的疑慮。'],
+    [/\d{2}\s*歲以[下上]|年齡限|限.{0,4}歲/, '這裡對年齡設了條件。要不要改成描述實際需要的體力或經驗？'],
+    [/未婚|已婚|懷孕|生育/, '這裡提到婚育狀況，那與工作能力無關，寫進招募文件有法律疑慮。'],
+    [/身高|體重|外貌|五官|形象佳/, '這裡提到外型條件。除非工作確實必要，否則建議拿掉。'],
+    [/星座|血型|生肖/, '這裡用了星座、血型或生肖當條件，那與工作表現無關。'],
+  ];
+  BIAS.forEach(([re, msg]) => { if (re.test(t)) items.push(msg); });
+
+  // 只在「等級語境」才視為內部代碼，避免誤判產品型號、產線代號等正常用詞
+  if (/(等級|級別|level|達到|至少)\s*[：:]?\s*L[1-5]\b/i.test(t)) {
+    items.push('這裡出現了 L1–L5 的等級代碼，是內部用的分級。要不要改寫成候選人看得懂的說法？');
+  }
+  if (/行為錨點|錨定等級/.test(t)) {
+    items.push('這裡提到「行為錨點」，那是內部評估用語。要不要換個講法？');
+  }
+  if (/結構化追問|需要取得的行為證據|面試評分表/.test(t)) {
+    items.push('這裡似乎帶到了面試題目或追問內容。要公開到這個程度嗎？');
+  }
+  if (/表現過度|過度風險|不適任/.test(t)) {
+    items.push('這裡提到表現過度或不適任的判斷。那原本只是面試時要核對的假設，要放進對外文案嗎？');
+  }
   return envelope('QA-02', {
-    organized_content: { pass: hits.length === 0 },
-    warnings: hits,
-    contradictions: hits.map(h => ({ message: h, suggestion: '請移除或改寫為對外可揭露的情境化描述後才可發布。' })),
+    // pass 一律為 true：系統不做裁決，保留欄位僅為相容
+    organized_content: { pass: true, review_items: items },
+    warnings: items,
   });
 }
 
-/* ═══════════ QA-01 上下游一致性檢查 ═══════════ */
+/* ═══════════ QA-01 三份輸出的對照清單 ═══════════
+   同樣不是檢查。只是把「你可能想再看一眼的地方」列出來，
+   數字對不對、要不要補，都由人在現場決定。 */
 export function runQA01(confirmed) {
-  const issues = [];
+  const items = [];
   const anchors = mergeAnchors(confirmed);
   const workItems = confirmed['m3.work_items'] || [];
-  // 占比總和
+
   const total = workItems.reduce((s, w) => {
     const n = parseFloat(String(w.frequency_share || '').replace('%', ''));
     return s + (isNaN(n) ? 0 : n);
   }, 0);
   if (total > 0 && Math.abs(total - 100) > 10) {
-    issues.push({ type: 'share_total', message: `主要工作內容的時間占比總和為 ${total}%，與 100% 差距較大。系統不自行修正，請確認。` });
+    items.push(`工作時間占比目前加起來是 ${total}%。如果本來就抓不準，維持現狀也可以。`);
   }
-  // 錨點缺最低等級
   anchors.filter(a => !a.minimum_level).forEach(a => {
-    issues.push({ type: 'missing_min', message: `職能「${a.competency}」尚未設定最低可接受等級。` });
+    items.push(`職能「${a.competency}」還沒設最低可接受等級，之後對外文案會少這一項。`);
   });
-  // 成熟度缺理由
   (confirmed['m3.maturity_anchors'] || []).filter(m => !m.why).forEach(m => {
-    issues.push({ type: 'missing_reason', message: `成熟度維度「${m.competency}」尚未填寫「為什麼需要這個範圍」。` });
+    items.push(`成熟度「${m.competency}」還沒寫理由。想留白也沒關係，只是之後回頭看會少個依據。`);
   });
+
   return envelope('QA-01', {
-    organized_content: { pass: issues.length === 0 },
-    warnings: issues.map(i => i.message),
-    contradictions: [],
+    organized_content: { pass: true, review_items: items },
+    warnings: items,
   });
 }

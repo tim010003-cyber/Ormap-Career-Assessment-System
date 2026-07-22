@@ -1,15 +1,21 @@
 /**
  * jd-ai.js — AI 供應商層（前端）
  * =====================================================================
- * 這一層決定「這次要用真 AI 還是 Mock」，並統一組裝提示詞。
+ * 這一層決定「這次的整理由誰做」，並統一組裝提示詞。
  *
- * 設計原則
- *   - 前端永遠拿不到 API Key。所有呼叫都送到本機代理（127.0.0.1:8788），
- *     由代理帶著 Key 去打供應商。
- *   - 代理沒開、沒設 Key、或 AI 失敗時，一律**自動退回 Mock**，
- *     流程不會中斷（對應規格：API 失敗不得清除原始輸入，也不得阻止人工繼續）。
- *   - 提示詞的重點是「怎麼整理得好」，不是「不准做什麼」。審核由人做，
- *     AI 只負責把口述轉成清楚、有結構的草稿。輸出形狀與 Mock 一致，畫面不用改。
+ * 兩條路徑
+ *   本機開發：瀏覽器 → 127.0.0.1:8788（ai-proxy.mjs）→ 供應商
+ *   線上：    瀏覽器 → Cloud Function jdAi（asia-east1）→ 供應商
+ *   兩邊的 Key 都不在前端；線上那把存在 Secret Manager。
+ *
+ * ⚠️ 沒有 AI 時「不整理」，不再退回 Mock
+ *   Mock 是關鍵字規則產生的，品質差到會誤導人——使用者看到的是一份看起來
+ *   像產品、實際上是拼湊的東西。與其給假貨，不如明說現在不能整理。
+ *   （2026-07-22 使用者決策）
+ *
+ *   注意：被擋的只有「口述整理」這一類。權責矛盾偵測、職務說明書組裝、
+ *   甄選流程模板、揭露與歧視提醒都是規則邏輯不是 AI，照常運作，
+ *   所以預建示範案例在沒有 AI 的環境仍然看得完、下載得了。
  */
 
 import { transformRule, STANCE } from './jd-transform-rules.js';
@@ -18,41 +24,114 @@ const PROXY_KEY = 'jd_ai_proxy_url';
 export const defaultProxy = () => localStorage.getItem(PROXY_KEY) || 'http://127.0.0.1:8788';
 export const setProxy = (u) => localStorage.setItem(PROXY_KEY, u);
 
+const FN_REGION = 'asia-east1';
+
 let _status = null;   // 快取，避免每次呼叫都問一次
+let _fbPromise = null;
 
 /**
  * 本機代理只在本機環境有意義。
  *
  * 部署到 HTTPS 之後，從網頁 fetch http://127.0.0.1:8788 屬於 mixed content，
  * 瀏覽器會直接封鎖，而且那個錯誤**攔不住**——try/catch 接得到 fetch 的 rejection，
- * 但攔不掉 console 上的封鎖訊息。結果就是公開站每次載入都噴一條紅字。
- *
- * 所以非本機環境一律不發這個請求，直接視為沒有 AI，安靜退回 Mock。
+ * 但攔不掉 console 上的封鎖訊息。所以非本機環境一律不發這個請求。
  */
 export function isLocalEnv() {
   const h = location.hostname;
   return h === 'localhost' || h === '127.0.0.1' || h === '[::1]' || h.endsWith('.localhost');
 }
 
+/** 延遲載入 Firebase：公開站不一定要用到，不要一進頁面就拉 SDK。 */
+function firebaseBits() {
+  if (!_fbPromise) {
+    _fbPromise = (async () => {
+      const [{ auth }, authMod, fnMod, appMod] = await Promise.all([
+        import('../../firebase-init.js'),
+        import('https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js'),
+        import('https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js'),
+        import('https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js'),
+      ]);
+      return { auth, authMod, fnMod, appMod };
+    })();
+  }
+  return _fbPromise;
+}
+
+/** 目前登入的使用者（未登入回 null）。等 Auth 還原完成才回answer。 */
+export async function currentUser() {
+  try {
+    const { auth, authMod } = await firebaseBits();
+    if (auth.currentUser) return auth.currentUser;
+    return await new Promise((resolve) => {
+      const un = authMod.onAuthStateChanged(auth, (u) => { un(); resolve(u); });
+    });
+  } catch { return null; }
+}
+
+export async function signIn() {
+  const { auth, authMod } = await firebaseBits();
+  const provider = new authMod.GoogleAuthProvider();
+  const cred = await authMod.signInWithPopup(auth, provider);
+  _status = null;                     // 身分變了，狀態要重算
+  return cred.user;
+}
+
+export async function signOut() {
+  const { auth, authMod } = await firebaseBits();
+  await authMod.signOut(auth);
+  _status = null;
+}
+
+/** 監看登入狀態變化，讓畫面可以即時更新。 */
+export async function onAuth(cb) {
+  const { auth, authMod } = await firebaseBits();
+  return authMod.onAuthStateChanged(auth, (u) => { _status = null; cb(u); });
+}
+
+/**
+ * 目前能不能用 AI，以及為什麼不能。
+ * mode: 'local'（本機代理）｜'cloud'（Cloud Function）｜'none'
+ */
 export async function aiStatus(force = false) {
   if (_status && !force) return _status;
-  if (!isLocalEnv()) {
-    _status = { ok: false, hasKey: false, offline: true, remote: true };
+
+  // 本機開發：優先用本機代理，改提示詞不用重新部署
+  if (isLocalEnv()) {
+    try {
+      const r = await fetch(defaultProxy() + '/api/status', { signal: AbortSignal.timeout(2500) });
+      const j = await r.json();
+      if (j.ok && j.hasKey) {
+        _status = { ...j, mode: 'local', ready: true };
+        return _status;
+      }
+      _status = { ...j, mode: 'none', ready: false, reason: j.hasKey ? 'proxy_error' : 'no_key' };
+      return _status;
+    } catch {
+      // 本機代理沒開就往下試雲端，不直接放棄
+    }
+  }
+
+  const user = await currentUser();
+  if (!user) {
+    _status = { mode: 'none', ready: false, reason: 'signed_out' };
     return _status;
   }
-  try {
-    const r = await fetch(defaultProxy() + '/api/status', { signal: AbortSignal.timeout(2500) });
-    _status = await r.json();
-  } catch {
-    _status = { ok: false, hasKey: false, offline: true };
-  }
+  _status = { mode: 'cloud', ready: true, email: user.email, provider: 'cloud' };
   return _status;
 }
 
-export const aiReady = async () => {
-  const s = await aiStatus();
-  return !!(s.ok && s.hasKey);
-};
+export const aiReady = async () => (await aiStatus()).ready === true;
+
+/** 給畫面用的說明文字：為什麼現在不能整理、該做什麼。 */
+export function whyNotReady(status) {
+  switch (status?.reason) {
+    case 'signed_out': return { short: '請先登入', detail: 'AI 整理需要登入才能使用。' };
+    case 'no_key':     return { short: '尚未設定 API Key', detail: '本機代理已啟動，但還沒填入 API Key。' };
+    case 'proxy_error':return { short: 'AI 代理異常', detail: '本機代理回應不正常，請檢查終端機。' };
+    case 'not_allowed':return { short: '帳號未開放', detail: 'AI 整理目前僅開放給指定帳號測試，課程授權碼上線後才會開放。' };
+    default:           return { short: '目前無法使用 AI', detail: '請稍後再試，或改用人工填寫。' };
+  }
+}
 
 /* ══════════ 共通提示詞 ══════════
    目標只有一個：把口述整理好。
@@ -136,15 +215,29 @@ function shapeHint(sample) {
 }`;
 }
 
+/** 呼叫端用來分辨「沒整理」的原因，決定要顯示什麼 */
+export class AiUnavailable extends Error {
+  constructor(reason, detail) {
+    super(detail || reason);
+    this.name = 'AiUnavailable';
+    this.reason = reason;
+  }
+}
+
 /**
- * 呼叫 AI。失敗一律回 null，讓呼叫端退回 Mock。
- * @param taskCode 任務代碼（僅供紀錄）
+ * 呼叫 AI。
+ *
+ * 不再「失敗就回 Mock」——失敗會丟出 AiUnavailable，讓畫面誠實說明現況。
+ * 使用者原話：Mock 的品質真的蠻糟糕的，寧可不能跑。
+ *
+ * @param taskCode 任務代碼（決定帶哪一節的轉換原則，也用於紀錄）
  * @param instruction 這個任務要做什麼
- * @param sample Mock 的 organized_content 形狀，用來約束輸出
+ * @param sample 欄位形狀（只取鍵名與型別，不帶值）
  * @param input 使用者的原始輸入與已確認上游
  */
 export async function askAi(taskCode, instruction, sample, input) {
-  if (!(await aiReady())) return null;
+  const st = await aiStatus();
+  if (!st.ready) throw new AiUnavailable(st.reason || 'unavailable');
   // 使用者在正式文件裡逐節寫好的「AI 轉換原則」，決定這一節該整理成什麼形狀。
   // 這是整理品質的主要來源：告訴 AI 該產出什麼結構，它才整理得好。
   const rule = transformRule(taskCode);
@@ -156,19 +249,40 @@ export async function askAi(taskCode, instruction, sample, input) {
     shapeHint(sample),
   ].filter(Boolean).join('\n\n');
   const user = typeof input === 'string' ? input : JSON.stringify(input, null, 2);
+
+  if (st.mode === 'local') {
+    let j;
+    try {
+      const r = await fetch(defaultProxy() + '/api/ai', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ taskCode, system, user }),
+        signal: AbortSignal.timeout(90000),
+      });
+      j = await r.json();
+    } catch (e) {
+      throw new AiUnavailable('proxy_error', '無法連線到本機 AI 代理：' + e.message);
+    }
+    if (!j.ok) throw new AiUnavailable('provider_error', j.message || j.error || 'AI 呼叫失敗');
+    return { ...j.data, _usage: j.usage, _model: j.model, _provider: j.provider };
+  }
+
+  // 線上：Cloud Function。Key 在 Secret Manager，前端只送提示詞與內容。
   try {
-    const r = await fetch(defaultProxy() + '/api/ai', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ taskCode, system, user }),
-      signal: AbortSignal.timeout(90000),
-    });
-    const j = await r.json();
-    if (!j.ok) { console.warn('[AI] 失敗，改用 Mock：', j.message || j.error); return null; }
+    const { fnMod, appMod } = await firebaseBits();
+    const fns = fnMod.getFunctions(appMod.getApp(), FN_REGION);
+    const call = fnMod.httpsCallable(fns, 'jdAi', { timeout: 120000 });
+    const res = await call({ taskCode, system, user });
+    const j = res.data || {};
+    if (!j.ok) throw new AiUnavailable('provider_error', j.message || 'AI 呼叫失敗');
     return { ...j.data, _usage: j.usage, _model: j.model, _provider: j.provider };
   } catch (e) {
-    console.warn('[AI] 無法連線，改用 Mock：', e.message);
-    return null;
+    if (e instanceof AiUnavailable) throw e;
+    // callable 的錯誤碼對應到畫面說明
+    const code = String(e.code || '').replace(/^functions\//, '');
+    if (code === 'unauthenticated') throw new AiUnavailable('signed_out', e.message);
+    if (code === 'permission-denied') throw new AiUnavailable('not_allowed', e.message);
+    throw new AiUnavailable('provider_error', e.message || String(e));
   }
 }
 

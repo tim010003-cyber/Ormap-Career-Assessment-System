@@ -16,15 +16,29 @@
       "package.json",
       "package-lock.json",
       "tests/**",
-      "tools/job-design/server/**"
+      "tools/job-design/server/**",
+      "functions/**"
     ]
   },
   "firestore": {
     "rules": "firestore.rules"
   },
+  "functions": {
+    "source": "functions",
+    "codebase": "default",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firebase-debug.*.log"
+    ]
+  },
   "emulators": {
     "firestore": {
       "port": 8080
+    },
+    "functions": {
+      "port": 5001
     },
     "ui": {
       "enabled": false

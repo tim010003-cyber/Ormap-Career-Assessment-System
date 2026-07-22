@@ -251,20 +251,25 @@ export function switchPath(c, newPath, reason) {
   return c;
 }
 
-// ── 存取窗與關閉（03 第七節）────────────────────────────
-export const CLOSE_HOURS = 72;
+/* ── 存取窗與關閉 ─────────────────────────────────────────
+ *
+ * 這一整套目前是**停用狀態**，刻意的。
+ *
+ * 原設計是「首次下載後 72 小時自動關閉，需講師重新開放」。但實際上：
+ *   1. 啟動倒數的 markFirstDownload() 從來沒有被任何地方呼叫，
+ *      所以 scheduled_close_at 永遠是 null，案例永遠不會關閉。
+ *   2. 就算會關閉，重新開放需要 isInstructor()，而身分切換的 UI 已經移除，
+ *      getIdentity() 恆為 'student'，那顆按鈕永遠不會出現 → 案例會永久鎖死。
+ *
+ * 決定：不補救這個機制，而是停用它。使用者已確認職務設計走
+ * **課程授權碼**模式（見 PRD/職務設計App_課程授權與AI配額_工作包），
+ * 存取期限與講師身分都會由後端的 jd_users / jd_codes 提供，
+ * 不再依賴瀏覽器 localStorage 的身分旗標。
+ *
+ * 下面的函式保留成惰性版本，讓呼叫端不用改；真正的存取控制等後端到位再接。
+ */
 
-/** 首次成功下載後才啟動 72h 倒數（05 產生與下載流程第 8–9 步）*/
-export function markFirstDownload(c) {
-  if (c.access.first_final_download_at) return c; // 只記一次
-  const now = new Date();
-  c.access.first_final_download_at = now.toISOString();
-  c.access.scheduled_close_at = new Date(now.getTime() + CLOSE_HOURS * 3600 * 1000).toISOString();
-  c.overall_status = 'downloaded_grace';
-  return c;
-}
-
-/** 依伺服器時間（此處為本機時間，Demo）判斷是否已到關閉時間 */
+/** 依關閉時間判斷是否已到期。目前沒有任何流程會設定 scheduled_close_at。 */
 export function evaluateClose(c) {
   const sc = c.access.scheduled_close_at;
   if (!sc || c.access.closed_at) return c;

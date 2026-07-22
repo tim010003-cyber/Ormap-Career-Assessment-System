@@ -39,6 +39,8 @@
      左右皆可收合，收合後中間的思考區自動放大。 -->
 <div class="jd-workspace-shell max-w-[1560px] mx-auto px-6">
   <div id="closedBanner" class="hidden mb-8 p-4 rounded-xl bg-navy/5 border border-navy/10 text-sm text-navy/60"></div>
+  <!-- AI 不可用時的說明。不擋人工填寫，只是誠實告知這一段沒有整理。 -->
+  <div id="aiUnavailable" class="hidden mb-6 p-4 rounded-xl bg-mist/50 border border-navy/15 text-sm text-navy/75"></div>
   <div id="workspace">
     <aside id="stageRail" class="rail"></aside>
     <main id="moduleArea" class="min-w-0"></main>
@@ -56,13 +58,16 @@ import { DOCUMENTS, getDocument, collectPending, countPending, downloadDocument,
 import * as AIX from './jd-ai.js';
 
 /**
- * 跑一個 AI 任務：先算出 Mock 結果當保底，再問真 AI。
- * AI 沒設定、連不上或失敗時，直接沿用 Mock，流程不中斷。
+ * 跑一個 AI 整理任務。
+ *
+ * 沒有 AI 就**不整理**，回傳 null，由呼叫端顯示原因。
+ * 以前是失敗就悄悄用 Mock 頂替，但 Mock 是關鍵字規則拼的，
+ * 使用者會拿到一份看起來像產品、實際是假貨的東西。
+ * （2026-07-22 使用者決策：寧可不能跑，也不要爛品質冒充。）
+ *
+ * mock 參數現在只用來提供「欄位形狀」給提示詞，不再當保底結果。
  */
 async function runWithAi(taskCode, instruction, mock, input, btn){
-  if(mock.cannot_complete) return mock;
-  const ready = await AIX.aiReady();
-  if(!ready) return mock;
   const label = btn ? btn.innerHTML : null;
   if(btn){ btn.disabled=true; btn.innerHTML='<i data-lucide="loader" class="w-4 h-4 animate-spin"></i>AI 整理中…'; if(window.lucide)lucide.createIcons(); }
   try{
@@ -72,9 +77,62 @@ async function runWithAi(taskCode, instruction, mock, input, btn){
     // 下一題拿到的背景就是含這一題在內的完整理解，而不是一堆碎片。
     if(taskCode!=='SYNTH-01') setTimeout(()=>{ refreshSummary().catch(()=>{}); }, 50);
     return merged;
+  } catch(e) {
+    const err = e instanceof AIX.AiUnavailable
+      ? e : new AIX.AiUnavailable('provider_error', e.message||String(e));
+    if(!(e instanceof AIX.AiUnavailable)) console.error('[AI] 未預期的錯誤', e);
+    showAiUnavailable(err, btn);
+    return null;
   } finally {
     if(btn){ btn.disabled=false; btn.innerHTML=label; if(window.lucide)lucide.createIcons(); }
   }
+}
+
+/**
+ * AI 不能用時的說明。原始輸入完全保留，人工填寫與下載都不受影響。
+ *
+ * 一定要顯示在**按鈕旁邊**。先前放在頁面頂端的固定區塊，按鈕在畫面下方時
+ * 使用者只會感覺到「頁面往上跳了一下，然後沒反應」——訊息離操作點太遠，
+ * 等於沒說。
+ */
+function showAiUnavailable(err, btn){
+  const info = AIX.whyNotReady({ reason: err.reason });
+
+  // 同一顆按鈕重複按時不要疊出好幾張
+  document.querySelectorAll('.ai-unavailable-note').forEach(n=>n.remove());
+  const top = $('#aiUnavailable'); if(top) top.classList.add('hidden');
+
+  const note = el('div','ai-unavailable-note mt-3 p-3.5 rounded-xl bg-mist/50 border border-navy/15 text-sm text-navy/75');
+  note.innerHTML = `<div class="flex items-start gap-2">
+      <i data-lucide="info" class="w-4 h-4 shrink-0 mt-0.5"></i>
+      <div>
+        <div class="font-bold mb-0.5">${esc(info.short)}，這一段沒有整理</div>
+        <div class="text-navy/60 leading-relaxed">${esc(info.detail)}</div>
+        <div class="text-navy/45 leading-relaxed mt-1">你寫的內容都還在，也可以直接手動填寫下面的欄位。</div>
+      </div>
+    </div>`;
+
+  if(err.reason === 'signed_out'){
+    const b = el('button','mt-2.5 ml-6 inline-flex items-center gap-1.5 bg-navy text-ivory px-3.5 py-2 rounded-lg text-xs font-semibold hover:bg-tealdeep',
+      '<i data-lucide="log-in" class="w-3.5 h-3.5"></i>用 Google 登入');
+    b.addEventListener('click', async()=>{
+      try{ await AIX.signIn(); note.remove(); render(); }
+      catch(e){ if(e?.code!=='auth/popup-closed-by-user') alert('登入失敗：'+(e.message||e)); }
+    });
+    note.appendChild(b);
+  }
+
+  // 掛在按鈕所在的那一列後面；找不到按鈕才退回頁面頂端的區塊
+  const anchor = btn && btn.isConnected ? (btn.closest('div') || btn) : null;
+  if(anchor && anchor.parentNode){
+    anchor.parentNode.insertBefore(note, anchor.nextSibling);
+  } else if(top){
+    top.classList.remove('hidden'); top.innerHTML=''; top.appendChild(note);
+  } else {
+    $('#moduleArea')?.appendChild(note);
+  }
+  if(window.lucide)lucide.createIcons();
+  note.scrollIntoView({behavior:'smooth', block:'center'});
 }
 
 const $ = (s,r=document)=>r.querySelector(s);
@@ -88,9 +146,6 @@ let c = S.getCase(caseId);
 if(!c){ document.body.innerHTML='<div class="p-10 text-center text-navy/60">找不到案例。<a class="text-tealgreen underline" href="./index.html">回列表</a></div>'; throw new Error('no case'); }
 
 let currentModule = c.current_module || 'existing';
-
-// 身分（學員／講師）切換移到案例列表頁，思考頁不顯示，避免分心。
-const isInstructor=()=>S.getIdentity()==='instructor';
 
 function save(){ S.saveCase(c); }
 
@@ -199,7 +254,7 @@ async function refreshSummary(force){
     const grew=material.length-(c.case_summary.materialLen||0);
     if(grew<400) return c.case_summary;   // 只多了一兩句話，不值得再花一次
   }
-  if(!(await AIX.aiReady())) return c.case_summary;
+  if(!(await AIX.aiReady())) return c.case_summary;   // 整合是背景工作，沒 AI 就安靜跳過
 
   _synthing=true;
   try{
@@ -566,32 +621,20 @@ function refBlock(area,label,html){
   area.appendChild(d);
 }
 
-// ── 存取狀態 / 倒數 ──
-let countdownTimer=null;
+/* ── 存取狀態 / 倒數 ──
+ *
+ * 72 小時自動關閉目前停用（見 jd-store.js 的說明）。原本這裡還有一個
+ * 「講師重新開放 24 小時」的按鈕，但身分切換 UI 移除後 getIdentity()
+ * 恆為 'student'，那顆按鈕永遠不會出現——也就是說案例一旦關閉就永久鎖死。
+ * 既然啟動倒數的流程本來就沒被呼叫，這裡連同不可達的重開 UI 一併移除，
+ * 不留下看起來能用、實際上是死路的介面。
+ *
+ * 存取期限與講師身分之後由後端的 jd_users / jd_codes 提供。
+ */
 function renderAccess(){
-  S.evaluateClose(c);
-  const chip=$('#accessChip'); const banner=$('#closedBanner');
-  if(countdownTimer){clearInterval(countdownTimer);countdownTimer=null;}
-  if(S.isClosed(c)){
-    chip.classList.remove('hidden'); chip.className='badge bg-navy/10 text-navy/50'; chip.textContent='已關閉';
-    banner.classList.remove('hidden');
-    banner.innerHTML=`此案例已到達關閉時間，禁止編輯與 AI 呼叫（仍可下載既有結果）。${isInstructor()?'<button id="reopenBtn" class="mt-2 w-full bg-accent text-white rounded-lg py-1.5 font-semibold">講師重新開放 24 小時</button>':'<div class="mt-1 text-navy/40">需講師重新開放。</div>'}`;
-    const rb=$('#reopenBtn'); if(rb)rb.addEventListener('click',()=>{const r=prompt('重開理由：','課堂補充');S.reopenCase(c,24,r||'講師重開');save();render();});
-    save();
-  } else if(c.access.scheduled_close_at || c.access.reopened_until){
-    chip.classList.remove('hidden'); banner.classList.add('hidden');
-    const tick=()=>{
-      const ms=S.remainingMs(c);
-      if(ms==null){chip.classList.add('hidden');return;}
-      if(ms<=0){renderAccess();render();return;}
-      const h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000);
-      chip.className='badge bg-accent/15 text-accent';
-      chip.textContent=`${c.access.reopened_until?'重開中':'關閉倒數'} ${h}時${m}分`;
-    };
-    tick(); countdownTimer=setInterval(tick,30000);
-  } else {
-    chip.classList.add('hidden'); banner.classList.add('hidden');
-  }
+  const chip=$('#accessChip'), banner=$('#closedBanner');
+  if(chip) chip.classList.add('hidden');
+  if(banner) banner.classList.add('hidden');
 }
 
 const readOnly=()=>S.isClosed(c);
@@ -792,6 +835,7 @@ function renderM1(area){
       `\n欄位定義：\n${ch.outputs.map(o=>`・${o.id}｜${o.name}｜${o.type}`).join('\n')}`+
       `\n使用者已明確表達的增員或找人決策要忠實保留，不要自動降格為假設。任何缺口或不同角度都只是可選提醒，不得阻擋流程。`,
       r, {目前為止談過的內容:caseBrief(ch.rawId), 這一題他說的:text}, aiBtn);
+      if(!r) return;   // AI 不可用時不寫入任何欄位，說明已由 runWithAi 顯示
     S.recordAiJob(c,r.task_code);
     for(const[fid,v]of Object.entries(r.organized_content)){
       const f=ch.outputs.find(o=>o.id===fid);
@@ -963,6 +1007,7 @@ function renderM2Summary(area){
       '\n・m2.out_of_scope｜暫時不處理的問題'+
       '\n以及依他實際勾選的方案，整理人力策略結論與角色類型判斷。',
       r, {目前為止談過的內容:caseBrief(), 他在這一頁的勾選與填寫:checks}, aiBtn);
+      if(!r) return;   // AI 不可用時不寫入任何欄位，說明已由 runWithAi 顯示
     S.recordAiJob(c,'M2-01');
     // AI 補出來的欄位寫回案例，讓文件抓得到
     Object.entries(r.organized_content||{}).forEach(([fid,v])=>{
@@ -1214,6 +1259,7 @@ function renderSection(area,s){
       `《職務與人才規格定位》${s.code} ${s.title}。依使用者的口述整理可編輯草稿。回應品質、資訊不足、推論或不同意見都不阻擋流程。\n各欄位的定義與轉換原則：\n${rules}`
       +(s.guard?`\n特別注意：${s.guard}`:''),
       r, {目前為止談過的內容:caseBrief(s.rawId), 這一題他說的:text, 可用的錨點項目:ctx.anchorItems}, aiBtn);
+      if(!r) return;   // AI 不可用時不寫入任何欄位，說明已由 runWithAi 顯示
     S.recordAiJob(c,r.task_code);
     for(const [fid,v] of Object.entries(r.organized_content)){
       S.saveField(c,fid,v,s.isAnchor?'ai_inference':'ai_organized',r.task_code);
@@ -1599,6 +1645,7 @@ function renderMaturityAggregate(area){
       {目前為止談過的內容:caseBrief(), 各維度他說的:raws,
        泛用五級參考:Object.fromEntries(F.MATURITY_DIMENSIONS.map(d=>[d.name,d.generic]))},
       genBtn);
+      if(!r) return;   // AI 不可用時不寫入任何欄位，說明已由 runWithAi 顯示
     S.recordAiJob(c,'M3-09');
     S.saveField(c,'m3.maturity_anchors',r.organized_content['m3.maturity_anchors'],'ai_inference','M3-09');
     st.sections['5.6']={inferences:r.inferences_requiring_confirmation,gaps:r.information_gaps,warnings:r.warnings,source:r._source};
@@ -1917,6 +1964,7 @@ function renderM6(area){
       `
 口述裡的「我」是說話的那位主管在講自己。寫進對外文案時要換成角色稱謂（用人主管、專案負責人、活動負責人等），或改寫成組織的口吻，不要留下第一人稱。`,
       r, {目前為止談過的內容:caseBrief(), 已確認的職務規格:confirmed, 職務名稱:caseFields['case.job_title_working']}, btn);
+      if(!r) return;   // AI 不可用時不寫入任何欄位，說明已由 runWithAi 顯示
     S.recordAiJob(c,'M6-01');
     for(const[fid,v]of Object.entries(r.organized_content))S.saveField(c,fid,v,'ai_organized','M6-01');
     save(); paint();

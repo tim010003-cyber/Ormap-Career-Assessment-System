@@ -3,6 +3,19 @@
    - 僅作用於 .jd-app，避免影響站內其他工具。
    - 保留 Tailwind CDN 既有版面 utilities；本檔提供品牌色 utilities、
      App 元件與三欄工作區樣式，取代三頁重複的 config / inline style。
+
+   ⚠️ 重要限制：品牌色是「手寫列舉」，不是 Tailwind 產生的
+   ------------------------------------------------------------
+   navy / tealgreen / tealdeep / accent / mist / ivory 這些不是
+   Tailwind 內建色，原本靠各頁的 inline tailwind.config 產生。
+   改用共用 CSS 後，這裡是逐條手寫的，**只有下面實際列出的組合有效**。
+
+   後果：在 markup 或 JS 裡寫一個沒列舉過的色階（例如 bg-navy/45、
+   text-tealdeep/70）會**靜默失效**——沒有錯誤訊息，元素就是沒有顏色。
+
+   新增色階時：先在本檔加上對應規則，再去 markup 使用。
+   目前已列舉的組合可用這個指令查：
+     grep -oE '\.(bg|text|border)-(navy|tealgreen|tealdeep|accent|mist|ivory)(\\\\/[0-9]+)?' jd-theme.css | sort -u
    ============================================================ */
 
 .jd-app {

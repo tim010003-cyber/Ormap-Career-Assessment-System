@@ -89,6 +89,12 @@ const STYLE = `
   .part{color:#666;font-size:9pt;letter-spacing:1.5pt;font-weight:400;}
   .lvmark{margin-top:1pt;font-size:8.5pt;font-weight:700;color:#333;}
   .trait{font-size:8pt;border:.5pt solid #666;padding:0 3pt;color:#333;}
+  /* 行為錨點卡：一個職能一張，整張不要被拆到兩頁 */
+  .acard{margin:0 0 7pt;page-break-inside:avoid;}
+  .ach{font-size:10.5pt;background:#dcdcdc;}
+  /* 標題不要落在頁尾當孤行，表格列不要從中間被切斷 */
+  h1,h2,h3,h4{page-break-after:avoid;}
+  tr{page-break-inside:avoid;}
 </style>`;
 
 /**
@@ -180,10 +186,11 @@ function depersonalize(html, roleName) {
  */
 const TD_STYLE = 'border:.5pt solid #666;padding:3pt 5pt;text-align:left;vertical-align:top;line-height:1.35;word-wrap:break-word;';
 const TAG_STYLE = {
-  h1: 'font-size:13pt;font-weight:700;margin:16pt 0 6pt;padding-bottom:3pt;border-bottom:1pt solid #000;letter-spacing:.5pt;',
-  h2: 'font-size:11.5pt;font-weight:700;margin:14pt 0 5pt;padding:2pt 0 2pt 7pt;border-left:3pt solid #000;background:#f2f2f2;',
-  h3: 'font-size:10.5pt;font-weight:700;margin:10pt 0 3pt;',
-  h4: 'font-size:10pt;font-weight:700;margin:9pt 0 3pt;',
+  h1: 'font-size:13pt;font-weight:700;margin:16pt 0 6pt;padding-bottom:3pt;border-bottom:1pt solid #000;letter-spacing:.5pt;page-break-after:avoid;',
+  h2: 'font-size:11.5pt;font-weight:700;margin:14pt 0 5pt;padding:2pt 0 2pt 7pt;border-left:3pt solid #000;background:#f2f2f2;page-break-after:avoid;',
+  h3: 'font-size:10.5pt;font-weight:700;margin:10pt 0 3pt;page-break-after:avoid;',
+  h4: 'font-size:10pt;font-weight:700;margin:9pt 0 3pt;page-break-after:avoid;',
+  tr: 'page-break-inside:avoid;',
   p: 'margin:3pt 0;',
   table: 'border-collapse:collapse;width:100%;margin:4pt 0 8pt;font-size:9.5pt;table-layout:fixed;',
   th: TD_STYLE + 'background:#e8e8e8;font-weight:700;',
@@ -200,13 +207,15 @@ const CLASS_STYLE = {
   part: 'color:#666;font-size:9pt;letter-spacing:1.5pt;font-weight:400;',
   lvmark: 'margin-top:1pt;font-size:8.5pt;font-weight:700;color:#333;',
   trait: 'font-size:8pt;border:.5pt solid #666;padding:0 3pt;color:#333;',
+  acard: 'margin:0 0 7pt;page-break-inside:avoid;',
+  ach: 'font-size:10.5pt;background:#dcdcdc;',
 };
 // 字體名稱用單引號：這串會被塞進 style="..." 屬性裡，用雙引號會把屬性提早收掉。
 const BODY_STYLE = "font-family:'Noto Sans TC','Microsoft JhengHei',sans-serif;color:#000;line-height:1.45;font-size:10.5pt;";
 
 function inlineStyles(html) {
   return String(html).replace(
-    /<(h1|h2|h3|h4|p|table|th|td|ul|li|div|span|section)\b([^>]*)>/gi,
+    /<(h1|h2|h3|h4|p|table|tr|th|td|ul|li|div|span|section)\b([^>]*)>/gi,
     (m, tag, attrs) => {
       const cls = /class\s*=\s*"([^"]*)"/i.exec(attrs);
       const base = [TAG_STYLE[tag.toLowerCase()] || ''];
@@ -378,7 +387,7 @@ export function buildGuideDoc(c) {
     <tr><th>使用或處理的資料與物件</th><td>${listBlock(F('m3.data_objects'))}</td></tr>
   </table>
   <h3>主要工作項目</h3>
-  <table><tr><th>工作項目</th><th>責任區分</th><th>性質</th><th>頻率／占比</th></tr>
+  <table><thead><tr><th>工作項目</th><th>責任區分</th><th>性質</th><th>頻率／占比</th></tr></thead>
   ${workItems.length ? workItems.map(w => `<tr><td>${esc(w.work)}</td><td>${esc(w.responsibility_type)}</td><td>${esc(w.nature)}</td><td>${w.frequency_share ? esc(w.frequency_share) : TBC}</td></tr>`).join('') : `<tr><td colspan="4" class="tbc">待確認</td></tr>`}
   </table>
   <h3>組織關係、責任與專業決策範圍</h3>${relationsTable(F('m3.organization_relations'))}
@@ -450,7 +459,7 @@ export function buildJobDescriptionDoc(c) {
   ${listBlock(F('m3.value_outputs'))}
 
   <h1>四、主要工作內容</h1>
-  <table><tr><th>工作項目</th><th>責任區分</th><th>性質</th><th>頻率／占比</th></tr>
+  <table><thead><tr><th>工作項目</th><th>責任區分</th><th>性質</th><th>頻率／占比</th></tr></thead>
   ${workItems.length ? workItems.map(w => `<tr><td>${esc(w.work)}</td><td>${esc(w.responsibility_type)}</td><td>${esc(w.nature)}</td><td>${w.frequency_share ? esc(w.frequency_share) : TBC}</td></tr>`).join('') : `<tr><td colspan="4" class="tbc">待確認</td></tr>`}
   </table>
 
@@ -556,23 +565,40 @@ export function buildJdDoc(c) {
  * 表格三：各職能的行為定錨等級（BARS）。
  * L1–L5 每一格的內容**就是**該等級的行為特徵，不另立欄位。
  * 最低／理想以 ✓ 標示於對應等級（打勾概念）。
+ *
+ * 為什麼不是一張九欄寬表（2026-07-23 改）
+ *   原本一列塞「職能／定義／L1–L5／最低／理想」共九欄。A4 直式扣掉邊界只剩
+ *   約 16.6cm，`table-layout:fixed` 又沒有 colgroup，九欄就是平均分配，
+ *   每欄僅約 1.8cm——9.5pt 中文一行放不到 5 個字。示範資料的 L1–L5 中位數
+ *   17 字、最長 28 字，等於每格被折成 4～7 行，整張表變成一片直排文字牆。
+ *   欄再多也沒用，寬度是紙決定的。
+ *
+ * 改法：一個職能一張卡，等級改成直向兩欄（等級｜可觀察行為），
+ * 行為描述獨佔約 14cm，一行放得下 40 字以上。卡片前面補一張索引表，
+ * 保留原本寬表唯一的優點——一眼看完所有職能的最低／理想要求。
  */
 function anchorTable(anchors) {
   if (!anchors || !anchors.length) return `<p class="tbc">待確認</p>`;
+  const LV = ['L1', 'L2', 'L3', 'L4', 'L5'];
   const mark = (a, L) => {
     const tags = [];
     if (a.minimum_level === L) tags.push('✓最低');
     if (a.ideal_level === L) tags.push('✓理想');
     return tags.length ? `<div class="lvmark">${tags.join('　')}</div>` : '';
   };
-  return '<table><tr><th>職能名稱</th><th>職能定義</th><th>L1</th><th>L2</th><th>L3</th><th>L4</th><th>L5</th><th>最低可接受等級</th><th>理想適任等級</th></tr>' +
-    anchors.map(a => `<tr>
-      <td>${esc(a.competency)}${a.isTrait ? '<br><span class="trait">成熟度</span>' : ''}</td>
-      <td>${a.definition ? esc(a.definition) : TBC}</td>
-      ${['L1', 'L2', 'L3', 'L4', 'L5'].map(L => `<td>${esc(a[L])}${mark(a, L)}</td>`).join('')}
-      <td>${a.minimum_level ? esc(a.minimum_level) : TBC}</td>
-      <td>${a.ideal_level ? esc(a.ideal_level) : TBC}</td></tr>`).join('') +
-    '</table><p class="note">L1–L5 每一格為該等級的可觀察行為特徵（行為錨定等級 BARS）。</p>';
+  const index = '<table><thead><tr><th>職能名稱</th><th style="width:110px">最低可接受等級</th>'
+    + '<th style="width:110px">理想適任等級</th></tr></thead>'
+    + anchors.map(a => `<tr><td>${esc(a.competency)}${a.isTrait ? ' <span class="trait">成熟度</span>' : ''}</td>`
+      + `<td>${a.minimum_level ? esc(a.minimum_level) : TBC}</td>`
+      + `<td>${a.ideal_level ? esc(a.ideal_level) : TBC}</td></tr>`).join('')
+    + '</table>';
+  const cards = anchors.map(a => `<div class="acard"><table>
+    <thead><tr><th colspan="2" class="ach">${esc(a.competency)}${a.isTrait ? ' <span class="trait">成熟度</span>' : ''}</th></tr></thead>
+    <tr><th style="width:74px">職能定義</th><td>${a.definition ? esc(a.definition) : TBC}</td></tr>
+    ${LV.map(L => `<tr><th style="width:74px">${L}${mark(a, L)}</th><td>${esc(a[L])}</td></tr>`).join('')}
+  </table></div>`).join('');
+  return index + cards
+    + '<p class="note">L1–L5 每一格為該等級的可觀察行為特徵（行為錨定等級 BARS）；✓ 標示該職能的最低可接受與理想適任等級。</p>';
 }
 
 /**
@@ -583,7 +609,7 @@ function anchorTable(anchors) {
 function maturitySummary(anchors) {
   const all = anchors || [];
   if (!all.length) return `<p class="tbc">待確認</p>`;
-  return '<table><tr><th style="width:180px">人才成熟度維度</th><th>需要具備的內容與想法</th></tr>' +
+  return '<table><thead><tr><th style="width:180px">人才成熟度維度</th><th>需要具備的內容與想法</th></tr></thead>' +
     all.map(a => `<tr><td>${esc(a.competency)}</td><td>${a.description ? esc(a.description) : (a.why ? esc(a.why) : TBC)}</td></tr>`).join('') +
     '</table><p class="note">各職能與維度的分級標準與最低／理想要求，詳見《甄選流程設計書》表格三。</p>';
 }
@@ -612,7 +638,7 @@ function processTable(steps) {
   if (!steps || !steps.length) return `<p class="tbc">待確認</p>`;
   return '<table>'
     + '<colgroup><col style="width:18%"><col style="width:16%"><col style="width:10%"><col style="width:30%"><col style="width:26%"></colgroup>'
-    + '<tr><th>階段</th><th>負責角色</th><th>時長</th><th>任務</th><th>甄選重點</th></tr>'
+    + '<thead><tr><th>階段</th><th>負責角色</th><th>時長</th><th>任務</th><th>甄選重點</th></tr></thead>'
     + steps.map(s => `<tr><td>${esc(s.step)}</td><td>${esc(s.role)}</td><td>${s.duration ? esc(s.duration) : '—'}</td><td>${esc(s.task)}</td><td>${esc(s.focus)}</td></tr>`).join('') + '</table>';
 }
 
@@ -632,7 +658,7 @@ function questionTable(qs) {
   let prev = null;
   return '<table>'
     + '<colgroup><col style="width:12%"><col style="width:14%"><col style="width:26%"><col style="width:22%"><col style="width:19%"><col style="width:7%"></colgroup>'
-    + '<tr><th>問題類型</th><th>職能名稱</th><th>核心問題</th><th>結構化追問</th><th>需要取得的行為證據</th><th>等級</th></tr>'
+    + '<thead><tr><th>問題類型</th><th>職能名稱</th><th>核心問題</th><th>結構化追問</th><th>需要取得的行為證據</th><th>等級</th></tr></thead>'
     + qs.map(q => {
       const same = q.competency === prev;
       prev = q.competency;
@@ -664,26 +690,41 @@ function relationsTable(rows) {
   if (!rows || !rows.length) return `<p class="tbc">待確認</p>`;
   const merged = (r) => [r.primary, r.support, r.decision, r.escalation]
     .filter(x => x && String(x).trim()).join('；');
-  return '<table><tr><th style="width:90px">關係面向</th><th style="width:180px">主要對象</th><th>主要負責事項</th></tr>' +
+  return '<table><thead><tr><th style="width:90px">關係面向</th><th style="width:180px">主要對象</th><th>主要負責事項</th></tr></thead>' +
     rows.map(r => `<tr><td>${esc(r.aspect)}</td><td>${r.target ? esc(r.target) : TBC}</td><td>${merged(r) ? esc(merged(r)) : TBC}</td></tr>`).join('') + '</table>';
 }
 
-// 人才成熟度（含「為什麼需要」）
+/**
+ * 人才成熟度五級錨點（含「為什麼需要」）。
+ * 與 anchorTable 同樣的紙寬問題，所以同樣改成一維度一張卡；
+ * 差別只在標題列多一條「為什麼需要」，那是這張表存在的理由，不能省。
+ */
 function maturityTable(anchors) {
   if (!anchors || !anchors.length) return `<p class="tbc">待確認</p>`;
-  return '<table><tr><th>人才成熟度維度</th><th>為什麼需要</th><th>L1</th><th>L2</th><th>L3</th><th>L4</th><th>L5</th><th>最低</th><th>理想／最高</th></tr>' +
-    anchors.map(a => `<tr><td>${esc(a.competency)}</td><td>${a.why ? esc(a.why) : TBC}</td><td>${esc(a.L1)}</td><td>${esc(a.L2)}</td><td>${esc(a.L3)}</td><td>${esc(a.L4)}</td><td>${esc(a.L5)}</td><td>${a.minimum_level ? esc(a.minimum_level) : TBC}</td><td>${a.ideal_level ? esc(a.ideal_level) : TBC}</td></tr>`).join('') + '</table>';
+  const LV = ['L1', 'L2', 'L3', 'L4', 'L5'];
+  const mark = (a, L) => {
+    const tags = [];
+    if (a.minimum_level === L) tags.push('✓最低');
+    if (a.ideal_level === L) tags.push('✓理想');
+    return tags.length ? `<div class="lvmark">${tags.join('　')}</div>` : '';
+  };
+  return anchors.map(a => `<div class="acard"><table>
+    <thead><tr><th colspan="2" class="ach">${esc(a.competency)}</th></tr></thead>
+    <tr><th style="width:74px">為什麼需要</th><td>${a.why ? esc(a.why) : TBC}</td></tr>
+    ${LV.map(L => `<tr><th style="width:74px">${L}${mark(a, L)}</th><td>${esc(a[L])}</td></tr>`).join('')}
+  </table></div>`).join('')
+    + '<p class="note">✓ 標示該維度的最低可接受與理想適任等級。</p>';
 }
 
 function riskTable(rows) {
   if (!rows || !rows.length) return `<p class="tbc">待確認</p>`;
-  return '<table><tr><th>職能名稱</th><th>可能出現的風險</th><th>需要透過面試核對的事項</th><th>可接受或可調整的條件</th></tr>' +
+  return '<table><thead><tr><th>職能名稱</th><th>可能出現的風險</th><th>需要透過面試核對的事項</th><th>可接受或可調整的條件</th></tr></thead>' +
     rows.map(r => `<tr><td>${esc(r.competency)}</td><td>${esc(r.risk)}</td><td>${esc(r.check)}</td><td>${esc(r.acceptable)}</td></tr>`).join('') + '</table>';
 }
 
 function gapTable(rows) {
   if (!rows || !rows.length) return `<p class="tbc">待確認</p>`;
-  return '<table><tr><th>職能名稱</th><th>到職時可接受的缺口</th><th>預計補足的程度與期間</th><th>組織提供的訓練或支持</th></tr>' +
+  return '<table><thead><tr><th>職能名稱</th><th>到職時可接受的缺口</th><th>預計補足的程度與期間</th><th>組織提供的訓練或支持</th></tr></thead>' +
     rows.map(r => `<tr><td>${esc(r.competency)}</td><td>${esc(r.gap)}</td><td>${esc(r.period)}</td><td>${esc(r.support)}</td></tr>`).join('') + '</table>';
 }
 
@@ -696,7 +737,7 @@ function strategyTable(c, label, optionsId) {
     const t = typeof v === 'string' ? (key === 'reason' ? v : '') : (v?.[key] || '');
     return String(t).trim() ? esc(t) : TBC;
   };
-  return `<p><b>${label}</b></p><table><tr><th style="width:34%">採用的方案</th><th>原因</th><th>後續行動</th></tr>` +
+  return `<p><b>${label}</b></p><table><thead><tr><th style="width:34%">採用的方案</th><th>原因</th><th>後續行動</th></tr></thead>` +
     picked.map(p => `<tr><td>${esc(p)}</td><td>${cell(notes[p], 'reason')}</td><td>${cell(notes[p], 'action')}</td></tr>`).join('') + '</table>';
 }
 
@@ -710,20 +751,30 @@ function resourcePlanTable(c) {
   const rows = fieldVal(c, 'm2.resource_plan');
   if (!Array.isArray(rows) || !rows.length) return '';
   const cell = (v) => String(v ?? '').trim() ? esc(v) : TBC;
-  return '<table><tr><th style="width:24%">合作形式</th><th style="width:12%">人數</th><th>負責範圍</th><th style="width:22%">預估成本</th></tr>'
+  return '<table><thead><tr><th style="width:24%">合作形式</th><th style="width:12%">人數</th><th>負責範圍</th><th style="width:22%">預估成本</th></tr></thead>'
     + rows.map(r => `<tr><td>${cell(r.form)}</td><td>${cell(r.count)}</td><td>${cell(r.scope)}</td><td>${cell(r.cost)}</td></tr>`).join('')
     + '</table>';
 }
 
-// M1 第二章：問題清單
+/**
+ * M1 第二章：問題清單。
+ *
+ * 七欄在 A4 上本來就吃緊，而 `table-layout:fixed` 沒有 colgroup 時是平均分配，
+ * 於是「問題類型」「主／次」這種四到五個字的欄位，跟二十幾個字的問題陳述
+ * 拿到一樣寬——短欄留白，長欄被折成四行。給短欄一個合身的寬度，
+ * 省下來的都還給敘述欄。
+ */
 function problemTable(rows) {
   if (!rows || !rows.length) return `<p class="tbc">待確認</p>`;
-  return '<table><tr><th>問題陳述</th><th>問題類型</th><th>主／次</th><th>可觀察現象及已知影響</th><th>可能原因</th><th>受影響的下游結果</th><th>已確認／待驗證</th></tr>' +
+  return '<table>'
+    + '<colgroup><col style="width:20%"><col style="width:9%"><col style="width:8%"><col style="width:15%">'
+    + '<col style="width:20%"><col style="width:14%"><col style="width:14%"></colgroup>'
+    + '<thead><tr><th>問題陳述</th><th>問題類型</th><th>主／次</th><th>可觀察現象及已知影響</th><th>可能原因</th><th>受影響的下游結果</th><th>已確認／待驗證</th></tr></thead>' +
     rows.map(r => `<tr><td>${esc(r.statement)}</td><td>${r.type ? esc(r.type) : TBC}</td><td>${esc(r.primary)}</td><td>${r.phenomena ? esc(r.phenomena) : TBC}</td><td>${r.causes ? esc(r.causes) : TBC}</td><td>${r.downstream ? esc(r.downstream) : TBC}</td><td>${r.confirmed_vs_hypo ? esc(r.confirmed_vs_hypo) : TBC}</td></tr>`).join('') + '</table>';
 }
 
 function confirmTable(roles) {
-  return '<table><tr><th style="width:180px">確認角色</th><th>姓名</th><th>確認日期</th></tr>' +
+  return '<table><thead><tr><th style="width:180px">確認角色</th><th>姓名</th><th>確認日期</th></tr></thead>' +
     roles.map(r => `<tr><td>${esc(r)}</td><td class="tbc">待確認</td><td class="tbc">待確認</td></tr>`).join('') + '</table>';
 }
 
@@ -770,7 +821,7 @@ export function countPending(c) { return collectPending(c).length; }
 function pendingTable(c) {
   const items = collectPending(c);
   if (!items.length) return '<p>目前沒有待確認事項。</p>';
-  return '<table><tr><th>模組</th><th>欄位／議題</th><th>為何待確認</th><th>建議由誰確認</th></tr>' +
+  return '<table><thead><tr><th>模組</th><th>欄位／議題</th><th>為何待確認</th><th>建議由誰確認</th></tr></thead>' +
     items.map(i => `<tr><td>${esc(i.module)}</td><td>${esc(i.field)}</td><td>${esc(i.reason)}</td><td>${esc(i.by)}</td></tr>`).join('') + '</table>';
 }
 

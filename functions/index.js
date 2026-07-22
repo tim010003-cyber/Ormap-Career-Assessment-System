@@ -45,6 +45,35 @@ setGlobalOptions({
 /** API Key。只有宣告用到它的 function 才拿得到，程式碼與版控裡都沒有它的值。 */
 const AI_API_KEY = defineSecret('AI_API_KEY');
 
+/**
+ * Firestore Timestamp → ISO 字串。
+ * callable 的回傳會被 JSON 序列化，Timestamp 直接丟出去會變成
+ * {_seconds, _nanoseconds}，前端還要再解一次，不如在這裡就轉好。
+ * 有些欄位當初是直接存字串（例如 createdAt），所以要能同時吃兩種。
+ */
+const tsToIso = (v) => {
+  if (!v) return null;
+  if (typeof v === 'string') return v;
+  if (typeof v.toDate === 'function') return v.toDate().toISOString();
+  if (typeof v._seconds === 'number') return new Date(v._seconds * 1000).toISOString();
+  return null;
+};
+
+/**
+ * Super Admin 檢查。四個管理用 function 各自複製過一次，
+ * 新增刪除與標記之後就有六份，錯一個地方就是權限漏洞，收成一個。
+ */
+async function assertSuperAdmin(req, action) {
+  if (!req.auth) throw new HttpsError('unauthenticated', '請先登入。');
+  const { getFirestore } = await import('firebase-admin/firestore');
+  const db = getFirestore();
+  const me = await db.collection('counselors').doc(req.auth.uid).get();
+  if (!me.exists || me.data().isSuperAdmin !== true || me.data().isActive !== true) {
+    throw new HttpsError('permission-denied', `只有管理者可以${action}。`);
+  }
+  return db;
+}
+
 /** 供應商與模型不是機密，用環境變數即可；沒設就走預設。 */
 const PROVIDER = process.env.AI_PROVIDER || 'openai';
 const MODEL = process.env.AI_MODEL || '';
@@ -219,7 +248,9 @@ export const issueCodes = onCall(async (req) => {
     throw new HttpsError('permission-denied', '只有管理者可以產生授權碼。');
   }
 
-  const { cohort, count = 1, quota = 30, isInstructor = false } = req.data || {};
+  // 解構的預設值也要是 60。之前只改了下面的 `|| 60`，但呼叫端沒帶 quota 時
+  // 這裡先給了 30，Number(30)||60 還是 30，等於那次改動沒生效。
+  const { cohort, count = 1, quota = 60, isInstructor = false } = req.data || {};
   if (!cohort) throw new HttpsError('invalid-argument', '請指定梯次名稱。');
   const n = Math.min(Math.max(Number(count) || 1, 1), 200);
 
@@ -285,6 +316,12 @@ export const listCodes = onCall(async (req) => {
       redeemedEmail: used?.email ?? null,
       quotaUsed: used?.quotaUsed ?? null,
       createdAt: c.createdAt ?? null,
+      // 「已發出」是人工標記：碼交給對方了，但對方還沒兌換。
+      // 沒有這個狀態就分不出「還在我手上」與「已經給人、只是還沒用」，
+      // 而後者被誤刪等於把已經交付的商品收回去。
+      sent: c.sent === true,
+      sentAt: tsToIso(c.sentAt),
+      redeemedAt: tsToIso(c.redeemedAt),
     };
   }));
   rows.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
@@ -322,13 +359,7 @@ export const setCodeRevoked = onCall(async (req) => {
  * consumeQuota 不會回頭看碼的狀態，所以停權不會收回已發出的次數。
  */
 export const deleteCode = onCall(async (req) => {
-  if (!req.auth) throw new HttpsError('unauthenticated', '請先登入。');
-  const { getFirestore } = await import('firebase-admin/firestore');
-  const db = getFirestore();
-  const me = await db.collection('counselors').doc(req.auth.uid).get();
-  if (!me.exists || me.data().isSuperAdmin !== true || me.data().isActive !== true) {
-    throw new HttpsError('permission-denied', '只有管理者可以刪除授權碼。');
-  }
+  const db = await assertSuperAdmin(req, '刪除授權碼');
   const code = String(req.data?.code || '').trim().toUpperCase();
   if (!code) throw new HttpsError('invalid-argument', '缺少授權碼。');
 
@@ -342,7 +373,44 @@ export const deleteCode = onCall(async (req) => {
     );
   }
 
+  const c = snap.data();
+  /*
+   * 已發出的碼要求呼叫端明確表態。
+   *
+   * 「未使用」不等於「還在我手上」——碼可能早就寄給學員了，只是對方還沒兌換。
+   * 那種碼被誤刪，等於把已經交付出去的商品收回去，而且對方要到兌換時才會發現。
+   * 所以刪除已標記為「已發出」的碼，必須帶 confirmSent，前端會另外要求打字確認。
+   */
+  if (c.sent === true && req.data?.confirmSent !== true) {
+    throw new HttpsError(
+      'failed-precondition',
+      '這組授權碼已標記為「已發出」，可能已經交給對方了。確定要刪除請再確認一次。',
+    );
+  }
+
   await ref.delete();
-  logger.info('授權碼已刪除', { uid: req.auth.uid, code });
+  logger.info('授權碼已刪除', { uid: req.auth.uid, code, wasSent: c.sent === true, cohort: c.cohort ?? null });
+  return { ok: true };
+});
+
+/**
+ * markCodeSent — 標記／取消標記「已發出」。限 Super Admin。
+ *
+ * 純粹是給管理者自己記帳用的狀態，系統不會依它改變任何行為。
+ * 存在的理由只有一個：把「還在我手上」與「已經給人、只是還沒兌換」分開，
+ * 否則清單上兩者都顯示「未使用」，刪除時無從判斷哪些碰不得。
+ */
+export const markCodeSent = onCall(async (req) => {
+  const db = await assertSuperAdmin(req, '標記授權碼');
+  const code = String(req.data?.code || '').trim().toUpperCase();
+  if (!code) throw new HttpsError('invalid-argument', '缺少授權碼。');
+  const sent = req.data?.sent === true;
+
+  const { FieldValue } = await import('firebase-admin/firestore');
+  await db.collection('jd_codes').doc(code).update(
+    sent ? { sent: true, sentAt: FieldValue.serverTimestamp() }
+         : { sent: false, sentAt: null },
+  );
+  logger.info('授權碼發出狀態變更', { uid: req.auth.uid, code, sent });
   return { ok: true };
 });

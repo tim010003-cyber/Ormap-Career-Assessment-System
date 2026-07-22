@@ -47,7 +47,19 @@
     <!-- 產碼 -->
     <section class="rounded-2xl border border-navy/12 bg-white p-6 mb-6">
       <h1 class="text-lg font-black text-navy mb-1">產生授權碼</h1>
-      <p class="text-sm text-navy/55 mb-5">一人一碼。碼一旦被兌換就綁定該帳號，別人拿到也用不了。</p>
+      <p class="text-sm text-navy/55 mb-4">一碼一人：碼一旦被兌換就綁定該帳號，別人拿到也用不了。同一個人可以兌換多組碼，次數會累加。</p>
+
+      <!-- 授權碼等同已售出的商品，規則要寫在操作旁邊，不能只存在某個人的記憶裡 -->
+      <details class="mb-5 rounded-xl border border-navy/12 bg-mist/40">
+        <summary class="px-4 py-2.5 text-sm font-semibold text-navy cursor-pointer select-none">操作規則與權責（動手前先看這裡）</summary>
+        <div class="px-4 pb-4 pt-1 text-[13px] text-navy/70 leading-relaxed space-y-2.5">
+          <div><b class="text-tealdeep">誰能操作：</b>只有 Super Admin。產碼、停權、刪除、標記都會寫進伺服器日誌，含操作者與時間。</div>
+          <div><b class="text-tealdeep">停權：</b>只擋住「之後的兌換」。<b>不會收回已經兌換出去的次數</b>——額度存在使用者帳號上，AI 呼叫時不會回頭檢查碼的狀態。要停掉已在使用中的人，目前需要另外處理。</div>
+          <div><b class="text-tealdeep">刪除：</b>只能刪<b>還沒被兌換</b>的碼。已兌換的一律擋下，這不只是保護紀錄——兌換加值靠碼上的綁定紀錄防重放，碼被刪掉之後同樣的字串可以重新產生並再兌換，次數會被無限重放。</div>
+          <div><b class="text-tealdeep">「已發出」標記：</b>碼交給對方之後請標記起來。「未使用」不等於「還在我手上」，可能只是對方還沒兌換；刪掉那種碼等於把已經交付的東西收回去，而且對方要到兌換時才會發現。已標記的碼刪除時會要求打字確認。</div>
+          <div><b class="text-tealdeep">加值：</b>同一組碼只加得了一次值，重複兌換不會重複加，也不會重設已用次數。</div>
+        </div>
+      </details>
       <div class="grid sm:grid-cols-4 gap-4">
         <label class="sm:col-span-2 block">
           <span class="block text-sm font-semibold text-navy mb-1">梯次名稱</span>
@@ -126,26 +138,54 @@ function paintTable() {
     return;
   }
 
-  const head = ['授權碼', '梯次', '狀態', '用量', '兌換帳號', ''];
+  // 這批碼的總覽。要當商品管，就得一眼看得出發出去多少、還剩多少。
+  const n = (f) => list.filter(f).length;
+  const stat = el('div', 'flex flex-wrap gap-x-5 gap-y-1 mb-4 text-xs text-navy/60');
+  stat.innerHTML = [
+    `共 <b class="text-navy">${list.length}</b> 組`,
+    `未發出 <b class="text-navy">${n(r => !r.redeemedBy && !r.sent && !r.revoked)}</b>`,
+    `已發出待兌換 <b class="text-navy">${n(r => !r.redeemedBy && r.sent && !r.revoked)}</b>`,
+    `已兌換 <b class="text-tealdeep">${n(r => r.redeemedBy)}</b>`,
+    `已停權 <b class="text-accent">${n(r => r.revoked)}</b>`,
+    `已發出總次數 <b class="text-navy">${list.filter(r => r.redeemedBy && !r.isInstructor).reduce((s, r) => s + (r.quotaTotal || 0), 0)}</b>`,
+  ].map(x => `<span>${x}</span>`).join('');
+  wrap.innerHTML = ''; wrap.appendChild(stat);
+
+  const head = ['授權碼', '梯次', '狀態', '用量', '兌換帳號', '時間', ''];
   const t = el('table', 'w-full text-sm');
   t.innerHTML = '<thead><tr class="text-left text-navy/50 text-xs">'
     + head.map(h => `<th class="px-2 py-2 border-b border-navy/10 font-medium">${h}</th>`).join('')
     + '</tr></thead>';
   const tb = el('tbody');
 
+  const ymd = (v) => { if (!v) return ''; try { return new Date(v).toLocaleDateString('zh-TW'); } catch { return ''; } };
+
   list.forEach(r => {
     const tr = el('tr', 'border-b border-navy/5');
-    const state = r.revoked ? '<span class="text-accent font-semibold">已停權</span>'
-      : r.redeemedBy ? '<span class="text-tealdeep font-semibold">已兌換</span>'
-      : '<span class="text-navy/45">未使用</span>';
+    /*
+     * 狀態改成可以並存的多個標籤。
+     * 原本是 revoked ? 已停權 : redeemedBy ? 已兌換 : 未使用，
+     * 所以「已停權而且已經有人在用」的碼只顯示已停權，看不出底下還有人，
+     * 管理者會以為那組碼是空的。
+     */
+    const badge = (txt, cls) => `<span class="inline-block ${cls} text-[11px] font-semibold px-1.5 py-0.5 rounded mr-1">${txt}</span>`;
+    let state = '';
+    if (r.revoked) state += badge('已停權', 'bg-accent/12 text-accent');
+    if (r.redeemedBy) state += badge('已兌換', 'bg-tealgreen/12 text-tealdeep');
+    else if (r.sent) state += badge('已發出', 'bg-navy/8 text-navy/70');
+    else if (!r.revoked) state += badge('未發出', 'bg-navy/5 text-navy/45');
+
     const usage = r.isInstructor ? '講師 · 不計次'
       : r.redeemedBy ? `${r.quotaUsed ?? 0}／${r.quotaTotal}`
       : `— ／${r.quotaTotal}`;
+    const times = [r.createdAt ? `產 ${ymd(r.createdAt)}` : '', r.redeemedAt ? `兌 ${ymd(r.redeemedAt)}` : '']
+      .filter(Boolean).join('　') || '—';
     tr.innerHTML = `<td class="px-2 py-2 mono">${esc(r.code)}</td>
       <td class="px-2 py-2 text-navy/70">${esc(r.cohort || '—')}</td>
-      <td class="px-2 py-2">${state}</td>
+      <td class="px-2 py-2 whitespace-nowrap">${state}</td>
       <td class="px-2 py-2 text-navy/70">${esc(usage)}</td>
-      <td class="px-2 py-2 text-navy/55 text-xs">${esc(r.redeemedEmail || '—')}</td>`;
+      <td class="px-2 py-2 text-navy/55 text-xs">${esc(r.redeemedEmail || '—')}</td>
+      <td class="px-2 py-2 text-navy/40 text-[11px] whitespace-nowrap">${esc(times)}</td>`;
     const td = el('td', 'px-2 py-2 text-right whitespace-nowrap');
     const b = el('button', 'text-xs font-semibold ' + (r.revoked ? 'text-tealdeep' : 'text-navy/40 hover:text-accent'),
       r.revoked ? '恢復' : '停權');
@@ -171,15 +211,41 @@ function paintTable() {
      * 已兌換的碼不能刪——碼上的 redeemedBy 是「加值只能加一次」的唯一憑據，
      * 刪掉之後同樣的字串可以重新產生並再兌換一次，次數會被無限重放。
      */
+    // 已發出：純記帳用的標記，系統行為不受影響，但決定刪除時要不要多攔一道
+    if (!r.redeemedBy) {
+      const sentBtn = el('button', 'ml-3 text-xs font-semibold ' + (r.sent ? 'text-tealdeep' : 'text-navy/40 hover:text-tealdeep'),
+        r.sent ? '取消已發出' : '標記已發出');
+      sentBtn.addEventListener('click', async () => {
+        sentBtn.disabled = true;
+        try { await callFn('markCodeSent', { code: r.code, sent: !r.sent }); await load(); }
+        catch (e) { alert('操作失敗：' + (e.message || e)); sentBtn.disabled = false; }
+      });
+      td.appendChild(sentBtn);
+    }
+
     const del = el('button', 'ml-3 text-xs font-semibold ' + (r.redeemedBy ? 'text-navy/20 cursor-not-allowed' : 'text-navy/40 hover:text-accent'), '刪除');
     if (r.redeemedBy) {
       del.disabled = true;
       del.title = '這組碼已經被兌換，不能刪除。要停止使用請改用「停權」。';
     } else {
       del.addEventListener('click', async () => {
-        if (!confirm(`要永久刪除 ${r.code} 嗎？\n\n這組碼還沒有人兌換，刪除後就不存在了，無法復原。`)) return;
+        /*
+         * 已標記為「已發出」的碼可能早就交到對方手上了，只是還沒兌換。
+         * 一個 confirm 太容易順手按掉，所以要求把授權碼打一次——
+         * 打字這個動作本身就會逼人看清楚自己刪的是哪一組。
+         */
+        if (r.sent) {
+          const typed = prompt(
+            `⚠ ${r.code} 已標記為「已發出」，可能已經交給對方了。\n\n`
+            + `刪除後對方將無法兌換，且無法復原。\n`
+            + `確定要刪除請完整輸入這組授權碼：`);
+          if (typed == null) return;
+          if (typed.trim().toUpperCase() !== r.code) { alert('輸入的授權碼不符，已取消刪除。'); return; }
+        } else if (!confirm(`要永久刪除 ${r.code} 嗎？\n\n這組碼還沒有人兌換，也還沒標記為已發出。\n刪除後就不存在了，無法復原。`)) {
+          return;
+        }
         del.disabled = true;
-        try { await callFn('deleteCode', { code: r.code }); await load(); }
+        try { await callFn('deleteCode', { code: r.code, confirmSent: r.sent === true }); await load(); }
         catch (e) { alert('刪除失敗：' + (e.message || e)); del.disabled = false; }
       });
     }
@@ -189,7 +255,7 @@ function paintTable() {
   });
 
   t.appendChild(tb);
-  wrap.innerHTML = ''; wrap.appendChild(t);
+  wrap.appendChild(t);
 }
 
 async function load() {

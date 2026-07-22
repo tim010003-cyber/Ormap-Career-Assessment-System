@@ -1,0 +1,19 @@
+{
+  "name": "ormap-functions",
+  "description": "原味藍圖 Cloud Functions：職務設計的 AI 代理、課程授權碼與配額控管",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": "22"
+  },
+  "main": "index.js",
+  "scripts": {
+    "serve": "firebase emulators:start --only functions,firestore",
+    "logs": "firebase functions:log",
+    "deploy": "firebase deploy --only functions"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.1.0"
+  }
+}

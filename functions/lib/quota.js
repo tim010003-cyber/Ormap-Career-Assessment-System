@@ -21,7 +21,18 @@ const db = () => getFirestore();
 
 /**
  * 兌換課程授權碼，把它綁到目前登入的 uid。
- * 一人一碼：redeemedBy 一旦寫入就不可更改，別人拿到同一組也用不了。
+ *
+ * 一碼一人：redeemedBy 一旦寫入就不可更改，別人拿到同一組也用不了。
+ *
+ * 一人可以多碼（2026-07-23 使用者決策）。原本是硬性一人一碼，次數用完就
+ * 完全沒有補充管道——使用者手上有新碼卻兌換不了，只能眼睜睜看著工具停擺。
+ * 現在改成**加值**：每兌換一組新碼，就把它的次數加到現有額度上。
+ *
+ * 防濫用靠的是碼本身，不是帳號：
+ *   - 一組碼的 redeemedBy 只會被寫入一次，所以同一組碼只加得了一次值。
+ *   - 重按同一組已兌換的碼是冪等的，不會重複加值，也不會重設用量。
+ * 因此「已兌換的碼不可刪除」是這個模型的必要條件——碼被刪掉，同樣的字串
+ * 就能重新產生並再兌換一次，加值次數會被無限重放。deleteCode 有擋這件事。
  */
 export async function redeemCode(uid, email, rawCode) {
   const code = String(rawCode || '').trim().toUpperCase();
@@ -44,30 +55,43 @@ export async function redeemCode(uid, email, rawCode) {
     if (c.redeemedBy && c.redeemedBy !== uid) {
       throw new HttpsError('already-exists', '這組授權碼已經被其他帳號使用了。');
     }
-    if (userSnap.exists && userSnap.data().code && userSnap.data().code !== code) {
-      throw new HttpsError('failed-precondition', '這個帳號已經兌換過其他授權碼了。');
-    }
 
+    const u = userSnap.exists ? userSnap.data() : null;
+    const prevTotal = u?.quotaTotal ?? 0;
+    const prevUsed = u?.quotaUsed ?? 0;
     const now = FieldValue.serverTimestamp();
-    if (!c.redeemedBy) {
+
+    // 這組碼先前就已經由本人兌換過：冪等，不加值也不重設用量。
+    // 使用者重按或重整頁面都會走到這裡，不能因此多送次數。
+    const alreadyMine = c.redeemedBy === uid;
+
+    if (!alreadyMine) {
       tx.update(codeRef, { redeemedBy: uid, redeemedAt: now });
     }
-    // 重複兌換同一組碼不重設用量，避免有人靠重按來刷次數
+
+    const nextTotal = alreadyMine ? prevTotal : prevTotal + (c.quotaTotal ?? 0);
+    // 講師身分只會被加上，不會被後兌換的學員碼降級
+    const nextInstructor = (u?.isInstructor === true) || c.isInstructor === true;
+
     tx.set(userRef, {
-      code,
+      code,                                   // 最近一次兌換的碼（沿用既有欄位）
+      codes: FieldValue.arrayUnion(code),     // 全部兌換過的碼，供稽核與後台反查
       cohort: c.cohort ?? null,
-      quotaTotal: c.quotaTotal ?? 0,
-      quotaUsed: userSnap.exists ? (userSnap.data().quotaUsed ?? 0) : 0,
-      isInstructor: c.isInstructor === true,
-      redeemedAt: userSnap.exists ? (userSnap.data().redeemedAt ?? now) : now,
+      quotaTotal: nextTotal,
+      quotaUsed: prevUsed,
+      isInstructor: nextInstructor,
+      redeemedAt: u?.redeemedAt ?? now,
       email: email ?? null,
     }, { merge: true });
 
     return {
       cohort: c.cohort ?? null,
-      quotaTotal: c.quotaTotal ?? 0,
-      quotaUsed: userSnap.exists ? (userSnap.data().quotaUsed ?? 0) : 0,
-      isInstructor: c.isInstructor === true,
+      quotaTotal: nextTotal,
+      quotaUsed: prevUsed,
+      isInstructor: nextInstructor,
+      // 讓畫面能誠實說「加了幾次」還是「這張碼先前就用過了」
+      added: alreadyMine ? 0 : (c.quotaTotal ?? 0),
+      alreadyRedeemed: alreadyMine,
     };
   });
 }

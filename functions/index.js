@@ -308,3 +308,41 @@ export const setCodeRevoked = onCall(async (req) => {
   logger.info('授權碼狀態變更', { uid: req.auth.uid, code, revoked: revoked === true });
   return { ok: true };
 });
+
+/**
+ * deleteCode — 刪除一組尚未被兌換的授權碼。限 Super Admin。
+ *
+ * 只讓刪「還沒有人用過」的碼，是產碼手滑時的清理工具。
+ *
+ * 已兌換的碼一律不刪，這不只是保護紀錄，而是配額模型的必要條件：
+ * 兌換加值的防重放靠的是碼上的 redeemedBy。碼一旦被刪，同樣的字串就能
+ * 重新產生、重新兌換，加值次數會被無限重放。要停用請改用「停權」。
+ *
+ * 注意：停權只擋「之後的兌換」。已經兌換過的人，額度存在 jd_users，
+ * consumeQuota 不會回頭看碼的狀態，所以停權不會收回已發出的次數。
+ */
+export const deleteCode = onCall(async (req) => {
+  if (!req.auth) throw new HttpsError('unauthenticated', '請先登入。');
+  const { getFirestore } = await import('firebase-admin/firestore');
+  const db = getFirestore();
+  const me = await db.collection('counselors').doc(req.auth.uid).get();
+  if (!me.exists || me.data().isSuperAdmin !== true || me.data().isActive !== true) {
+    throw new HttpsError('permission-denied', '只有管理者可以刪除授權碼。');
+  }
+  const code = String(req.data?.code || '').trim().toUpperCase();
+  if (!code) throw new HttpsError('invalid-argument', '缺少授權碼。');
+
+  const ref = db.collection('jd_codes').doc(code);
+  const snap = await ref.get();
+  if (!snap.exists) throw new HttpsError('not-found', '找不到這組授權碼。');
+  if (snap.data().redeemedBy) {
+    throw new HttpsError(
+      'failed-precondition',
+      '這組授權碼已經被兌換，不能刪除。若要停止使用請改用「停權」。',
+    );
+  }
+
+  await ref.delete();
+  logger.info('授權碼已刪除', { uid: req.auth.uid, code });
+  return { ok: true };
+});

@@ -123,9 +123,12 @@ function showAiUnavailable(err, btn){
     note.appendChild(b);
   }
 
-  // 還沒兌換授權碼：直接在這裡讓他輸入，不用跑回案例列表
-  if(err.reason === 'no_code'){
+  // 還沒兌換授權碼，或次數用完想加值：都直接在這裡輸入，不用跑回案例列表。
+  // 次數用完卻沒有任何補充入口，等於整個工具當場停擺。（2026-07-23 使用者回報）
+  if(err.reason === 'no_code' || err.reason === 'exhausted'){
     const wrap = el('div','mt-2.5 ml-6 flex flex-wrap items-center gap-2');
+    if(err.reason==='exhausted')
+      wrap.appendChild(el('div','w-full text-xs text-navy/50','有新的授權碼可以直接輸入加值，次數會累加上去：'));
     const inp = el('input','border border-navy/20 rounded-lg px-3 py-1.5 text-sm font-mono w-52');
     inp.placeholder='ORMAP-XXXX-XXXX'; inp.setAttribute('aria-label','課程授權碼');
     const go = el('button','bg-navy text-ivory px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-tealdeep','兌換');
@@ -133,7 +136,12 @@ function showAiUnavailable(err, btn){
     const doIt = async()=>{
       const code=inp.value.trim(); if(!code) return;
       go.disabled=true; msg.textContent='';
-      try{ await AIX.redeemCode(code); note.remove(); paintQuotaChip(); render(); }
+      try{
+        const a=await AIX.redeemCode(code);
+        // 這組碼先前就兌換過的話並沒有加到值，別默默關掉訊息讓人以為好了
+        if(a.alreadyRedeemed){ msg.textContent='這組碼你先前已經用過了，沒有重複加值。'; go.disabled=false; paintQuotaChip(); return; }
+        note.remove(); paintQuotaChip(); render();
+      }
       catch(e){ msg.textContent=e.message||'兌換失敗'; go.disabled=false; }
     };
     go.addEventListener('click',doIt);

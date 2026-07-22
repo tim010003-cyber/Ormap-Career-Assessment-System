@@ -127,7 +127,7 @@ export function whyNotReady(status) {
   switch (status?.reason) {
     case 'signed_out': return { short: '請先登入', detail: 'AI 整理需要登入才能使用。' };
     case 'no_code':    return { short: '還沒輸入授權碼', detail: '輸入課程授權碼之後才能使用 AI 整理。' };
-    case 'exhausted':  return { short: 'AI 次數已用完', detail: '人工填寫、修改與下載都不受影響。' };
+    case 'exhausted':  return { short: 'AI 次數已用完', detail: '有新的授權碼可以在下面直接加值，次數會累加。人工填寫、修改與下載都不受影響。' };
     case 'no_key':     return { short: '尚未設定 API Key', detail: '本機代理已啟動，但還沒填入 API Key。' };
     case 'proxy_error':return { short: 'AI 代理異常', detail: '本機代理回應不正常，請檢查終端機。' };
     case 'not_allowed':return { short: '帳號未開放', detail: 'AI 整理目前僅開放給指定帳號測試。' };

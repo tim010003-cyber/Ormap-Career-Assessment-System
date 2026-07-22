@@ -332,6 +332,37 @@ render();
     paintQuota(await myAccess(true));
   }
 
+  /**
+   * 兌換／加值表單。
+   *
+   * 以前只有「還沒兌換過」時才畫得出來，所以次數用完的人手上就算有新碼，
+   * 畫面上也找不到任何地方可以輸入，工具等於直接停擺。（2026-07-23 使用者回報）
+   * 現在無論有沒有碼、剩幾次，都能展開這一段加值。
+   */
+  function redeemForm(onDone){
+    const wrap=el('div','flex flex-wrap items-center gap-2 mt-2');
+    const inp=el('input','border border-navy/20 rounded-lg px-3 py-1.5 text-sm font-mono w-56');
+    inp.placeholder='ORMAP-XXXX-XXXX'; inp.setAttribute('aria-label','課程授權碼');
+    const btn=el('button','bg-navy text-ivory px-3.5 py-1.5 rounded-lg text-sm font-semibold hover:bg-tealdeep','兌換');
+    const msg=el('span','text-xs');
+    const go=async()=>{
+      const code=inp.value.trim();
+      if(!code) return;
+      btn.disabled=true; msg.className='text-xs text-navy/45'; msg.textContent='兌換中…';
+      try{
+        const a=await redeemCode(code);
+        // 講師碼沒有次數概念，別報「加了 0 次」讓人以為失敗
+        if(a.alreadyRedeemed) { msg.className='text-xs text-navy/55'; msg.textContent='這組碼你先前已經用過了，沒有重複加值。'; }
+        else { msg.className='text-xs text-tealdeep'; msg.textContent=a.isInstructor&&!a.added?'已切換為講師模式。':`已加值 ${a.added} 次。`; }
+        onDone(a);
+      }catch(e){ msg.className='text-xs text-accent'; msg.textContent=e.message||'兌換失敗'; btn.disabled=false; }
+    };
+    btn.addEventListener('click',go);
+    inp.addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
+    wrap.append(inp,btn,msg);
+    return wrap;
+  }
+
   function paintQuota(a){
     quotaBar.classList.remove('hidden');
     quotaBar.innerHTML='';
@@ -339,37 +370,30 @@ render();
     if(!a?.hasCode){
       quotaBar.innerHTML=`<div class="flex flex-wrap items-center gap-2">
         <span class="text-navy/70">還沒輸入課程授權碼，目前不能使用 AI 整理。</span></div>`;
-      const wrap=el('div','flex items-center gap-2 mt-2');
-      const inp=el('input','border border-navy/20 rounded-lg px-3 py-1.5 text-sm font-mono w-56');
-      inp.placeholder='ORMAP-XXXX-XXXX'; inp.setAttribute('aria-label','課程授權碼');
-      const btn=el('button','bg-navy text-ivory px-3.5 py-1.5 rounded-lg text-sm font-semibold hover:bg-tealdeep','兌換');
-      const msg=el('span','text-xs text-accent');
-      const doRedeem=async()=>{
-        const code=inp.value.trim();
-        if(!code) return;
-        btn.disabled=true; msg.textContent='';
-        try{ paintQuota(await redeemCode(code)); }
-        catch(e){ msg.textContent=e.message||'兌換失敗'; btn.disabled=false; }
-      };
-      btn.addEventListener('click',doRedeem);
-      inp.addEventListener('keydown',e=>{ if(e.key==='Enter') doRedeem(); });
-      wrap.append(inp,btn,msg); quotaBar.appendChild(wrap);
+      quotaBar.appendChild(redeemForm(paintQuota));
       return;
     }
 
     if(a.isInstructor){
       quotaBar.innerHTML=`<span class="font-semibold text-tealdeep">講師模式</span>
         <span class="text-navy/55 ml-2">${esc(a.cohort||'')}　AI 整理不計次</span>`;
-      return;
+    }else{
+      const left=remaining(a);
+      const low=left<=5;
+      quotaBar.innerHTML=`<div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span class="font-semibold ${low?'text-accent':'text-tealdeep'}">AI 整理還有 ${left} 次</span>
+          <span class="text-navy/45">已用 ${a.quotaUsed}／${a.quotaTotal}　${esc(a.cohort||'')}</span>
+          ${low?'<span class="text-accent/80">次數有限，想清楚再按會比較划算。</span>':''}
+        </div>`;
     }
 
-    const left=remaining(a);
-    const low=left<=5;
-    quotaBar.innerHTML=`<div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span class="font-semibold ${low?'text-accent':'text-tealdeep'}">AI 整理還有 ${left} 次</span>
-        <span class="text-navy/45">已用 ${a.quotaUsed}／${a.quotaTotal}　${esc(a.cohort||'')}</span>
-        ${low?'<span class="text-accent/80">次數有限，想清楚再按會比較划算。</span>':''}
-      </div>`;
+    // 已經有碼也要能加值。次數少的時候直接展開，不用再多點一下。
+    const box=el('details','mt-1');
+    if(!a.isInstructor&&remaining(a)<=5) box.open=true;
+    const sm=el('summary','text-xs text-navy/45 hover:text-tealdeep cursor-pointer inline-block','再輸入一組授權碼加值');
+    box.appendChild(sm);
+    box.appendChild(redeemForm(paintQuota));
+    quotaBar.appendChild(box);
   }
 
   acct.addEventListener('click', async()=>{

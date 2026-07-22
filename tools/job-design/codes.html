@@ -146,17 +146,46 @@ function paintTable() {
       <td class="px-2 py-2">${state}</td>
       <td class="px-2 py-2 text-navy/70">${esc(usage)}</td>
       <td class="px-2 py-2 text-navy/55 text-xs">${esc(r.redeemedEmail || '—')}</td>`;
-    const td = el('td', 'px-2 py-2 text-right');
+    const td = el('td', 'px-2 py-2 text-right whitespace-nowrap');
     const b = el('button', 'text-xs font-semibold ' + (r.revoked ? 'text-tealdeep' : 'text-navy/40 hover:text-accent'),
       r.revoked ? '恢復' : '停權');
     b.addEventListener('click', async () => {
       const next = !r.revoked;
-      if (next && !confirm(`要停用 ${r.code} 嗎？\n\n對方會立刻無法使用 AI 整理，但已經寫好的內容不受影響。`)) return;
+      /*
+       * 停權只擋「之後的兌換」。consumeQuota 只讀 jd_users，不會回頭看碼的狀態，
+       * 所以已經兌換過的人手上的次數不會被收回。原本的確認文案寫「對方會立刻
+       * 無法使用」，與實際行為不符，會讓管理者以為已經處理好了。
+       */
+      if (next && !confirm(r.redeemedBy
+        ? `要停權 ${r.code} 嗎？\n\n注意：這組碼已經被兌換，停權只會擋住之後的兌換，`
+          + `不會收回對方目前已有的次數。要真正停止對方使用，需要另外處理。`
+        : `要停權 ${r.code} 嗎？\n\n停權後這組碼就不能再被兌換。`)) return;
       b.disabled = true;
       try { await callFn('setCodeRevoked', { code: r.code, revoked: next }); await load(); }
       catch (e) { alert('操作失敗：' + (e.message || e)); b.disabled = false; }
     });
-    td.appendChild(b); tr.appendChild(td); tb.appendChild(tr);
+    td.appendChild(b);
+
+    /*
+     * 刪除：只開放給還沒被兌換的碼，用來清掉產錯的批次。
+     * 已兌換的碼不能刪——碼上的 redeemedBy 是「加值只能加一次」的唯一憑據，
+     * 刪掉之後同樣的字串可以重新產生並再兌換一次，次數會被無限重放。
+     */
+    const del = el('button', 'ml-3 text-xs font-semibold ' + (r.redeemedBy ? 'text-navy/20 cursor-not-allowed' : 'text-navy/40 hover:text-accent'), '刪除');
+    if (r.redeemedBy) {
+      del.disabled = true;
+      del.title = '這組碼已經被兌換，不能刪除。要停止使用請改用「停權」。';
+    } else {
+      del.addEventListener('click', async () => {
+        if (!confirm(`要永久刪除 ${r.code} 嗎？\n\n這組碼還沒有人兌換，刪除後就不存在了，無法復原。`)) return;
+        del.disabled = true;
+        try { await callFn('deleteCode', { code: r.code }); await load(); }
+        catch (e) { alert('刪除失敗：' + (e.message || e)); del.disabled = false; }
+      });
+    }
+    td.appendChild(del);
+
+    tr.appendChild(td); tb.appendChild(tr);
   });
 
   t.appendChild(tb);

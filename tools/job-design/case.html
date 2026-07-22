@@ -161,6 +161,14 @@ const $ = (s,r=document)=>r.querySelector(s);
 const el=(t,cls,html)=>{const e=document.createElement(t);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const listToText=a=>Array.isArray(a)?a.join('\n'):(a||'');
+/**
+ * 「AI 這一格沒東西可寫」。
+ *
+ * 送給 AI 的欄位形狀改成永遠完整之後（2026-07-22），它對整理不出來的欄位會
+ * 回空字串或空陣列。那是「沒東西可寫」，不是「請把這格清空」——
+ * 不可以拿它蓋掉人已經手寫的內容，或上一輪整理出來的東西。要清空由人自己來。
+ */
+const aiEmpty=v=>v==null||(Array.isArray(v)?v.length===0:String(v).trim()==='');
 const textToList=t=>String(t||'').split('\n').map(s=>s.trim()).filter(Boolean);
 
 const caseId = new URLSearchParams(location.search).get('caseId');
@@ -876,6 +884,7 @@ function renderM1(area){
       if(!r) return;   // AI 不可用時不寫入任何欄位，說明已由 runWithAi 顯示
     S.recordAiJob(c,r.task_code);
     for(const[fid,v]of Object.entries(r.organized_content)){
+      if(aiEmpty(v))continue;   // 空的就別動這一格，維持原樣
       const f=ch.outputs.find(o=>o.id===fid);
       S.saveField(c,fid,v,f&&f.ai==='AI-I'?'ai_inference':'ai_organized',r.task_code);
     }

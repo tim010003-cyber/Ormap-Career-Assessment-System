@@ -169,6 +169,17 @@ const listToText=a=>Array.isArray(a)?a.join('\n'):(a||'');
  * 不可以拿它蓋掉人已經手寫的內容，或上一輪整理出來的東西。要清空由人自己來。
  */
 const aiEmpty=v=>v==null||(Array.isArray(v)?v.length===0:String(v).trim()==='');
+
+/**
+ * 送進提示詞的欄位角色說明。
+ *
+ * 跟畫面上的 badge（F.AI_ROLE_LABEL）分開寫，因為兩者的讀者不同：
+ * badge 是給人看「這格是誰負責的」，這裡是給 AI 看「這格你該怎麼處理」。
+ *
+ * 尤其 H：badge 寫「人工決定」，但依 2026-07-22 使用者決策（方案甲），
+ * AI 轉換得到的欄位一律先給草稿，人再比對補充——所以這裡不能讓 AI 以為別碰。
+ */
+const AI_ROLE_HINT={'AI-O':'整理','AI-I':'推論','H':'人工決定（你仍先給草稿）','U':'使用者輸入'};
 const textToList=t=>String(t||'').split('\n').map(s=>s.trim()).filter(Boolean);
 
 const caseId = new URLSearchParams(location.search).get('caseId');
@@ -878,7 +889,21 @@ function renderM1(area){
     let r=AI.runM1Chapter(ch.code,text);
     r=await runWithAi(r.task_code,
       `《問題釐清定位書》${ch.code} ${ch.title}。${ch.purpose}　依使用者的口述整理可編輯草稿。`+
-      `\n欄位定義：\n${ch.outputs.map(o=>`・${o.id}｜${o.name}｜${o.type}`).join('\n')}`+
+      // 帶上每一格的角色（AI 整理／AI 推論·待確認／人工決定）。
+      // 少了這個，AI 只看得到欄位名稱，會一律用「他講過才寫」的標準去填，
+      // 於是設計成給它推論的那幾格永遠是空的——不是它判斷不必填，是不知道可以填。
+      `\n欄位定義（角色說明：整理＝把他說的話整理好；推論＝可以由你推論，人會再確認；人工決定＝最後由人定案，你仍先給草稿）：`+
+      `\n${ch.outputs.map(o=>`・${o.id}｜${o.name}｜${o.type}｜${AI_ROLE_HINT[o.ai]||'整理'}`).join('\n')}`+
+      /*
+       * 口述的長處是完整，短處是破碎——同一件事散在三個地方、因果順序顛倒、
+       * 講到一半跳題。使用者要的正是 AI 補這一塊：重組、串起邏輯鏈，
+       * 讓草稿比原話更通順。（2026-07-22 使用者決策「輕」力道）
+       *
+       * 邊界寫在第二句：串的是他講過的事之間的關係，不是憑空長出新事實。
+       * 這跟 STANCE 的「不要為了填滿而補寫」不衝突——那條講的是不要編造沒談過的內容。
+       */
+      `\n口述會破碎、順序顛倒、同一件事散在好幾處。請重組並把因果、前後關係串起來，讓這份草稿讀起來比原話更通順完整。`+
+      `\n串的是他已經講過的事情之間的關係；需要延伸的判斷放進標示「推論」的欄位或 inferences，不要寫成他說過的話。`+
       `\n使用者已明確表達的增員或找人決策要忠實保留，不要自動降格為假設。任何缺口或不同角度都只是可選提醒，不得阻擋流程。`,
       r, {目前為止談過的內容:caseBrief(ch.rawId), 這一題他說的:text}, aiBtn);
       if(!r) return;   // AI 不可用時不寫入任何欄位，說明已由 runWithAi 顯示

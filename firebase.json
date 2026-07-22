@@ -15,7 +15,8 @@
       "mockups/**",
       "package.json",
       "package-lock.json",
-      "tests/**"
+      "tests/**",
+      "tools/job-design/server/**"
     ]
   },
   "firestore": {

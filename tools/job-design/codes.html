@@ -31,7 +31,8 @@
       <button id="acctBtn" class="inline-flex items-center gap-1.5 bg-white border border-navy/20 text-navy px-3.5 py-2 rounded-lg text-sm font-semibold hover:border-tealgreen/60 transition">
         <i data-lucide="user" class="w-4 h-4"></i><span id="acctTxt">檢查中…</span>
       </button>
-      <a href="./index.html" class="text-sm font-bold text-tealdeep">回案例列表</a>
+      <a href="../../admin.html" class="text-sm font-bold text-tealdeep">回後台</a>
+      <a href="./index.html" class="text-sm font-semibold text-navy/50 hover:text-tealdeep">案例列表</a>
     </div>
   </div>
 </div>
@@ -216,7 +217,19 @@ $('#acctBtn').addEventListener('click', async () => {
   } catch (e) { if (e?.code !== 'auth/popup-closed-by-user') alert('登入失敗：' + (e.message || e)); }
 });
 
-AIX.onAuth(async (u) => {
+/** 初始化失敗時要說出原因，不能讓畫面停在「載入中…」什麼都不講。 */
+function fatal(msg, detail) {
+  $('#gate').classList.remove('hidden');
+  $('#app').classList.add('hidden');
+  $('#acctTxt').textContent = '登入';
+  $('#gate').innerHTML = `<div class="text-accent font-bold mb-1">${esc(msg)}</div>
+    ${detail ? `<div class="text-navy/55 text-xs leading-relaxed mb-2">${esc(detail)}</div>` : ''}
+    <button id="retryBtn" class="mt-1 bg-navy text-ivory px-3.5 py-1.5 rounded-lg text-xs font-semibold">重新載入</button>`;
+  $('#retryBtn')?.addEventListener('click', () => location.reload(true));
+  if (window.lucide) lucide.createIcons();
+}
+
+async function onUser(u) {
   $('#acctTxt').textContent = u ? (u.displayName || u.email || '已登入').split(' ')[0] : '登入';
   if (window.lucide) lucide.createIcons();
   if (!u) {
@@ -224,6 +237,7 @@ AIX.onAuth(async (u) => {
     $('#gate').innerHTML = '請先用管理者帳號登入。';
     return;
   }
+  $('#gate').innerHTML = '確認權限中…';
   // 用一次 listCodes 當權限檢查：不是管理者會被後端擋下來
   try {
     await callFn('listCodes', {});
@@ -231,9 +245,28 @@ AIX.onAuth(async (u) => {
     await load();
   } catch (e) {
     $('#gate').classList.remove('hidden'); $('#app').classList.add('hidden');
-    $('#gate').innerHTML = `<span class="text-accent">${esc(e.message || '沒有權限')}</span>`;
+    $('#gate').innerHTML = `<div class="text-accent font-bold mb-1">${esc(e.message || '沒有權限')}</div>
+      <div class="text-navy/55 text-xs">這一頁只有管理者能用。若你確定帳號有權限，請重新整理再試。</div>`;
   }
-}).catch(() => {});
+}
+
+// 初始化：連不上 Firebase 就說清楚，不要無聲卡住
+(async () => {
+  try {
+    const ready = AIX.onAuth(onUser);
+    // 網路異常時 onAuth 可能永遠不回，給它一個上限
+    const timer = new Promise((_, rej) =>
+      setTimeout(() => rej(new Error('timeout')), 12000));
+    await Promise.race([ready, timer]);
+  } catch (e) {
+    fatal(
+      e.message === 'timeout' ? '連線逾時' : '無法初始化登入服務',
+      e.message === 'timeout'
+        ? '連了 12 秒還沒有回應。可能是網路不穩，或瀏覽器擋住了 Google 的登入服務。'
+        : String(e.message || e),
+    );
+  }
+})();
 
 if (window.lucide) lucide.createIcons();
 </script>

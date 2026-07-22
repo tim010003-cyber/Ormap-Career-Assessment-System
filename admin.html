@@ -48,6 +48,10 @@ tailwind.config = {
           <i data-lucide="users" class="w-4 h-4"></i>
           <span class="hidden sm:inline">諮詢師</span>
         </a>
+        <a id="navCodesLink" href="tools/job-design/codes.html" class="hidden items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-primary transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-50" title="職務設計課程授權碼">
+          <i data-lucide="ticket" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">授權碼</span>
+        </a>
         <a href="dashboard.html" class="flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-primary transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-50">
           <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
           <span class="hidden sm:inline">儀表板</span>
@@ -272,6 +276,7 @@ onAuthStateChanged(auth, async (user) => {
   currentUserIsAdmin = await isSuperAdmin(db, user.uid);
   if (currentUserIsAdmin) {
     document.getElementById('navCounselorsLink')?.classList.replace('hidden', 'flex');
+    document.getElementById('navCodesLink')?.classList.replace('hidden', 'flex');
     // ⭐ 浮動面板已移除，改用 counselors.html 專頁管理
   }
   loadData();

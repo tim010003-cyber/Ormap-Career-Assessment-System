@@ -239,14 +239,7 @@ export const myAccess = onCall(async (req) => {
  * 碼的格式刻意避開容易看錯的字元（0/O、1/I），因為要用唸的或手抄。
  */
 export const issueCodes = onCall(async (req) => {
-  if (!req.auth) throw new HttpsError('unauthenticated', '請先登入。');
-
-  const { getFirestore } = await import('firebase-admin/firestore');
-  const db = getFirestore();
-  const me = await db.collection('counselors').doc(req.auth.uid).get();
-  if (!me.exists || me.data().isSuperAdmin !== true || me.data().isActive !== true) {
-    throw new HttpsError('permission-denied', '只有管理者可以產生授權碼。');
-  }
+  const db = await assertSuperAdmin(req, '產生授權碼');
 
   // 解構的預設值也要是 60。之前只改了下面的 `|| 60`，但呼叫端沒帶 quota 時
   // 這裡先給了 30，Number(30)||60 還是 30，等於那次改動沒生效。
@@ -285,13 +278,7 @@ export const issueCodes = onCall(async (req) => {
 
 /** listCodes — 列出某梯次的授權碼與使用狀態。限 Super Admin。 */
 export const listCodes = onCall(async (req) => {
-  if (!req.auth) throw new HttpsError('unauthenticated', '請先登入。');
-  const { getFirestore } = await import('firebase-admin/firestore');
-  const db = getFirestore();
-  const me = await db.collection('counselors').doc(req.auth.uid).get();
-  if (!me.exists || me.data().isSuperAdmin !== true || me.data().isActive !== true) {
-    throw new HttpsError('permission-denied', '只有管理者可以查看授權碼。');
-  }
+  const db = await assertSuperAdmin(req, '查看授權碼');
 
   const { cohort } = req.data || {};
   let q = db.collection('jd_codes');
@@ -332,13 +319,7 @@ export const listCodes = onCall(async (req) => {
 
 /** setCodeRevoked — 停權或恢復一組授權碼。限 Super Admin。 */
 export const setCodeRevoked = onCall(async (req) => {
-  if (!req.auth) throw new HttpsError('unauthenticated', '請先登入。');
-  const { getFirestore } = await import('firebase-admin/firestore');
-  const db = getFirestore();
-  const me = await db.collection('counselors').doc(req.auth.uid).get();
-  if (!me.exists || me.data().isSuperAdmin !== true || me.data().isActive !== true) {
-    throw new HttpsError('permission-denied', '只有管理者可以停權授權碼。');
-  }
+  const db = await assertSuperAdmin(req, '停權授權碼');
   const { code, revoked } = req.data || {};
   if (!code) throw new HttpsError('invalid-argument', '缺少授權碼。');
   await db.collection('jd_codes').doc(String(code)).update({ revoked: revoked === true });

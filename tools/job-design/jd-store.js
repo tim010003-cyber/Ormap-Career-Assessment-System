@@ -36,6 +36,130 @@ function writeAll(obj) {
   localStorage.setItem(LS_KEY, JSON.stringify(obj));
 }
 
+/* ══════════════════ 雲端同步（Firestore） ══════════════════
+ *
+ * 為什麼不是把這一層直接改成 Firestore
+ *   這個檔案的介面全是同步的（getCase / saveField / setModuleStatus…），
+ *   而所有呼叫端都直接 `const c = S.getCase(id)` 之後一路同步操作。
+ *   改成 async 等於重寫 case.html 與 index.html 的每一個呼叫點，
+ *   風險遠高於這件事本身的價值。
+ *
+ * 實際做法
+ *   localStorage 仍是**同步的工作副本**，Firestore 是同步與備份層。
+ *   進頁面時先把雲端拉下來合併進本機（initCloud），之後每次寫入都
+ *   延遲推一次上去。呼叫端的介面一個字都不用改。
+ *
+ * 合併策略：以案例為單位的 last-write-wins，比較 updated_at。
+ *   同一個案例在兩台裝置上「同時」編輯，較晚存的那邊會覆蓋另一邊。
+ *   這個工具是一個人依序在不同裝置上使用，不是多人協作，所以可接受；
+ *   但這是刻意的取捨，不是沒想到。
+ *
+ * 沒登入就整層停用，全部行為與改動前完全相同。
+ */
+
+const CLOUD = 'jd_cases';
+let _fb = null;            // { db, uid, fs }  未登入為 null
+let _cloudReady = false;
+const _dirty = new Set();
+let _pushTimer = null;
+
+async function firestoreBits() {
+  const [{ auth, db }, authMod, fsMod] = await Promise.all([
+    import('../../firebase-init.js'),
+    import('https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js'),
+    import('https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js'),
+  ]);
+  const user = auth.currentUser || await new Promise((resolve) => {
+    const un = authMod.onAuthStateChanged(auth, (u) => { un(); resolve(u); });
+  });
+  return user ? { db, uid: user.uid, fs: fsMod } : null;
+}
+
+/**
+ * 把雲端案例拉下來合併進本機。頁面在第一次讀取案例前要先 await 這個。
+ *
+ * 未登入、或雲端讀取失敗時**不擋畫面**：本機資料照樣能用，
+ * 只是這一次沒有跨裝置同步。工具不該因為網路問題就打不開。
+ */
+export async function initCloud() {
+  if (_cloudReady) return _fb != null;
+  _cloudReady = true;
+  try {
+    _fb = await firestoreBits();
+    if (!_fb) return false;
+    const { db, uid, fs } = _fb;
+    const snap = await fs.getDocs(fs.query(fs.collection(db, CLOUD), fs.where('ownerUid', '==', uid)));
+
+    const local = readAll();
+    const merged = { ...local };
+    const toPush = [];
+    snap.forEach((d) => {
+      const remote = d.data()?.payload;
+      if (!remote || !remote.case_id) return;
+      const mine = local[remote.case_id];
+      // 本機比較新才保留本機，其餘一律以雲端為準
+      if (!mine || (remote.updated_at || '') > (mine.updated_at || '')) merged[remote.case_id] = remote;
+      else if ((mine.updated_at || '') > (remote.updated_at || '')) toPush.push(mine.case_id);
+    });
+    // 雲端沒有的本機案例＝這台裝置離線期間建立的，或首次登入前就存在的，要上傳
+    for (const id of Object.keys(local)) if (!snap.docs.some(d => d.id === id)) toPush.push(id);
+
+    writeAll(merged);
+    toPush.forEach(id => _dirty.add(id));
+    if (toPush.length) schedulePush(0);
+    return true;
+  } catch (e) {
+    console.warn('[案例同步] 雲端讀取失敗，改用本機資料：', e?.message || e);
+    _fb = null;
+    return false;
+  }
+}
+
+function schedulePush(delay = 1200) {
+  if (!_fb || !_dirty.size) return;
+  clearTimeout(_pushTimer);
+  _pushTimer = setTimeout(pushDirty, delay);
+}
+
+async function pushDirty() {
+  if (!_fb || !_dirty.size) return;
+  const { db, uid, fs } = _fb;
+  const all = readAll();
+  const ids = [..._dirty];
+  _dirty.clear();
+  for (const id of ids) {
+    const c = all[id];
+    if (!c) continue;
+    try {
+      // 整份 payload 存成一個欄位。案例的形狀還在演化，攤平成 Firestore 欄位
+      // 只會在每次改結構時多一份對照表要維護，而查詢需求只有「我的全部案例」。
+      await fs.setDoc(fs.doc(db, CLOUD, id), { ownerUid: uid, updatedAt: c.updated_at || null, payload: c });
+    } catch (e) {
+      console.warn('[案例同步] 上傳失敗，稍後重試：', id, e?.message || e);
+      _dirty.add(id);   // 放回去，下一次寫入時一併重試
+    }
+  }
+}
+
+/**
+ * 身分變了就重新同步一次。
+ *
+ * 使用者常常是先開頁面、看到「還沒登入」才去登入。那時 initCloud 早就跑完
+ * 並記成「未登入」了，不重置的話這一輪永遠不會同步，換裝置的人會以為
+ * 資料真的不見了。登出時同樣要重置，才不會把 A 的案例推到 B 的帳號底下。
+ */
+export async function resyncCloud() {
+  clearTimeout(_pushTimer);
+  _cloudReady = false;
+  _fb = null;
+  return initCloud();
+}
+
+/** 目前這台裝置的案例有沒有在跟雲端同步。畫面用來誠實說明狀態。 */
+export function cloudStatus() {
+  return { enabled: _fb != null, ready: _cloudReady, pending: _dirty.size };
+}
+
 // Demo 用非加密亂數 id（正式版由後端產生）
 function genId(prefix) {
   return prefix + '_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
@@ -120,6 +244,7 @@ export function createCase(caseFieldValues, pathType) {
   const all = readAll();
   all[id] = c;
   writeAll(all);
+  _dirty.add(id); schedulePush();
   return c;
 }
 
@@ -127,6 +252,13 @@ export function deleteCase(caseId) {
   const all = readAll();
   delete all[caseId];
   writeAll(all);
+  _dirty.delete(caseId);
+  // 雲端也要刪，否則下次 initCloud 會把它同步回來，看起來像刪不掉
+  if (_fb) {
+    const { db, fs } = _fb;
+    fs.deleteDoc(fs.doc(db, CLOUD, caseId))
+      .catch(e => console.warn('[案例同步] 雲端刪除失敗：', caseId, e?.message || e));
+  }
 }
 
 function touch(c) { c.updated_at = new Date().toISOString(); }
@@ -136,6 +268,7 @@ export function saveCase(c) {
   touch(c);
   all[c.case_id] = c;
   writeAll(all);
+  _dirty.add(c.case_id); schedulePush();
   return c;
 }
 

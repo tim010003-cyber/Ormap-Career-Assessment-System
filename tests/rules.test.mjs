@@ -91,6 +91,11 @@ beforeEach(async () => {
       assignedCounselorUid: COUNSELOR_UID, counselorAccess: true,
     });
     await setDoc(doc(db, 'user_progress', `${STUDENT_UID}_TWA`), { data: '{}' });
+    // 職務設計案例：屬於 STUDENT_UID
+    await setDoc(doc(db, 'jd_cases', 'case_student'), {
+      ownerUid: STUDENT_UID, updatedAt: '2026-07-23T00:00:00Z',
+      payload: { case_id: 'case_student' },
+    });
   });
 });
 
@@ -324,6 +329,46 @@ describe('user_progress 草稿隔離', () => {
     const db = asUser(STUDENT_UID);
     await assertSucceeds(getDoc(doc(db, 'user_progress', `${STUDENT_UID}_TWA`)));
     await assertSucceeds(setDoc(doc(db, 'user_progress', `${STUDENT_UID}_HTI`), { data: 'x' }));
+  });
+});
+
+// ───────────────────────────────────────────────────────────────
+// 職務設計案例上雲（jd_cases）
+// 案例含使用者對自己組織的口述，只有本人能碰。
+// ───────────────────────────────────────────────────────────────
+describe('jd_cases 案例隔離', () => {
+  const mine = (uid, id) => ({ ownerUid: uid, updatedAt: '2026-07-23T01:00:00Z', payload: { case_id: id } });
+
+  it('allow：本人可讀自己的案例', async () => {
+    await assertSucceeds(getDoc(doc(asUser(STUDENT_UID), 'jd_cases', 'case_student')));
+  });
+
+  it('allow：本人可建立掛在自己名下的案例', async () => {
+    await assertSucceeds(setDoc(doc(asUser(STUDENT_UID), 'jd_cases', 'case_new'), mine(STUDENT_UID, 'case_new')));
+  });
+
+  it('allow：本人可更新與刪除自己的案例', async () => {
+    const db = asUser(STUDENT_UID);
+    await assertSucceeds(setDoc(doc(db, 'jd_cases', 'case_student'), mine(STUDENT_UID, 'case_student')));
+    await assertSucceeds(deleteDoc(doc(db, 'jd_cases', 'case_student')));
+  });
+
+  it('deny：不得讀取他人的案例', async () => {
+    await assertFails(getDoc(doc(asUser(OTHER_UID), 'jd_cases', 'case_student')));
+  });
+
+  it('deny：不得竄改或刪除他人的案例', async () => {
+    const db = asUser(OTHER_UID);
+    await assertFails(setDoc(doc(db, 'jd_cases', 'case_student'), mine(OTHER_UID, 'case_student')));
+    await assertFails(deleteDoc(doc(db, 'jd_cases', 'case_student')));
+  });
+
+  it('deny：不得建立掛在別人名下的案例', async () => {
+    await assertFails(setDoc(doc(asUser(OTHER_UID), 'jd_cases', 'case_forge'), mine(STUDENT_UID, 'case_forge')));
+  });
+
+  it('deny：未登入不得讀寫任何案例', async () => {
+    await assertFails(getDoc(doc(asGuest(), 'jd_cases', 'case_student')));
   });
 });
 

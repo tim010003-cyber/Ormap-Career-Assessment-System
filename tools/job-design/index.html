@@ -132,7 +132,7 @@
 
 <script type="module">
 import { CASE_FIELDS, PATHS, pathName } from './jd-fields.js';
-import { listCases, createCase, deleteCase, getModuleStatus } from './jd-store.js';
+import { listCases, createCase, deleteCase, getModuleStatus, resyncCloud } from './jd-store.js';
 import { countPending } from './jd-word.js';
 import { seedDemoCase, seedContradictionCase, seedPathACase } from './jd-seed.js';
 import { aiStatus, isLocalEnv, whyNotReady, signIn, signOut, onAuth, myAccess, redeemCode, remaining } from './jd-ai.js';
@@ -296,6 +296,14 @@ $('#caseForm').addEventListener('submit',(e)=>{
 
 render();
 
+/*
+ * 上面先畫一次本機資料，畫面立刻有東西；雲端拉完之後再重畫一次。
+ *
+ * 同步不在這裡觸發，而是統一交給下面的 onAuth——它在頁面載入時本來就會
+ * 先觸發一次。這裡若另外呼叫一次 initCloud，兩邊會同時 getDocs 再各自
+ * writeAll，交錯時可能蓋掉對方的合併結果。
+ */
+
 // AI 設定入口只在本機顯示（設定頁有 API Key 輸入框，不放公開網址）
 (async()=>{
   const chip=$('#aiChip'), txt=$('#aiChipText');
@@ -403,7 +411,8 @@ render();
       else await signIn();
     }catch(e){ if(e?.code!=='auth/popup-closed-by-user') alert('登入失敗：'+(e.message||e)); }
   });
-  onAuth(paintAcct).catch(()=>paintAcct(null));
+  // 登入／登出之後身分變了，案例同步要跟著重跑一次
+  onAuth(async (u)=>{ await paintAcct(u); if(await resyncCloud()) render(); }).catch(()=>paintAcct(null));
 
   if(window.lucide) lucide.createIcons();
 })();

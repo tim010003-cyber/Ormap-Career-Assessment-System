@@ -85,6 +85,51 @@ xlsx 02 沒有這三個欄位的資料，所以腳本保留現有 JSON 不覆蓋
 
 ---
 
+## ⚠️ 一次性事項（2026/07/22）
+
+### `overview.hint` 名詞層級手動修正（TWA-CONTENT-003）
+
+`data/twa-landing.json` 的 `overview.hint` 已手動改為：
+
+```text
+成就、舒適、地位、利他、安全、自主 — 六大價值面向、20 項工作需求。
+```
+
+原文寫「含 20 項環境指標」是**概念層級寫錯**。實際資料是：六大類 / **20 項需求** / 281 個環境指標。
+「20」對應的是需求，不是環境指標。
+
+JSON 路徑是 `hero.stats[1].hint`（`label` 為「大需求類別」那一筆）。
+
+**⚠️ 但這一欄目前根本不在 sync 覆蓋範圍內** — 見下方「`hero.stats` 與 `prepareChecklist.items` 不在 sync 範圍」。
+所以這次手改不會被 sync 蓋回舊文字；真正的風險是**整個 `hero.stats` 會被 sync 刪掉**。
+
+> 本次修正時本機沒有 Python／openpyxl，無法直接改 xlsx 或跑 dry-run，因此只能以本備忘擋住。
+
+### 🚨 `hero.stats` 與 `prepareChecklist.items` 不在 sync 範圍（資料遺失風險）
+
+`sync_landing_sheet.py` 是**整檔覆寫**（`out_path.write_text(...)`，不做 merge），
+而它只認得四種 item 形式：`-`／空、`group_*`、`card_*`、`paragraph_*`，
+分別產生 `cards` / `groups` / `paragraphs` 三種陣列。
+
+目前 `data/twa-landing.json` 有兩個陣列欄位**沒有任何分支能產生**：
+
+| 欄位 | 筆數 | 現況 |
+|---|---|---|
+| `hero.stats` | 3 | 手動維護，sync 無法產生 |
+| `prepareChecklist.items` | 2 | 手動維護，sync 無法產生 |
+
+**後果：現在直接跑 `python sync_landing_sheet.py`，這兩個欄位會整段消失。**
+`tools/twa.html` 有 `LANDING_FALLBACK` 擋底，不會白屏，但 Hero 統計數字與準備清單會退回內建預設值。
+
+跑 sync 前請先確認下列其中一項：
+
+1. 已先備份 `data/twa-landing.json`，跑完再把這兩個欄位補回；或
+2. 已擴充腳本（例如新增 `stat_N` / `item_N` 的 item 形式）並在 xlsx 補上對應列。
+
+（此問題於 2026-07-22 發現，已登記為缺陷 `OPS-003`。）
+
+---
+
 ## ⚠️ 一次性事項（2026/04/19）
 
 ### valueIntro 已啟用 + HTML 採方向 A 設計

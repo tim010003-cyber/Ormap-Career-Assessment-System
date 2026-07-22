@@ -8,7 +8,7 @@
  * 不評價、不追問、不判定、不阻擋——那些都是人在現場做的事。
  */
 
-import { MATURITY_DIMENSIONS, RESPONSIBILITY_TYPES, WORK_NATURE } from './jd-fields.js';
+import { MATURITY_DIMENSIONS, RESPONSIBILITY_TYPES, WORK_NATURE, M1_CHAPTERS } from './jd-fields.js';
 
 function envelope(taskCode, over = {}) {
   return {
@@ -160,13 +160,60 @@ export function runPath01(existing) {
    依《1.問題釐清定位書》各章整理思考歷程。
    使用者明確表示增員已決定時，保留為已確認前提；其他觀點以提醒呈現。 */
 
+/**
+ * 這個信封現在的主要用途已經不是「當結果」，而是**告訴 AI 這一章要產出什麼形狀**。
+ * jd-ai.js 的 shapeHint() 只取 organized_content 的鍵名與型別，值一律換成 "…"。
+ *
+ * 所以 task_code 與 organized_content 的鍵**一定要正確**：
+ *   task_code 錯 → transformRule() 取不到該章的轉換原則，AI 少掉最主要的品質來源
+ *   鍵是空的   → shapeHint 等於叫 AI 輸出 {}，AI 就照辦，畫面上是四張空白草稿卡
+ *
+ * 2026-07-22 的實際故障：M1_CHAPTERS 有「開場」章，M1_HANDLERS 沒有，
+ * 於是落進 fallback 的 envelope('M1', …)，上面兩件事同時發生，
+ * 而且 AI 呼叫本身是成功的，所以配額照扣、後端日誌一片正常。
+ */
+function chapterShape(ch) {
+  const out = {};
+  for (const o of ch.outputs || []) {
+    if (o.type === 'repeat') {
+      // 給一列樣本，shapeHint 才看得到欄位有哪些 key
+      out[o.id] = [Object.fromEntries((o.columns || []).map(col => [col.key, '']))];
+    } else {
+      out[o.id] = o.type === 'list' ? [] : '';
+    }
+  }
+  return out;
+}
+
 export function runM1Chapter(chapterCode, rawText, ctx = {}) {
+  const ch = M1_CHAPTERS.find(x => x.code === chapterCode);
+  // 章節清單與這裡不同步是程式錯誤，不是使用者的問題。
+  // 以前這裡靜默回一個空信封，結果是使用者花了一次配額拿到空白。寧可大聲壞掉。
+  if (!ch) throw new Error(`未知的章節：${chapterCode}（M1_CHAPTERS 沒有這個 code）`);
+
   const pts = splitPoints(rawText);
   const h = M1_HANDLERS[chapterCode];
-  if (!h) return envelope('M1', { cannot_complete: true, cannot_complete_reason: '未知的章節。' });
-  // 還沒講話不是錯誤，只是還沒開始。回空的整理結果，流程照走。
-  if (!pts.length) return envelope('M1', { warnings: ['這一章還沒有內容。想先跳過、之後再回來補都可以。'] });
-  return h(pts, ctx, rawText);
+
+  // 沒有規則式 handler（例如「開場」），或還沒講話。
+  // 兩種都不是錯誤：照樣帶著正確的 task_code 與完整欄位形狀交給 AI 去整理。
+  if (!h || !pts.length) {
+    return envelope(ch.task, {
+      organized_content: chapterShape(ch),
+      warnings: pts.length ? [] : ['這一章還沒有內容。想先跳過、之後再回來補都可以。'],
+    });
+  }
+
+  /*
+   * 規則式 handler 只吐得出「關鍵字比對到」的欄位，所以同一格會**看輸入而定**
+   * 忽有忽無：這次口述提到期限就有「時間敏感性」，沒提到就整格從形狀裡消失，
+   * AI 於是根本不知道有這一格——不是它判斷不用填。
+   *
+   * 2026-07-22 使用者決策：只要是 AI 轉換得到的欄位就全部給它填，
+   * 人再去比對或補充。草稿可以改、可以清空，「寧可整理得多一點讓他刪」。
+   * 因此這裡把完整形狀墊在底下，handler 有比對到的值照樣覆蓋上來。
+   */
+  const r = h(pts, ctx, rawText);
+  return { ...r, organized_content: { ...chapterShape(ch), ...r.organized_content } };
 }
 
 const M1_HANDLERS = {

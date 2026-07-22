@@ -25,6 +25,7 @@ import { defineSecret } from 'firebase-functions/params';
 import { logger } from 'firebase-functions';
 
 import { complete, parseJson, isSupportedProvider, DEFAULT_MODEL } from './lib/providers.js';
+import { redeemCode as doRedeem, getAccess, consumeQuota, refundQuota, logAiJob, isFreeTask } from './lib/quota.js';
 
 initializeApp();
 
@@ -88,23 +89,32 @@ export const jdAi = onCall(
       throw new HttpsError('unauthenticated', '請先登入再使用 AI 整理。');
     }
 
-    // 配額上線前的臨時防線。清單為空時一律拒絕——寧可不能用，
-    // 不要因為忘記設定就把 Key 開放給任何登入者。
+    const uid = req.auth.uid;
     const email = String(req.auth.token?.email || '').toLowerCase();
-    if (!ALLOWLIST.includes(email)) {
-      logger.warn('jdAi 被非允許清單的帳號呼叫', { uid: req.auth.uid, email });
-      throw new HttpsError(
-        'permission-denied',
-        'AI 整理目前僅開放給指定帳號測試，課程授權碼上線後才會開放。',
-      );
-    }
 
-    const { taskCode, system, user } = req.data || {};
+    const { taskCode, system, user, caseId } = req.data || {};
     if (!system || !user) {
       throw new HttpsError('invalid-argument', '缺少 system 或 user 內容。');
     }
     if (!isSupportedProvider(PROVIDER)) {
       throw new HttpsError('failed-precondition', `未支援的供應商：${PROVIDER}`);
+    }
+
+    /*
+     * 授權：課程授權碼優先，允許清單是備援。
+     * 兌換過碼的人走配額；還在清單裡的開發帳號不扣次數，方便測試。
+     * 兩者都沒有就拒絕——不會因為忘記設定而變成全開。
+     */
+    const access = await getAccess(uid);
+    let quota = null;
+    if (access) {
+      quota = await consumeQuota(uid, taskCode);   // 先扣再打，失敗才退
+    } else if (!ALLOWLIST.includes(email)) {
+      logger.warn('jdAi 未授權呼叫', { uid, email });
+      throw new HttpsError(
+        'permission-denied',
+        '還沒有輸入課程授權碼。輸入之後才能使用 AI 整理。',
+      );
     }
 
     const started = Date.now();
@@ -117,25 +127,35 @@ export const jdAi = onCall(
         user,
       });
     } catch (e) {
+      // 供應商失敗不該由使用者付費
+      if (quota?.counted) await refundQuota(uid);
       // 供應商的錯誤訊息可能含有請求內容，不原樣往前端丟
       logger.error('AI 供應商呼叫失敗', { taskCode, provider: PROVIDER, message: e.message });
-      throw new HttpsError('unavailable', 'AI 服務暫時無法使用，已改用內建整理。');
+      throw new HttpsError('unavailable', 'AI 服務暫時無法使用。你寫的內容都還在。');
     }
 
     let data;
     try {
       data = parseJson(result.text);
     } catch (e) {
+      // 格式壞掉也是系統的問題，一樣退費
+      if (quota?.counted) await refundQuota(uid);
       logger.warn('模型未回傳合法 JSON', { taskCode, message: e.message });
-      throw new HttpsError('internal', 'AI 回傳格式不正確，已改用內建整理。');
+      throw new HttpsError('internal', 'AI 回傳的格式不正確，這一次不計次。請再試一次。');
     }
 
     logger.info('jdAi 完成', {
       taskCode: taskCode || 'AI',
-      uid: req.auth.uid,
+      uid,
       ms: Date.now() - started,
       inputTokens: result.usage.input,
       outputTokens: result.usage.output,
+      counted: !!quota?.counted,
+    });
+    await logAiJob({
+      uid, caseId: caseId ?? null, taskCode: taskCode ?? null,
+      inputTokens: result.usage.input, outputTokens: result.usage.output,
+      model: MODEL || DEFAULT_MODEL[PROVIDER], counted: !!quota?.counted,
     });
 
     return {
@@ -144,6 +164,81 @@ export const jdAi = onCall(
       usage: result.usage,
       provider: PROVIDER,
       model: MODEL || DEFAULT_MODEL[PROVIDER],
+      // 讓畫面即時更新「剩幾次」
+      quotaUsed: quota?.quotaUsed ?? null,
+      quotaTotal: quota?.quotaTotal ?? null,
+      counted: !!quota?.counted,
     };
   },
 );
+
+/**
+ * redeemCode — 兌換課程授權碼。
+ * 一人一碼：碼綁定 uid 後，別人拿到同一組也用不了；停權只要把該碼標記 revoked。
+ */
+export const redeemCode = onCall(async (req) => {
+  if (!req.auth) throw new HttpsError('unauthenticated', '請先登入。');
+  const r = await doRedeem(req.auth.uid, req.auth.token?.email ?? null, req.data?.code);
+  logger.info('授權碼兌換成功', { uid: req.auth.uid, cohort: r.cohort });
+  return { ok: true, ...r };
+});
+
+/** myAccess — 讀自己的授權與剩餘次數，畫面用來顯示「還剩幾次」。 */
+export const myAccess = onCall(async (req) => {
+  if (!req.auth) throw new HttpsError('unauthenticated', '請先登入。');
+  const a = await getAccess(req.auth.uid);
+  if (!a) return { ok: true, hasCode: false };
+  return {
+    ok: true,
+    hasCode: true,
+    cohort: a.cohort ?? null,
+    quotaTotal: a.quotaTotal ?? 0,
+    quotaUsed: a.quotaUsed ?? 0,
+    isInstructor: a.isInstructor === true,
+  };
+});
+
+/**
+ * issueCodes — 批次產碼。限 Super Admin。
+ * 碼的格式刻意避開容易看錯的字元（0/O、1/I），因為要用唸的或手抄。
+ */
+export const issueCodes = onCall(async (req) => {
+  if (!req.auth) throw new HttpsError('unauthenticated', '請先登入。');
+
+  const { getFirestore } = await import('firebase-admin/firestore');
+  const db = getFirestore();
+  const me = await db.collection('counselors').doc(req.auth.uid).get();
+  if (!me.exists || me.data().isSuperAdmin !== true || me.data().isActive !== true) {
+    throw new HttpsError('permission-denied', '只有管理者可以產生授權碼。');
+  }
+
+  const { cohort, count = 1, quota = 30, isInstructor = false } = req.data || {};
+  if (!cohort) throw new HttpsError('invalid-argument', '請指定梯次名稱。');
+  const n = Math.min(Math.max(Number(count) || 1, 1), 200);
+
+  const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // 去掉 O/0/I/1
+  const rand = (len) => Array.from(
+    { length: len },
+    () => ALPHABET[Math.floor(Math.random() * ALPHABET.length)],
+  ).join('');
+
+  const codes = [];
+  const batch = db.batch();
+  for (let i = 0; i < n; i++) {
+    const code = `ORMAP-${rand(4)}-${rand(4)}`;
+    batch.set(db.collection('jd_codes').doc(code), {
+      cohort,
+      quotaTotal: Number(quota) || 30,
+      isInstructor: isInstructor === true,
+      redeemedBy: null,
+      redeemedAt: null,
+      revoked: false,
+      createdAt: new Date().toISOString(),
+      createdBy: req.auth.uid,
+    });
+    codes.push(code);
+  }
+  await batch.commit();
+  logger.info('產生授權碼', { uid: req.auth.uid, cohort, count: n, isInstructor });
+  return { ok: true, codes };
+});

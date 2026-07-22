@@ -180,5 +180,40 @@ service cloud.firestore {
         || resource.data.get('email', '') == request.auth.token.email
       );
     }
+
+    // ══════════════════════════════════════════════════════════════
+    // 職務設計：課程授權碼與 AI 配額
+    // ──────────────────────────────────────────────────────────────
+    // 核心原則：配額必須由伺服器扣。
+    //   quotaUsed 若前端可寫，改一下瀏覽器就能無限用，配額形同虛設。
+    //   因此 jd_users 與 jd_codes 前端一律不可寫，只有 Cloud Functions
+    //   （使用 Admin SDK，繞過 Rules）能改。
+    // ══════════════════════════════════════════════════════════════
+
+    // 課程授權碼。碼本身就是憑證，能列舉就能盜用，所以前端完全不可讀。
+    // 兌換一律走 redeemCode() callable。
+    match /jd_codes/{code} {
+      allow read, write: if false;
+    }
+
+    // 使用者的授權與用量。本人可讀（畫面要顯示剩餘次數），但不可寫。
+    match /jd_users/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // 職務設計案例。只有擁有者本人可以讀寫。
+    match /jd_cases/{caseId} {
+      allow read, update, delete: if request.auth != null
+        && resource.data.get('ownerUid', '') == request.auth.uid;
+      // 建立時不得掛在別人名下，也不得自帶用量欄位
+      allow create: if request.auth != null
+        && request.resource.data.get('ownerUid', '') == request.auth.uid;
+    }
+
+    // AI 用量稽核。後端專用，使用者讀不到（含他人 uid 與 token 數）。
+    match /jd_ai_logs/{logId} {
+      allow read, write: if false;
+    }
   }
 }

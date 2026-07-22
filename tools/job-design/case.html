@@ -78,22 +78,32 @@ async function runWithAi(taskCode, instruction, mock, input, btn){
     if(taskCode!=='SYNTH-01') setTimeout(()=>{ refreshSummary().catch(()=>{}); }, 50);
     return merged;
   } catch(e) {
-    if(e instanceof AIX.AiUnavailable){ showAiUnavailable(e); return null; }
-    console.error('[AI] 未預期的錯誤', e);
-    showAiUnavailable(new AIX.AiUnavailable('provider_error', e.message||String(e)));
+    const err = e instanceof AIX.AiUnavailable
+      ? e : new AIX.AiUnavailable('provider_error', e.message||String(e));
+    if(!(e instanceof AIX.AiUnavailable)) console.error('[AI] 未預期的錯誤', e);
+    showAiUnavailable(err, btn);
     return null;
   } finally {
     if(btn){ btn.disabled=false; btn.innerHTML=label; if(window.lucide)lucide.createIcons(); }
   }
 }
 
-/** AI 不能用時的說明。原始輸入完全保留，人工填寫與下載都不受影響。 */
-function showAiUnavailable(err){
+/**
+ * AI 不能用時的說明。原始輸入完全保留，人工填寫與下載都不受影響。
+ *
+ * 一定要顯示在**按鈕旁邊**。先前放在頁面頂端的固定區塊，按鈕在畫面下方時
+ * 使用者只會感覺到「頁面往上跳了一下，然後沒反應」——訊息離操作點太遠，
+ * 等於沒說。
+ */
+function showAiUnavailable(err, btn){
   const info = AIX.whyNotReady({ reason: err.reason });
-  const box = $('#aiUnavailable');
-  if(!box) return;
-  box.classList.remove('hidden');
-  box.innerHTML = `<div class="flex items-start gap-2">
+
+  // 同一顆按鈕重複按時不要疊出好幾張
+  document.querySelectorAll('.ai-unavailable-note').forEach(n=>n.remove());
+  const top = $('#aiUnavailable'); if(top) top.classList.add('hidden');
+
+  const note = el('div','ai-unavailable-note mt-3 p-3.5 rounded-xl bg-mist/50 border border-navy/15 text-sm text-navy/75');
+  note.innerHTML = `<div class="flex items-start gap-2">
       <i data-lucide="info" class="w-4 h-4 shrink-0 mt-0.5"></i>
       <div>
         <div class="font-bold mb-0.5">${esc(info.short)}，這一段沒有整理</div>
@@ -101,13 +111,28 @@ function showAiUnavailable(err){
         <div class="text-navy/45 leading-relaxed mt-1">你寫的內容都還在，也可以直接手動填寫下面的欄位。</div>
       </div>
     </div>`;
+
   if(err.reason === 'signed_out'){
-    const b = el('button','mt-2 ml-6 bg-navy text-ivory px-3.5 py-1.5 rounded-lg text-xs font-semibold','用 Google 登入');
-    b.addEventListener('click', async()=>{ try{ await AIX.signIn(); box.classList.add('hidden'); render(); }catch(e){} });
-    box.appendChild(b);
+    const b = el('button','mt-2.5 ml-6 inline-flex items-center gap-1.5 bg-navy text-ivory px-3.5 py-2 rounded-lg text-xs font-semibold hover:bg-tealdeep',
+      '<i data-lucide="log-in" class="w-3.5 h-3.5"></i>用 Google 登入');
+    b.addEventListener('click', async()=>{
+      try{ await AIX.signIn(); note.remove(); render(); }
+      catch(e){ if(e?.code!=='auth/popup-closed-by-user') alert('登入失敗：'+(e.message||e)); }
+    });
+    note.appendChild(b);
+  }
+
+  // 掛在按鈕所在的那一列後面；找不到按鈕才退回頁面頂端的區塊
+  const anchor = btn && btn.isConnected ? (btn.closest('div') || btn) : null;
+  if(anchor && anchor.parentNode){
+    anchor.parentNode.insertBefore(note, anchor.nextSibling);
+  } else if(top){
+    top.classList.remove('hidden'); top.innerHTML=''; top.appendChild(note);
+  } else {
+    $('#moduleArea')?.appendChild(note);
   }
   if(window.lucide)lucide.createIcons();
-  box.scrollIntoView({behavior:'smooth', block:'nearest'});
+  note.scrollIntoView({behavior:'smooth', block:'center'});
 }
 
 const $ = (s,r=document)=>r.querySelector(s);

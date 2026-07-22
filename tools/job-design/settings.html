@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>職務設計與甄選｜AI 設定</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="../../brand.css">
+<link rel="stylesheet" href="./jd-theme.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@1.8.0"></script>
+</head>
+<body class="site-page jd-app jd-settings-page min-h-screen font-sans">
+<a class="site-skip-link" href="#main-content">跳到主要內容</a>
+
+<header class="site-header"><div class="site-container site-container--wide site-header__inner"><a class="site-brand" href="../../index.html"><img src="../../ormap-logo.png" alt=""><span>原味藍圖<small>生涯探索與人生設計</small></span></a><nav class="site-nav" aria-label="主要導覽"><a href="../../about.html">認識我們</a><a href="../../blog.html">文章</a><a href="../../tools.html" aria-current="page">探索工具</a><a href="../../courses.html">課程</a><a href="../../services.html">個人服務</a><a href="../../organizations.html">組織方案</a><a class="site-nav__account" href="../../dashboard.html">我的空間</a></nav><details class="site-mobile-nav"><summary>選單</summary><nav class="site-mobile-nav__panel" aria-label="行動版導覽"><a href="../../index.html">首頁</a><a href="../../tools.html" aria-current="page">探索工具</a><a href="../../organizations.html">組織方案</a><a href="../../dashboard.html">我的空間</a></nav></details></div></header>
+
+<div class="jd-appbar"><div class="site-container site-container--wide jd-appbar__inner flex items-center justify-between gap-4"><a href="./index.html" class="flex items-center gap-2 text-navy/55 hover:text-navy text-sm font-bold"><i data-lucide="arrow-left" class="w-4 h-4"></i>回案例列表</a><span class="jd-maturity">本機 AI 設定</span></div></div>
+
+<main id="main-content" class="jd-settings-main max-w-3xl mx-auto px-6">
+  <nav class="site-breadcrumb" aria-label="麵包屑"><a href="../../index.html">首頁</a><span aria-hidden="true">／</span><a href="../../tools.html">探索工具</a><span aria-hidden="true">／</span><a href="./jobdesign-intro.html">職務設計與甄選</a><span aria-hidden="true">／</span><span aria-current="page">AI 設定</span></nav>
+
+  <div class="mb-10">
+    <div class="flex items-center gap-2 mb-2">
+      <i data-lucide="sparkles" class="w-4 h-4 text-tealgreen"></i>
+      <span class="text-[11px] tracking-[2px] text-tealdeep font-bold">AI 設定</span>
+    </div>
+    <h1 class="text-[26px] font-black text-navy leading-snug mb-4">讓工具用真的 AI 整理</h1>
+    <p class="text-[15px] text-navy/65 leading-loose">
+      沒有設定時，工具會用內建的模擬整理，流程一樣走得完。
+      設定之後，「請 AI 幫我整理」就會改用真的 AI。
+    </p>
+  </div>
+
+  <!-- 狀態 -->
+  <section id="statusCard" class="rounded-2xl border border-navy/12 bg-white p-5 mb-6">
+    <div class="text-sm text-navy/45">檢查中…</div>
+  </section>
+
+  <!-- 啟動說明 -->
+  <section id="startHelp" class="hidden rounded-2xl border-2 border-accent/40 bg-accent/5 p-5 mb-6">
+    <div class="font-bold text-accent mb-2 flex items-center gap-1.5">
+      <i data-lucide="alert-triangle" class="w-4 h-4"></i>還沒啟動 AI 代理
+    </div>
+    <p class="text-[14px] text-navy/70 leading-loose mb-3">
+      API Key 不能放在瀏覽器裡，所以需要一支小程式跑在你自己的電腦上替你保管。
+      打開終端機，在專案資料夾執行：
+    </p>
+    <div class="bg-navy text-ivory rounded-xl p-4 font-mono text-[13px] leading-relaxed select-all">
+      node tools/job-design/server/ai-proxy.mjs
+    </div>
+    <p class="text-[13px] text-navy/45 leading-loose mt-3">
+      看到「AI 代理已啟動」就成功了。這個視窗保持開著，然後回到這一頁重新整理。
+    </p>
+  </section>
+
+  <!-- 設定表單 -->
+  <section id="formCard" class="hidden rounded-2xl border border-navy/12 bg-white p-6 mb-6">
+    <div class="space-y-6">
+      <div>
+        <label class="block text-sm font-bold text-navy mb-1.5">供應商</label>
+        <p class="text-xs text-navy/45 mb-2">哪一家的 Key 你申請得到就用哪一家，之後隨時可以換。</p>
+        <select id="provider" class="w-full border border-navy/15 rounded-lg px-3 py-2.5 bg-white text-sm">
+          <option value="openai">OpenAI</option>
+          <option value="anthropic">Anthropic（Claude）</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-bold text-navy mb-1.5">模型</label>
+        <p class="text-xs text-navy/45 mb-2">留空就用預設。若供應商更新了型號，直接改這裡即可。</p>
+        <input id="model" list="modelHints" class="w-full border border-navy/15 rounded-lg px-3 py-2.5 text-sm" placeholder="留空使用預設">
+        <datalist id="modelHints"></datalist>
+      </div>
+
+      <div>
+        <label class="block text-sm font-bold text-navy mb-1.5">API Key</label>
+        <p class="text-xs text-navy/45 mb-2">
+          填好後只會存在你電腦上的設定檔，不會存進瀏覽器，也不會進版控。
+        </p>
+        <div class="flex gap-2">
+          <input id="apiKey" type="password" autocomplete="off" class="flex-1 border border-navy/15 rounded-lg px-3 py-2.5 text-sm font-mono" placeholder="貼上你的 API Key">
+          <button id="toggleKey" class="px-3 rounded-lg border border-navy/15 text-navy/50 hover:text-navy" title="顯示／隱藏"><i data-lucide="eye" class="w-4 h-4"></i></button>
+        </div>
+        <div id="keyState" class="text-xs text-navy/45 mt-2"></div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 pt-2">
+        <button id="saveBtn" class="inline-flex items-center gap-2 bg-navy text-ivory px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-tealdeep">
+          <i data-lucide="save" class="w-4 h-4"></i>儲存設定
+        </button>
+        <button id="testBtn" class="inline-flex items-center gap-2 bg-white border border-tealgreen/50 text-tealdeep px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-mist/40">
+          <i data-lucide="plug" class="w-4 h-4"></i>測試連線
+        </button>
+        <button id="clearBtn" class="ml-auto text-sm text-navy/40 hover:text-accent px-3 py-2">清除 Key</button>
+      </div>
+
+      <div id="result" class="hidden rounded-xl p-4 text-sm leading-relaxed"></div>
+    </div>
+  </section>
+
+  <p class="text-[13px] text-navy/40 leading-loose">
+    這支代理只綁定你自己的電腦（127.0.0.1），不對外開放。
+    未來要讓客戶也能用時，會改成放在雲端並由後端保管金鑰，屆時這一頁的設定方式不變。
+  </p>
+</main>
+
+<footer class="site-footer"><div class="site-container site-footer__grid"><div><h2>原味藍圖 Ormap</h2><p>先看懂真正的問題，再決定需要什麼樣的人才合作。</p></div><nav aria-label="工具"><h3>職務設計與甄選</h3><a href="./jobdesign-intro.html">使用說明</a><a href="./index.html">案例列表</a><a href="./settings.html">AI 設定</a></nav><nav aria-label="網站"><h3>探索與服務</h3><a href="../../tools.html">探索工具</a><a href="../../organizations.html">組織方案</a></nav><nav aria-label="網站資訊"><h3>網站資訊</h3><a href="../../privacy.html">隱私權政策</a><a href="../../terms.html">服務條款</a><a href="../../feedback.html">意見回饋</a></nav></div><div class="site-container site-footer__legal">© 2026 原味藍圖 Ormap。API Key 只應由本機代理保管，不應放入瀏覽器、對話或版本控制。</div></footer>
+
+<script type="module">
+import { defaultProxy, setProxy, aiStatus } from './jd-ai.js';
+
+const $ = s => document.querySelector(s);
+const PROXY = defaultProxy();
+const HINTS = {
+  openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1'],
+  anthropic: ['claude-sonnet-5', 'claude-opus-4-8', 'claude-haiku-4-5-20251001'],
+};
+
+function paintHints(){
+  const p = $('#provider').value;
+  $('#modelHints').innerHTML = (HINTS[p]||[]).map(m=>`<option value="${m}">`).join('');
+}
+
+function show(el, on){ el.classList.toggle('hidden', !on); }
+
+function result(kind, html){
+  const box = $('#result');
+  box.className = 'rounded-xl p-4 text-sm leading-relaxed ' + (
+    kind==='ok' ? 'bg-tealgreen/10 border border-tealgreen/30 text-tealdeep'
+    : kind==='err' ? 'bg-accent/10 border-2 border-accent text-navy/75'
+    : 'bg-mist/40 border border-navy/10 text-navy/70');
+  box.innerHTML = html;
+  show(box, true);
+}
+
+async function refresh(){
+  const s = await aiStatus(true);
+  const card = $('#statusCard');
+  if(s.offline){
+    card.innerHTML = `<div class="flex items-center gap-2 text-accent font-semibold"><i data-lucide="x-circle" class="w-4 h-4"></i>代理未啟動</div>
+      <p class="text-sm text-navy/55 mt-1.5">目前會使用內建的模擬整理。</p>`;
+    show($('#startHelp'), true); show($('#formCard'), false);
+  } else {
+    const ready = s.hasKey;
+    card.innerHTML = `<div class="flex items-center gap-2 font-semibold ${ready?'text-tealdeep':'text-accent'}">
+        <i data-lucide="${ready?'check-circle':'alert-circle'}" class="w-4 h-4"></i>${ready?'已可使用真的 AI':'代理已啟動，但還沒有 API Key'}</div>
+      <div class="text-sm text-navy/55 mt-2 space-y-0.5">
+        <div>供應商：<b class="text-navy/75">${s.provider}</b>　模型：<b class="text-navy/75">${s.model||'（預設）'}</b></div>
+        ${s.hasKey?`<div>API Key：<code>${s.keyMasked}</code>${s.fromEnv?'（來自環境變數）':''}</div>`:''}
+      </div>`;
+    show($('#startHelp'), false); show($('#formCard'), true);
+    $('#provider').value = s.provider || 'openai';
+    $('#model').value = s.model || '';
+    $('#keyState').textContent = s.hasKey ? `目前已設定：${s.keyMasked}。要更換再貼上新的就好。` : '尚未設定。';
+    paintHints();
+  }
+  if(window.lucide) lucide.createIcons();
+}
+
+$('#provider').addEventListener('change', ()=>{ $('#model').value=''; paintHints(); });
+
+$('#toggleKey').addEventListener('click', ()=>{
+  const i = $('#apiKey');
+  i.type = i.type === 'password' ? 'text' : 'password';
+});
+
+$('#saveBtn').addEventListener('click', async ()=>{
+  try{
+    const r = await fetch(PROXY+'/api/config', {
+      method:'POST', headers:{'content-type':'application/json'},
+      body: JSON.stringify({ provider:$('#provider').value, model:$('#model').value, apiKey:$('#apiKey').value }),
+    });
+    const j = await r.json();
+    if(!j.ok) return result('err', '儲存失敗：'+(j.error||''));
+    $('#apiKey').value='';
+    result('ok', '已儲存。建議按一下「測試連線」確認可以正常呼叫。');
+    refresh();
+  }catch(e){ result('err','無法連線到代理：'+e.message); }
+});
+
+$('#testBtn').addEventListener('click', async ()=>{
+  result('info','測試中…');
+  try{
+    const r = await fetch(PROXY+'/api/test', { method:'POST' });
+    const j = await r.json();
+    if(!j.ok) return result('err', `<b>測試失敗</b><br>${j.error||''}<br><span class="text-navy/50">常見原因：Key 錯誤、帳戶沒有額度、或模型名稱不存在。</span>`);
+    result('ok', `<b>連線成功</b><br>供應商 ${j.provider}，模型 ${j.model}<br>
+      <span class="text-navy/50">用量：輸入 ${j.usage?.input||0} / 輸出 ${j.usage?.output||0} tokens</span>`);
+  }catch(e){ result('err','無法連線到代理：'+e.message); }
+});
+
+$('#clearBtn').addEventListener('click', async ()=>{
+  if(!confirm('確定清除已儲存的 API Key？')) return;
+  await fetch(PROXY+'/api/config', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({clearKey:true}) });
+  result('info','已清除。工具會回到模擬整理模式。');
+  refresh();
+});
+
+refresh();
+</script>
+</body>
+</html>

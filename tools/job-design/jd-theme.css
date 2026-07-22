@@ -1,0 +1,383 @@
+/* ============================================================
+   職務設計 App 共用視覺層
+   - 僅作用於 .jd-app，避免影響站內其他工具。
+   - 保留 Tailwind CDN 既有版面 utilities；本檔提供品牌色 utilities、
+     App 元件與三欄工作區樣式，取代三頁重複的 config / inline style。
+   ============================================================ */
+
+.jd-app {
+  --jd-paper: var(--brand-paper, #FBF8F2);
+  --jd-paper-2: var(--brand-paper-2, #F3EDE2);
+  --jd-ink: var(--brand-ink, #142033);
+  --jd-teal: var(--brand-teal, #1E9188);
+  --jd-teal-deep: #136E68;
+  --jd-mist: var(--brand-mist, #DCECEF);
+  --jd-clay: var(--brand-clay, #E88A55);
+  --jd-line: rgba(20, 32, 51, .12);
+  --jd-shadow: 0 18px 48px rgba(20, 32, 51, .08);
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at 88% 8%, rgba(220, 236, 239, .54), transparent 28rem),
+    var(--jd-paper);
+  color: var(--jd-ink);
+  font-family: "Noto Sans TC", system-ui, sans-serif;
+  line-height: 1.75;
+  letter-spacing: .012em;
+  -webkit-font-smoothing: antialiased;
+}
+
+.jd-app *, .jd-app *::before, .jd-app *::after { box-sizing: border-box; }
+.jd-app h1, .jd-app h2, .jd-app .serif { font-family: "Noto Serif TC", serif; text-wrap: balance; }
+.jd-app p { text-wrap: pretty; }
+.jd-app textarea { resize: vertical; }
+.jd-app dialog::backdrop { background: rgba(20, 32, 51, .52); backdrop-filter: blur(4px); }
+.jd-app code { padding: .14rem .45rem; border-radius: .35rem; background: rgba(20, 32, 51, .06); font-size: .82rem; }
+.jd-app [contenteditable]:focus { outline: 3px solid rgba(30, 145, 136, .32); outline-offset: 2px; border-radius: .4rem; }
+
+/* Tailwind 自訂色相容層：讓三頁不再重複頁內主題設定。 */
+.jd-app .text-navy { color: #142033; }
+.jd-app .text-navy\/30 { color: rgba(20,32,51,.30); }
+.jd-app .text-navy\/35 { color: rgba(20,32,51,.35); }
+.jd-app .text-navy\/40 { color: rgba(20,32,51,.40); }
+.jd-app .text-navy\/45 { color: rgba(20,32,51,.45); }
+.jd-app .text-navy\/50 { color: rgba(20,32,51,.50); }
+.jd-app .text-navy\/55 { color: rgba(20,32,51,.55); }
+.jd-app .text-navy\/60 { color: rgba(20,32,51,.60); }
+.jd-app .text-navy\/65 { color: rgba(20,32,51,.65); }
+.jd-app .text-navy\/70 { color: rgba(20,32,51,.70); }
+.jd-app .text-navy\/75 { color: rgba(20,32,51,.75); }
+.jd-app .text-navy\/80 { color: rgba(20,32,51,.80); }
+.jd-app .text-navy\/85 { color: rgba(20,32,51,.85); }
+.jd-app .text-ivory { color: #FBF8F2; }
+.jd-app .text-tealgreen { color: #1E9188; }
+.jd-app .text-tealdeep { color: #136E68; }
+.jd-app .text-accent { color: #E88A55; }
+.jd-app .text-accent\/50 { color: rgba(232,138,85,.50); }
+
+.jd-app .bg-navy { background-color: #142033; }
+.jd-app .bg-navy\/5 { background-color: rgba(20,32,51,.05); }
+.jd-app .bg-navy\/10 { background-color: rgba(20,32,51,.10); }
+.jd-app .bg-navy\/15 { background-color: rgba(20,32,51,.15); }
+.jd-app .bg-navy\/20 { background-color: rgba(20,32,51,.20); }
+.jd-app .bg-navy\/30 { background-color: rgba(20,32,51,.30); }
+.jd-app .bg-ivory\/80 { background-color: rgba(251,248,242,.80); }
+.jd-app .bg-ivory\/90 { background-color: rgba(251,248,242,.90); }
+.jd-app .bg-mist { background-color: #DCECEF; }
+.jd-app .bg-mist\/40 { background-color: rgba(220,236,239,.40); }
+.jd-app .bg-mist\/50 { background-color: rgba(220,236,239,.50); }
+.jd-app .bg-tealgreen { background-color: #1E9188; }
+.jd-app .bg-tealgreen\/5 { background-color: rgba(30,145,136,.05); }
+.jd-app .bg-tealgreen\/10 { background-color: rgba(30,145,136,.10); }
+.jd-app .bg-tealgreen\/15 { background-color: rgba(30,145,136,.15); }
+.jd-app .bg-accent { background-color: #E88A55; }
+.jd-app .bg-accent\/5 { background-color: rgba(232,138,85,.05); }
+.jd-app .bg-accent\/8 { background-color: rgba(232,138,85,.08); }
+.jd-app .bg-accent\/10 { background-color: rgba(232,138,85,.10); }
+.jd-app .bg-accent\/15 { background-color: rgba(232,138,85,.15); }
+
+.jd-app .border-navy { border-color: #142033; }
+.jd-app .border-navy\/5 { border-color: rgba(20,32,51,.05); }
+.jd-app .border-navy\/8 { border-color: rgba(20,32,51,.08); }
+.jd-app .border-navy\/10 { border-color: rgba(20,32,51,.10); }
+.jd-app .border-navy\/12 { border-color: rgba(20,32,51,.12); }
+.jd-app .border-navy\/15 { border-color: rgba(20,32,51,.15); }
+.jd-app .border-navy\/20 { border-color: rgba(20,32,51,.20); }
+.jd-app .border-tealgreen\/20 { border-color: rgba(30,145,136,.20); }
+.jd-app .border-tealgreen\/30 { border-color: rgba(30,145,136,.30); }
+.jd-app .border-tealgreen\/40 { border-color: rgba(30,145,136,.40); }
+.jd-app .border-tealgreen\/50 { border-color: rgba(30,145,136,.50); }
+.jd-app .border-accent { border-color: #E88A55; }
+.jd-app .border-accent\/20 { border-color: rgba(232,138,85,.20); }
+.jd-app .border-accent\/25 { border-color: rgba(232,138,85,.25); }
+.jd-app .border-accent\/30 { border-color: rgba(232,138,85,.30); }
+.jd-app .border-accent\/40 { border-color: rgba(232,138,85,.40); }
+
+.jd-app .hover\:bg-tealdeep:hover { background-color: #136E68; }
+.jd-app .hover\:bg-tealgreen\/15:hover { background-color: rgba(30,145,136,.15); }
+.jd-app .hover\:bg-mist\/30:hover { background-color: rgba(220,236,239,.30); }
+.jd-app .hover\:bg-mist\/40:hover { background-color: rgba(220,236,239,.40); }
+.jd-app .hover\:bg-mist\/50:hover { background-color: rgba(220,236,239,.50); }
+.jd-app .hover\:bg-navy\/5:hover { background-color: rgba(20,32,51,.05); }
+.jd-app .hover\:bg-accent\/10:hover { background-color: rgba(232,138,85,.10); }
+.jd-app .hover\:text-navy:hover { color: #142033; }
+.jd-app .hover\:text-tealdeep:hover { color: #136E68; }
+.jd-app .hover\:text-accent:hover { color: #E88A55; }
+.jd-app .hover\:border-tealgreen\/50:hover { border-color: rgba(30,145,136,.50); }
+.jd-app .hover\:border-tealgreen\/60:hover { border-color: rgba(30,145,136,.60); }
+.jd-app .focus\:border-tealgreen:focus { border-color: #1E9188; }
+
+/* 網站外殼在工具內維持品牌一致，但降低高度，保留工作空間。 */
+.jd-app .site-header { background: rgba(251, 248, 242, .96); }
+.jd-app .site-header__inner { min-height: 3.9rem; }
+.jd-app .site-footer { margin-top: 0; }
+.jd-app .site-breadcrumb { margin-bottom: 1.25rem; }
+.jd-app .jd-appbar {
+  position: sticky;
+  top: 3.9rem;
+  z-index: 35;
+  border-bottom: 1px solid var(--jd-line);
+  background: rgba(251, 248, 242, .92);
+  backdrop-filter: blur(14px);
+}
+.jd-app .jd-appbar__inner { min-height: 3.35rem; }
+.jd-app .jd-tool-mark {
+  width: 2.25rem;
+  height: 2.25rem;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: .75rem;
+  background: var(--jd-ink);
+  color: var(--jd-paper);
+  font-family: "Noto Serif TC", serif;
+  font-weight: 900;
+}
+.jd-app .jd-maturity {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .32rem .68rem;
+  border: 1px solid rgba(232, 138, 85, .28);
+  border-radius: 999px;
+  background: rgba(232, 138, 85, .08);
+  color: #A6532D;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+
+/* 通用元件 */
+.jd-app .badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.45rem;
+  padding: .18rem .62rem;
+  border-radius: 999px;
+  font-size: .7rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.jd-app .col-raw { background: #F4F1EA; }
+.jd-app .col-ai { background: #EAF5F3; }
+.jd-app .col-inf { background: #FDF3EA; }
+.jd-app input, .jd-app select, .jd-app textarea {
+  color: var(--jd-ink);
+  caret-color: var(--jd-teal);
+}
+.jd-app input:focus, .jd-app select:focus, .jd-app textarea:focus {
+  outline: none;
+  border-color: var(--jd-teal);
+  box-shadow: 0 0 0 4px rgba(30, 145, 136, .12);
+}
+.jd-app button, .jd-app a { transition: color .15s ease, background-color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+.jd-app button:active:not(:disabled), .jd-app a:active { transform: translateY(1px); }
+
+/* 案例列表與 onboarding */
+.jd-index-page .jd-index-main { padding-top: clamp(2.2rem, 5vw, 4.2rem); padding-bottom: 5rem; }
+.jd-index-page .jd-index-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(17rem, .75fr);
+  gap: clamp(2rem, 5vw, 4.5rem);
+  align-items: end;
+  padding-bottom: 2rem;
+}
+.jd-index-page .jd-index-hero__note {
+  padding: 1.15rem 1.25rem;
+  border: 1px solid rgba(30, 145, 136, .18);
+  border-radius: 1rem;
+  background: rgba(220, 236, 239, .42);
+  color: rgba(20, 32, 51, .72);
+  font-size: .85rem;
+}
+.jd-index-page .jd-actionbar {
+  padding: .8rem;
+  border: 1px solid var(--jd-line);
+  border-radius: 1rem 1rem 0 0;
+  background: rgba(255, 255, 255, .66);
+}
+.jd-index-page #caseList { border-radius: 0 0 1rem 1rem; box-shadow: var(--jd-shadow); }
+.jd-index-page .row { min-height: 4.75rem; }
+.jd-index-page .row:hover { background: rgba(220, 236, 239, .28); }
+.jd-index-page .row:hover .row-del, .jd-index-page .row:focus-within .row-del { opacity: 1; }
+.jd-index-page .row-del { opacity: .2; }
+.jd-index-page .pathcard { transition: border-color .15s ease, background .15s ease, transform .15s ease; }
+.jd-index-page .pathcard:hover { border-color: rgba(30,145,136,.60); background: rgba(220,236,239,.26); transform: translateY(-1px); }
+.jd-index-page .pathcard.on { border-color: var(--jd-teal); background: rgba(220,236,239,.55); }
+.jd-index-page #emptyState { padding: clamp(2.5rem, 7vw, 5rem) 1.25rem; background: rgba(255,255,255,.56); }
+.jd-index-page .jd-empty-steps {
+  width: min(100%, 42rem);
+  margin: 1.75rem auto 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .75rem;
+  text-align: left;
+}
+.jd-index-page .jd-empty-step { padding: 1rem; border-radius: .9rem; background: rgba(220,236,239,.35); }
+.jd-index-page .jd-empty-step strong { display: block; margin-bottom: .25rem; color: var(--jd-ink); font-size: .86rem; }
+.jd-index-page .jd-empty-step span { color: rgba(20,32,51,.58); font-size: .75rem; line-height: 1.65; }
+
+/* 三欄工作區：階段｜思考｜提問 */
+.jd-case-page #workspace { display: block; }
+.jd-case-page #moduleArea { width: 100%; max-width: 680px; margin: 0; }
+.jd-case-page .rail { display: none; }
+.jd-case-page .jd-workspace-shell { padding-top: clamp(2rem, 4vw, 3.25rem); padding-bottom: 6rem; }
+.jd-case-page .stage {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .42rem .85rem;
+  border-radius: 999px;
+  color: rgba(20,32,51,.66);
+  font-size: .82rem;
+  white-space: nowrap;
+}
+.jd-case-page .stage .num { width: 1.42rem; height: 1.42rem; display: grid; place-items: center; flex: none; border-radius: 50%; background: rgba(20,32,51,.07); font-size: .72rem; font-weight: 800; }
+.jd-case-page .stage.on { background: var(--jd-teal-deep); color: white; font-weight: 800; }
+.jd-case-page .stage.on .num { background: white; color: var(--jd-teal-deep); }
+.jd-case-page .stage.done { color: var(--jd-teal-deep); }
+.jd-case-page .stage.done .num { background: var(--jd-teal); color: white; }
+.jd-case-page .stage:not(.locked) { cursor: pointer; }
+.jd-case-page .stage:not(.locked):not(.on):hover { background: rgba(30,145,136,.08); color: var(--jd-teal-deep); }
+.jd-case-page .stage.locked { opacity: .42; }
+.jd-case-page .stage-sep { flex: 1; min-width: 1rem; height: 1px; border-radius: 2px; background: rgba(20,32,51,.10); }
+.jd-case-page .stage-sep.done { background: rgba(30,145,136,.45); }
+.jd-case-page .rail-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: 1rem; }
+.jd-case-page .rail-toggle { width: 1.9rem; height: 1.9rem; display: grid; place-items: center; flex: none; border: 1px solid transparent; border-radius: .6rem; color: rgba(20,32,51,.45); }
+.jd-case-page .rail-toggle:hover { border-color: var(--jd-line); background: white; color: var(--jd-ink); }
+.jd-case-page .rail-collapsed { display: flex; flex-direction: column; align-items: center; gap: .7rem; padding-top: .15rem; }
+.jd-case-page .rail-collapsed .vlabel { writing-mode: vertical-rl; color: rgba(20,32,51,.42); font-size: .72rem; letter-spacing: .2em; white-space: nowrap; cursor: pointer; }
+.jd-case-page .rail-collapsed .vlabel:hover { color: var(--jd-teal-deep); }
+.jd-case-page .railitem { display: block; width: 100%; padding: .58rem .72rem; border-radius: .7rem; color: rgba(20,32,51,.66); font-size: .82rem; line-height: 1.55; text-align: left; cursor: pointer; }
+.jd-case-page .railitem:hover { background: rgba(30,145,136,.06); color: var(--jd-teal-deep); }
+.jd-case-page .railitem.on { background: white; color: var(--jd-ink); font-weight: 800; box-shadow: 0 8px 22px rgba(20,32,51,.07); }
+.jd-case-page .railitem .idx { width: 1.3rem; height: 1.3rem; display: inline-grid; place-items: center; margin-right: .5rem; border-radius: 50%; background: rgba(20,32,51,.06); color: rgba(20,32,51,.50); font-size: .67rem; font-weight: 800; vertical-align: -.28rem; }
+.jd-case-page .railitem.on .idx { background: var(--jd-teal); color: white; }
+.jd-case-page .railitem.done .idx { background: rgba(30,145,136,.16); color: var(--jd-teal-deep); }
+.jd-case-page .qlist { counter-reset: q; }
+.jd-case-page .qitem { display: flex; gap: .75rem; margin-bottom: 1rem; color: rgba(20,32,51,.80); font-size: .95rem; line-height: 1.85; }
+.jd-case-page .qitem::before { counter-increment: q; content: counter(q); width: 1.5rem; height: 1.5rem; display: grid; place-items: center; flex: none; margin-top: .25rem; border-radius: 50%; background: var(--jd-clay); color: white; font-size: .68rem; font-weight: 800; }
+.jd-case-page .answer { width: 100%; min-height: 17rem; padding: 1.35rem 1.45rem; border: 1px solid rgba(20,32,51,.14); border-radius: 1rem; background: rgba(255,255,255,.92); color: var(--jd-ink); font-size: clamp(1rem, 1.25vw, 1.1rem); line-height: 2; box-shadow: 0 14px 36px rgba(20,32,51,.05); }
+.jd-case-page .answer::placeholder { color: rgba(20,32,51,.38); }
+.jd-case-page details.ref { border: 1px solid rgba(20,32,51,.10); border-radius: .85rem; background: rgba(255,255,255,.66); }
+.jd-case-page details.ref > summary { padding: .65rem .85rem; color: var(--jd-teal-deep); font-size: .78rem; font-weight: 700; cursor: pointer; list-style: none; }
+.jd-case-page details.ref > summary::-webkit-details-marker { display: none; }
+.jd-case-page details.ref[open] > summary { border-bottom: 1px solid rgba(20,32,51,.08); }
+.jd-case-page details.ref .body { padding: .8rem .9rem; color: rgba(20,32,51,.68); font-size: .8rem; line-height: 1.8; }
+.jd-case-page #moduleArea > header {
+  position: relative;
+  padding: 0 0 1.5rem;
+  border-bottom: 1px solid rgba(20,32,51,.10);
+}
+.jd-case-page #moduleArea > header::after { content: "回應者畫面"; position: absolute; right: 0; top: 0; color: rgba(20,32,51,.38); font-size: .68rem; font-weight: 800; letter-spacing: .12em; }
+.jd-case-page #moduleArea > header h1 { font-size: clamp(1.65rem, 2.5vw, 2.15rem); line-height: 1.45; }
+.jd-case-page #moduleArea > header p:last-child { max-width: 32ch; color: var(--jd-ink); font-size: clamp(1.28rem, 2vw, 1.72rem); line-height: 1.75; font-family: "Noto Serif TC", serif; font-weight: 700; }
+.jd-case-page #promptRail { padding: 1rem; border: 1px solid rgba(232,138,85,.20); border-radius: 1rem; background: rgba(253,243,234,.62); }
+.jd-case-page #stageRail { padding-top: 1rem; border-top: 2px solid rgba(30,145,136,.32); }
+.jd-case-page iframe { background: white; }
+.jd-case-page #moduleArea > .bg-white { box-shadow: 0 12px 34px rgba(20,32,51,.045); }
+.jd-case-page body.guide-mode #workspace, .jd-case-page.guide-mode #workspace { display: block !important; }
+.jd-case-page.guide-mode .rail, .jd-case-page.guide-mode .site-header, .jd-case-page.guide-mode .jd-appbar, .jd-case-page.guide-mode .site-footer { display: none !important; }
+.jd-case-page.guide-mode #moduleArea { width: auto !important; max-width: none !important; margin: 0 !important; }
+.jd-case-page.guide-mode .jd-workspace-shell { width: min(100% - 2rem, 36rem); padding-top: 2rem; }
+
+/* AI 設定頁 */
+.jd-settings-page .jd-settings-main { padding-top: clamp(2.5rem, 6vw, 4.5rem); padding-bottom: 5rem; }
+.jd-settings-page #statusCard, .jd-settings-page #formCard, .jd-settings-page #startHelp { box-shadow: var(--jd-shadow); }
+.jd-settings-page #formCard { border-top: 3px solid rgba(30,145,136,.42); }
+.jd-settings-page #startHelp { border-top: 3px solid rgba(232,138,85,.55); }
+
+/* 公開說明頁 */
+.jd-intro-page .jd-intro-hero {
+  padding: clamp(4.5rem, 9vw, 7.5rem) 0 clamp(3.5rem, 7vw, 6rem);
+  border-bottom: 1px solid var(--jd-line);
+  background:
+    radial-gradient(circle at 82% 20%, rgba(220,236,239,.72), transparent 20rem),
+    linear-gradient(135deg, rgba(255,255,255,.42), transparent 62%);
+}
+.jd-intro-page .jd-intro-hero__grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(18rem, .85fr); gap: clamp(2rem, 6vw, 5rem); align-items: center; }
+.jd-intro-page .site-title { font-size: clamp(2.5rem, 4.6vw, 3.8rem); line-height: 1.28; letter-spacing: -.04em; }
+.jd-intro-page .jd-role-board { padding: 1rem; border: 1px solid rgba(20,32,51,.10); border-radius: 1.35rem; background: rgba(255,255,255,.72); box-shadow: var(--jd-shadow); }
+.jd-intro-page .jd-role-card { padding: 1.15rem; border-radius: 1rem; }
+.jd-intro-page .jd-role-card + .jd-role-card { margin-top: .75rem; }
+.jd-intro-page .jd-role-card--respond { background: rgba(220,236,239,.56); }
+.jd-intro-page .jd-role-card--guide { background: rgba(253,243,234,.82); }
+.jd-intro-page .jd-role-card strong { display: flex; align-items: center; gap: .5rem; margin-bottom: .35rem; }
+.jd-intro-page .jd-role-card p { margin: 0; color: rgba(20,32,51,.66); font-size: .86rem; }
+.jd-intro-page .jd-output-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.jd-intro-page .jd-output-card { min-height: 12rem; padding: 1.35rem; border: 1px solid var(--jd-line); border-radius: 1rem; background: rgba(255,255,255,.78); }
+.jd-intro-page .jd-output-card span { display: inline-grid; place-items: center; width: 2rem; height: 2rem; margin-bottom: 1rem; border-radius: 50%; background: var(--jd-ink); color: white; font-size: .76rem; font-weight: 900; }
+.jd-intro-page .jd-output-card h3 { margin: 0 0 .45rem; font-size: 1.05rem; }
+.jd-intro-page .jd-output-card p { margin: 0; color: rgba(20,32,51,.62); font-size: .84rem; }
+.jd-intro-page .jd-readiness { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.jd-intro-page .jd-readiness > div { padding: 1.2rem; border-top: 2px solid rgba(30,145,136,.38); background: rgba(255,255,255,.58); }
+.jd-intro-page .jd-readiness strong { display: block; margin-bottom: .4rem; }
+.jd-intro-page .jd-readiness p { margin: 0; color: rgba(20,32,51,.62); font-size: .84rem; }
+.jd-intro-page .jd-intro-disclosure { margin: 1rem 0 0; color: rgba(20,32,51,.52); font-size: .78rem; line-height: 1.75; }
+.jd-intro-page .jd-not-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1rem; }
+.jd-intro-page .jd-not-grid article { min-height: 15rem; padding: clamp(1.5rem,3vw,2.25rem); border-radius: 1.15rem; }
+.jd-intro-page .jd-not-grid article:first-child { border: 1px solid rgba(232,138,85,.22); background: rgba(253,243,234,.72); }
+.jd-intro-page .jd-not-grid article:last-child { border: 1px solid rgba(30,145,136,.20); background: rgba(220,236,239,.52); }
+.jd-intro-page .jd-not-grid h2 { margin: .5rem 0 .75rem; font-family: "Noto Serif TC",serif; font-size: clamp(1.65rem,3vw,2.3rem); line-height: 1.5; }
+.jd-intro-page .jd-not-grid p:last-child { max-width: 34rem; color: rgba(20,32,51,.64); line-height: 1.9; }
+.jd-intro-page .jd-collab-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 1rem; }
+.jd-intro-page .jd-collab-grid article { min-height: 15rem; padding: 1.35rem; border: 1px solid var(--jd-line); border-radius: 1rem; background: rgba(255,255,255,.74); }
+.jd-intro-page .jd-collab-grid span { color: var(--jd-teal-deep); font-size: .72rem; font-weight: 900; letter-spacing: .12em; }
+.jd-intro-page .jd-collab-grid h3 { margin: .75rem 0 .5rem; font-family: "Noto Serif TC",serif; }
+.jd-intro-page .jd-collab-grid p { margin: 0; color: rgba(20,32,51,.62); font-size: .86rem; line-height: 1.85; }
+.jd-intro-page .jd-path-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1rem; }
+.jd-intro-page .jd-path-grid article { padding: clamp(1.4rem,3vw,2rem); border: 1px solid var(--jd-line); border-radius: 1.1rem; background: rgba(255,255,255,.72); }
+.jd-intro-page .jd-path-grid h3 { margin: 1rem 0 .65rem; font-family: "Noto Serif TC",serif; font-size: 1.2rem; line-height: 1.55; }
+.jd-intro-page .jd-path-grid p,.jd-intro-page .jd-path-grid li { color: rgba(20,32,51,.62); line-height: 1.85; }
+.jd-intro-page .jd-path-grid ol { margin: 1rem 0 0; padding-left: 1.25rem; font-size: .84rem; }
+.jd-intro-page .jd-case-preview-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 1rem; }
+.jd-intro-page .jd-case-preview-grid > article { padding: 1.35rem; border: 1px solid var(--jd-line); border-radius: 1rem; background: rgba(255,255,255,.72); }
+.jd-intro-page .jd-case-preview-grid > article > span { color: var(--jd-teal-deep); font-size: .72rem; font-weight: 900; letter-spacing: .08em; }
+.jd-intro-page .jd-case-preview-grid h3 { min-height: 4.5rem; margin: .7rem 0 1rem; font-family: "Noto Serif TC",serif; font-size: 1.02rem; line-height: 1.6; }
+.jd-intro-page .jd-case-shift { display: grid; gap: .45rem; }
+.jd-intro-page .jd-case-shift small { color: rgba(20,32,51,.42); font-weight: 800; }
+.jd-intro-page .jd-case-shift p { margin: 0 0 .5rem; padding-left: .75rem; border-left: 2px solid rgba(30,145,136,.30); color: rgba(20,32,51,.66); font-size: .82rem; line-height: 1.75; }
+.jd-intro-page .jd-access-preview { display: grid; grid-template-columns: minmax(0,1.2fr) minmax(18rem,.8fr); gap: clamp(2rem,5vw,4rem); padding: clamp(1.5rem,4vw,3rem); border: 1px solid rgba(30,145,136,.20); border-radius: 1.25rem; background: rgba(220,236,239,.38); }
+.jd-intro-page .jd-access-preview h2 { margin: .5rem 0 1rem; font-family: "Noto Serif TC",serif; font-size: clamp(1.65rem,3vw,2.35rem); line-height: 1.55; }
+.jd-intro-page .jd-access-preview p,.jd-intro-page .jd-access-preview li { color: rgba(20,32,51,.64); line-height: 1.9; }
+.jd-intro-page .jd-access-preview ul { margin: 0; padding-left: 1.2rem; }
+.jd-intro-page .jd-access-preview li + li { margin-top: .75rem; }
+
+@media (min-width: 1180px) {
+  .jd-case-page #workspace { display: grid; gap: clamp(1.6rem, 3vw, 2.75rem); align-items: start; grid-template-columns: 228px minmax(0, 1fr) 296px; }
+  .jd-case-page #workspace.no-left { grid-template-columns: 40px minmax(0, 1fr) 296px; }
+  .jd-case-page #workspace.no-right { grid-template-columns: 228px minmax(0, 1fr) 40px; }
+  .jd-case-page #workspace.no-left.no-right { grid-template-columns: 40px minmax(0, 1fr) 40px; }
+  .jd-case-page .rail { display: block; }
+  .jd-case-page #moduleArea { width: 100%; margin: 0; justify-self: center; }
+  .jd-case-page #stageRail, .jd-case-page #promptRail { position: sticky; top: 9rem; max-height: calc(100vh - 10.5rem); overflow: auto; scrollbar-width: thin; }
+}
+
+@media (max-width: 1179px) {
+  .jd-case-page #moduleArea { max-width: 52rem; }
+  .jd-case-page #stageBar { overflow-x: auto; padding-bottom: .2rem; scrollbar-width: thin; }
+}
+
+@media (max-width: 760px) {
+  .jd-app .site-nav { display: none; }
+  .jd-app .site-mobile-nav { display: block; }
+  .jd-app .jd-appbar { top: 3.9rem; }
+  .jd-app .site-footer__grid { grid-template-columns: 1fr; }
+  .jd-index-page .jd-index-hero { grid-template-columns: 1fr; gap: 1.25rem; }
+  .jd-index-page .jd-empty-steps { grid-template-columns: 1fr; }
+  .jd-index-page .jd-actionbar > div:last-child { width: 100%; flex-wrap: wrap; }
+  .jd-index-page #demoBtn, .jd-index-page #newCaseBtn { flex: 1 1 auto; justify-content: center; }
+  .jd-case-page .jd-appbar__inner { padding-inline: 1rem; gap: .75rem; }
+  .jd-case-page .jd-workspace-shell { padding-inline: 1rem; padding-top: 1.75rem; }
+  .jd-case-page #moduleArea > header::after { position: static; display: inline-block; margin-bottom: .7rem; }
+  .jd-case-page #moduleArea > header p:last-child { max-width: none; }
+  .jd-intro-page .jd-intro-hero__grid, .jd-intro-page .jd-output-grid, .jd-intro-page .jd-readiness,
+  .jd-intro-page .jd-not-grid, .jd-intro-page .jd-collab-grid, .jd-intro-page .jd-path-grid,
+  .jd-intro-page .jd-case-preview-grid, .jd-intro-page .jd-access-preview { grid-template-columns: 1fr; }
+  .jd-intro-page .jd-not-grid article,.jd-intro-page .jd-collab-grid article { min-height: 0; }
+  .jd-intro-page .jd-case-preview-grid h3 { min-height: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jd-app button, .jd-app a, .jd-app .pathcard { transition: none !important; }
+}

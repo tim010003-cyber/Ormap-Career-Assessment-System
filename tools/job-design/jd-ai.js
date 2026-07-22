@@ -212,7 +212,15 @@ function shapeHint(sample) {
   "information_gaps": [{"field": "欄位ID", "message": "這一格還沒談到（沒有就給空陣列）"}],
   "contradictions": [{"message": "他講了哪兩種說法", "detail": "差在哪", "suggestion": "留給他決定"}],
   "warnings": ["真的有事才寫，平常空陣列"]
-}`;
+}
+
+⚠️ organized_content 裡面填的是**給人看的中文內容**，絕對不要填欄位代號。
+像 m1.first_noticed_at、m3.work_items、existing.role_reason 這種是程式用的識別碼，
+它們只能出現在 information_gaps 與 inferences 的 "field" 位置，不能當成內容。
+
+特別注意：organized_content 裡可能有一個叫 m1.information_gaps 的**內容欄位**
+（意思是「他還想補充哪些資料」），那跟上面那個 information_gaps 中繼欄位是兩回事。
+前者要填中文句子，後者才填欄位代號。沒東西可寫就給空陣列，不要拿代號充數。`;
 }
 
 /** 呼叫端用來分辨「沒整理」的原因，決定要顯示什麼 */
@@ -286,12 +294,43 @@ export async function askAi(taskCode, instruction, sample, input) {
   }
 }
 
+/**
+ * 欄位代號長這樣：m1.first_noticed_at、m3.work_items、existing.role_reason。
+ * 它們是程式用的識別碼，不該出現在給人看的內容裡。
+ */
+const FIELD_ID_RE = /^(m[1-6]|case|existing)\.[a-z0-9_]+$/i;
+
+/**
+ * 把 AI 誤填的欄位代號清掉。
+ *
+ * 為什麼會發生：輸出格式裡有一個 information_gaps（中繼資料，記錄「哪個欄位
+ * 還沒談到」），而 M1 第一章剛好也有一個內容欄位叫 m1.information_gaps
+ * （畫面上的「仍需要補充的資料」）。名字太像，模型會把欄位代號填進內容欄，
+ * 使用者就看到「m1.first_noticed_at」這種東西。
+ *
+ * 提示詞已經講明不要這樣做，但模型輸出本來就不保證，所以這裡再攔一次。
+ */
+function stripFieldIds(v) {
+  if (typeof v === 'string') return FIELD_ID_RE.test(v.trim()) ? '' : v;
+  if (Array.isArray(v)) {
+    return v
+      .map(stripFieldIds)
+      .filter(x => !(x === '' || x == null || (typeof x === 'object' && !Array.isArray(x) && Object.keys(x).length === 0)));
+  }
+  if (v && typeof v === 'object') {
+    const out = {};
+    for (const [k, val] of Object.entries(v)) out[k] = stripFieldIds(val);
+    return out;
+  }
+  return v;
+}
+
 /** 把真 AI 的結果併入 Mock 的信封，確保缺欄位時仍有預設值 */
 export function mergeIntoEnvelope(mock, ai) {
   if (!ai) return mock;
   return {
     ...mock,
-    organized_content: { ...mock.organized_content, ...(ai.organized_content || {}) },
+    organized_content: stripFieldIds({ ...mock.organized_content, ...(ai.organized_content || {}) }),
     // 真 AI 回傳空陣列代表「本次沒有這類提醒」，不可再把 Mock 的
     // 關鍵字警告強行加回來；只有欄位缺失時才使用 Mock 保底。
     inferences_requiring_confirmation: Array.isArray(ai.inferences_requiring_confirmation)

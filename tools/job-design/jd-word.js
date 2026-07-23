@@ -868,9 +868,47 @@ function fillEmptyFromFresh(overrideHtml, freshHtml) {
   return out;
 }
 
-export function documentHtml(c, key) {
+/**
+ * 付費牆「空殼」模式（2026-07-23）
+ *
+ * 未兌換授權碼的免費使用者，可以看到／下載文件，但只給**結構**、不給**內容**，
+ * 用來保護 AI 產出的實際內容這個 IP，同時讓對方看見成品的形狀而想付費解鎖。
+ *
+ * 作法：不逐頁改每個 build 函式，而是把「內容」在資料層一次遮蔽——複製一份案例，
+ * 把每個欄位值裡的字串換成遮蔽塊 ▨▨▨▨（陣列長度、物件形狀、數字結構一律保留，
+ * 所以表格的欄位標題、列數、章節骨架全都在，只有格子裡的實際文字被遮）。再用這份
+ * 遮蔽案例照常 build，最後在最前面加一條說明。
+ *
+ * 安全要點：shell 模式**一律忽略人工版**。人工版（doc_overrides）可能含使用者手打的
+ * 真實內容，若照舊回傳就等於把付費內容洩漏給免費使用者，所以 shell 時只走遮蔽重建。
+ */
+const SHELL_MASK = '▨▨▨▨';
+function _maskValue(v) {
+  if (v == null) return v;
+  if (Array.isArray(v)) return v.map(_maskValue);
+  if (typeof v === 'object') { const o = {}; for (const k in v) o[k] = _maskValue(v[k]); return o; }
+  if (typeof v === 'string' || typeof v === 'number') return String(v).trim() ? SHELL_MASK : v;
+  return v;
+}
+function _shellCase(c) {
+  const clone = { ...c, fields: {} };
+  for (const id in (c.fields || {})) clone.fields[id] = { ...c.fields[id], value: _maskValue(c.fields[id].value) };
+  if (c.case_summary && c.case_summary.text) clone.case_summary = { ...c.case_summary, text: SHELL_MASK };
+  return clone;
+}
+// 說明條：直接寫成 inline 樣式，Word 不吃 class 選擇器也照樣顯示
+const SHELL_NOTICE = '<div style="border:1pt solid #000;background:#eee;padding:6pt 10pt;'
+  + 'margin:0 0 10pt;font-size:10pt;font-weight:700;text-align:center;">'
+  + '【預覽空殼】文件結構完整呈現，實際內容需<u>兌換授權碼</u>後才會產出。</div>';
+function _injectShellNotice(html) {
+  return html.replace('<div class="WordSection1">', '<div class="WordSection1">' + SHELL_NOTICE);
+}
+
+export function documentHtml(c, key, opts) {
   const doc = getDocument(key);
   if (!doc) return '';
+  // 付費牆：一律用遮蔽後的資料重建，並忽略人工版，避免真內容外洩
+  if (opts && opts.shell) return _injectShellNotice(doc.build(_shellCase(c)));
   const override = c.doc_overrides && c.doc_overrides[key];
   if (!(override && override.html)) return doc.build(c);
   // 先用最新資料補齊人工版裡整段空白的欄位，再刷新封面狀態、攤平樣式供 Word 顯示
@@ -882,10 +920,10 @@ export function isEdited(c, key) {
   return !!(c.doc_overrides && c.doc_overrides[key] && c.doc_overrides[key].html);
 }
 
-export function downloadDocument(c, key) {
+export function downloadDocument(c, key, opts) {
   const doc = getDocument(key);
   if (!doc) return null;
-  const html = documentHtml(c, key);
+  const html = documentHtml(c, key, opts);
   const role = safeName(c.fields['case.job_title_working']?.value || '職務');
   const ymd = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const filename = `${doc.name}_${role}_v${docVersion(c)}_${ymd}.doc`;
@@ -899,11 +937,11 @@ export function downloadDocument(c, key) {
 }
 
 /** 依序下載四份（瀏覽器需要間隔，否則會被擋掉後續下載） */
-export function downloadAllDocuments(c, onEach) {
+export function downloadAllDocuments(c, onEach, opts) {
   const names = [];
   DOCUMENTS.forEach((doc, i) => {
     setTimeout(() => {
-      const n = downloadDocument(c, doc.key);
+      const n = downloadDocument(c, doc.key, opts);
       names.push(n);
       if (onEach) onEach(doc, n);
     }, i * 700);

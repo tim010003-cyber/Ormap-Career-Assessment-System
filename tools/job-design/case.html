@@ -195,6 +195,18 @@ const aiEmpty=v=>v==null||(Array.isArray(v)?v.length===0:String(v).trim()==='');
  * AI 轉換得到的欄位一律先給草稿，人再比對補充——所以這裡不能讓 AI 以為別碰。
  */
 const AI_ROLE_HINT={'AI-O':'整理','AI-I':'推論','H':'人工決定（你仍先給草稿）','U':'使用者輸入'};
+
+/**
+ * 欄位卡上的來源徽章——只掛「需要人動手」的兩種：推論·待確認、人工決定。
+ * 「AI 整理」是預設，幾乎每一格都是，掛了只是重複的雜訊；一律不顯示，
+ * 讓草稿區乾淨，橘色的「待確認」才跳得出來、引導者一眼看到該聊哪幾格。
+ * （2026-07-23 使用者：精簡工作區資訊量）
+ */
+function roleBadge(ai){
+  if(ai!=='AI-I' && ai!=='H') return '';
+  const cls = ai==='AI-I' ? 'bg-accent/15 text-accent' : 'bg-mist text-tealdeep';
+  return `<span class="badge ${cls}">${F.AI_ROLE_LABEL[ai]}</span>`;
+}
 const textToList=t=>String(t||'').split('\n').map(s=>s.trim()).filter(Boolean);
 
 const caseId = new URLSearchParams(location.search).get('caseId');
@@ -954,7 +966,7 @@ function inputCard(field, value, onInput){
   const card=el('div','bg-white rounded-xl border border-navy/10 p-4');
   card.innerHTML=`<div class="flex items-center justify-between mb-1.5">
     <label class="font-semibold text-navy">${field.name}${field.required?' <span class="text-accent">*</span>':''}</label>
-    <span class="badge bg-mist text-tealdeep">${F.AI_ROLE_LABEL[field.ai]||''}</span></div>
+    ${roleBadge(field.ai)}</div>
     ${field.help?`<p class="text-xs text-navy/40 mb-2">${field.help}</p>`:''}`;
   let input;
   if(field.type==='list'){
@@ -1582,7 +1594,7 @@ function outputCard(field,st){
   box.appendChild(el('div','flex items-center justify-between mb-2',
     `<div class="font-semibold text-navy text-sm">${field.name}</div>
      <div class="flex items-center gap-1.5">
-       <span class="badge ${field.ai==='AI-I'?'bg-accent/15 text-accent':'bg-mist text-tealdeep'}">${F.AI_ROLE_LABEL[field.ai]}</span>
+       ${roleBadge(field.ai)}
        ${confirmed?'<span class="badge bg-tealgreen text-white">已確認</span>':''}
      </div>`));
 

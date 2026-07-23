@@ -2312,7 +2312,7 @@ function renderOutput(area){
     const old=dlAll.innerHTML;
     dlAll.innerHTML='<i data-lucide="loader" class="w-4 h-4 animate-spin"></i>下載中…';
     if(window.lucide)lucide.createIcons();
-    downloadAllDocuments(c,()=>{});
+    downloadAllDocuments(c,()=>{},{shell:!_unlocked});
     // 四份之間有間隔，等最後一份送出再恢復
     setTimeout(()=>{ dlAll.disabled=false; dlAll.innerHTML=old; if(window.lucide)lucide.createIcons(); }, DOCUMENTS.length*700+400);
   });
@@ -2363,7 +2363,7 @@ function renderOutput(area){
     const editBtn=el('button','inline-flex items-center gap-1.5 border border-navy/20 text-navy px-3 py-1.5 rounded-lg text-xs font-semibold hover:border-tealgreen/60 hover:text-tealdeep transition','');
     const dlOne=el('button','inline-flex items-center gap-1.5 border border-navy/20 text-navy px-3 py-1.5 rounded-lg text-xs font-semibold hover:border-tealgreen/60 hover:text-tealdeep transition',
       `<i data-lucide="download" class="w-3.5 h-3.5"></i>下載這一份`);
-    dlOne.addEventListener('click',()=>{ downloadDocument(c,d.key); });
+    dlOne.addEventListener('click',()=>{ downloadDocument(c,d.key,{shell:!_unlocked}); });
 
     const setEditLabel=()=>{
       editBtn.innerHTML = editing
@@ -2411,7 +2411,8 @@ function renderOutput(area){
       +'<i data-lucide="info" class="w-3.5 h-3.5 shrink-0 mt-0.5"></i>'
       +'<span>這份保留了你的手動修改。<b>原本空白的欄位，下載時會自動帶入評測的最新內容</b>；你改過的段落維持原樣不動。'
       +'若想把某段改回最新的系統版本，按「還原成系統版本」（會清掉這份的手動修改）。</span></p>');
-    iframe.srcdoc=documentHtml(c,d.key);
+    // 沒解鎖（免費）給空殼：結構在、內容遮成 ▨▨▨▨，看得到成品形狀但拿不到 IP
+    iframe.srcdoc=documentHtml(c,d.key,{shell:!_unlocked});
     if(window.lucide)lucide.createIcons();
   }
   paintDoc();

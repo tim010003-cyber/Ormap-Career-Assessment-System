@@ -453,7 +453,9 @@ function renderStageBar(){
   const row=el('div','flex items-center gap-1 overflow-x-auto');
   list.forEach((s,i)=>{
     if(i>0)row.appendChild(el('div',`stage-sep ${i<=curIdx?'done':''}`));
-    const allDone=s.modules.every(m=>S.getModuleStatus(c,m)==='confirmed');
+    // output 是最終預覽，永遠不會被設為 confirmed，所以判定完成時要排除它，
+    // 否則「產出文件」這一步永遠是灰的、不會變綠。（2026-07-23 使用者回報）
+    const allDone=s.modules.filter(m=>m!=='output').every(m=>S.getModuleStatus(c,m)==='confirmed');
     const unlocked=moduleUnlocked(s.modules[0]);
     const on=curStage&&curStage.key===s.key;
     const b=el('button',`stage ${on?'on':''} ${allDone&&!on?'done':''} ${unlocked?'':'locked'}`);

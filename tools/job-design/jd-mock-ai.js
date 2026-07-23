@@ -558,23 +558,33 @@ const SECTION_HANDLERS = {
 
   // 1.3 組織關係、責任與專業決策範圍
   '1.3': (pts) => {
+    /*
+     * 這張表只有兩欄：主要對象、主要負責事項。
+     *
+     * 欄位早就從五欄（對象／負責／協助／決策／回報）簡化成兩欄，把後三者
+     * 全部收進「主要負責事項」一格。但這裡的形狀一度還留著五欄，於是送給
+     * AI 的 JSON 骨架也是五欄——AI 照著把內容拆散到 support／decision／
+     * escalation，而畫面與文件只印 target／primary，那三欄的內容等於消失，
+     * 使用者看到的「主要負責事項」就又薄又不完整。（2026-07-23 使用者回報）
+     *
+     * 形狀對齊成兩欄之後，AI 會把「負責什麼、能決定到什麼程度、什麼情況要
+     * 回報」整段寫進 primary，跟畫面一致。
+     */
     const rows = ['對上', '對下', '平行', '對外'].map(aspect => ({
-      aspect, target: '', primary: '', support: '', decision: '', escalation: '',
+      aspect, target: '', primary: '',
     }));
     const pick = (re) => pts.filter(p => re.test(p));
     const assign = (idx, list) => {
       if (!list.length) return;
       rows[idx].target = (list[0].match(/[主管總經理老闆部門客戶廠商供應商團隊同事下屬]+/) || [''])[0];
-      rows[idx].primary = list.filter(p => /負責|主導|決定/.test(p)).join('；');
-      rows[idx].support = list.filter(p => /協助|支援|配合/.test(p)).join('；');
-      rows[idx].decision = list.filter(p => /可以自行|自己決定|自行判斷|權限/.test(p)).join('；');
-      rows[idx].escalation = list.filter(p => /回報|上報|核可|授權|裁示|討論/.test(p)).join('；');
+      // 負責、協助、可自行決定、需回報——全部收進同一格，一句話講完
+      rows[idx].primary = list.filter(p => /負責|主導|決定|協助|支援|配合|自行|權限|回報|上報|核可|授權|裁示|討論/.test(p)).join('；');
     };
     assign(0, pick(/主管|總經理|老闆|上級|向上/));
     assign(1, pick(/下屬|部屬|團隊成員|帶人|新人/));
     assign(2, pick(/跨部門|平行|其他部門|同事|協調/));
     assign(3, pick(/客戶|廠商|供應商|外部|對外/));
-    const empty = rows.filter(r => !r.target && !r.primary && !r.support);
+    const empty = rows.filter(r => !r.target && !r.primary);
     return envelope('M3-03', {
       organized_content: { 'm3.organization_relations': rows },
       inferences_requiring_confirmation: [

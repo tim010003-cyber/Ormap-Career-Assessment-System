@@ -65,8 +65,11 @@
           </button>
         </div>
       </div>
-      <a href="./codes.html" id="adminLink" class="hidden inline-flex items-center gap-1.5 text-sm font-semibold text-navy/50 hover:text-tealdeep px-2" title="課程授權碼管理">
-        <i data-lucide="ticket" class="w-4 h-4"></i>授權碼
+      <!-- 這顆只給管理者，連到後台的發碼／管理頁。標籤寫「授權碼」會讓人以為
+           是「輸入授權碼加值」的地方，實際是後台，所以改成「授權碼後台」。
+           一般使用者的加值入口在下面的 quotaBar（隨時可展開再輸入一組碼）。 -->
+      <a href="./codes.html" id="adminLink" class="hidden inline-flex items-center gap-1.5 text-sm font-semibold text-navy/50 hover:text-tealdeep px-2" title="課程授權碼管理後台（發碼、停權、刪除）">
+        <i data-lucide="settings" class="w-4 h-4"></i>授權碼後台
       </a>
       <button id="acctChip" class="inline-flex items-center gap-1.5 bg-white border border-navy/20 text-navy px-3.5 py-2 rounded-lg text-sm font-semibold hover:border-tealgreen/60 transition">
         <i data-lucide="user" class="w-4 h-4"></i><span id="acctChipText">檢查中…</span>

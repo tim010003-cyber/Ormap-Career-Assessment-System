@@ -821,11 +821,61 @@ function refreshStatus(html, c) {
   return String(html).replace(/(狀態：)[^<]*/, `$1${esc(docStatus(c))}`);
 }
 
+/**
+ * 人工版的空白段落自動帶入最新資料（2026-07-23）
+ *
+ * 為什麼需要：人工版是「編輯當下」的整份快照。使用者常先編輯某一份文件、之後才回
+ * 評測補資料（例如 §1.1 角色定位、預期價值產出），那些後補的欄位不會出現在已凍結的
+ * 人工版裡，下載仍是「待確認」。使用者無從得知文件凍住了，只能整份「還原成系統版本」
+ * ——但那會連手改一起丟掉，等於在「保留手改」與「拿到新資料」之間二選一。
+ *
+ * 解法：serve 人工版時，用目前資料重建一份系統版，逐「標題段落」比對。人工版本來
+ * 就是某次系統版被編輯來的，兩者共用同一套標題骨架，所以用標題文字配對即可，不必
+ * 逐欄對照。規則只有一條、而且保守：**人工版裡整段還是空的（只有待確認）、而系統版
+ * 同名段落已有內容時，才把那段換成系統版**。任何使用者實際寫過內容的段落一律不動，
+ * 因此手改保留、後補資料也進得來。
+ *
+ * 侷限（刻意）：判斷「整段空白」是看整段去掉標籤後只剩「待確認」。表格型段落（如
+ * ①的「結果與價值」表）因為含固定的欄位標題文字，不會被視為空段，維持原樣不自動帶入；
+ * 這類要更新仍需人工「還原成系統版本」。段落型欄位（角色定位、預期價值產出等）不受此限。
+ */
+const _HEAD_RE = /<h[1-4]\b[^>]*>([\s\S]*?)<\/h[1-4]>/gi;
+function _splitSections(html) {
+  const marks = []; let m; _HEAD_RE.lastIndex = 0;
+  while ((m = _HEAD_RE.exec(html))) marks.push({ idx: m.index, head: m[1].replace(/<[^>]*>/g, '').replace(/\s+/g, '') });
+  const preamble = marks.length ? html.slice(0, marks[0].idx) : html;
+  const sections = marks.map((mk, i) => ({
+    head: mk.head,
+    chunk: html.slice(mk.idx, i + 1 < marks.length ? marks[i + 1].idx : html.length),
+  }));
+  return { preamble, sections };
+}
+function _bodyIsEmpty(chunk) {
+  const body = chunk.replace(/^<h[1-4]\b[^>]*>[\s\S]*?<\/h[1-4]>/i, '');
+  const t = body.replace(/<[^>]*>/g, '').replace(/\s+/g, '');
+  return t === '' || t === '待確認' || /^待確認（.*）$/.test(t);
+}
+function fillEmptyFromFresh(overrideHtml, freshHtml) {
+  const O = _splitSections(overrideHtml);
+  const F = _splitSections(freshHtml);
+  const fresh = {};
+  for (const s of F.sections) if (!(s.head in fresh)) fresh[s.head] = s.chunk;
+  let out = O.preamble;
+  for (const s of O.sections) {
+    const f = fresh[s.head];
+    out += (f && _bodyIsEmpty(s.chunk) && !_bodyIsEmpty(f)) ? f : s.chunk;
+  }
+  return out;
+}
+
 export function documentHtml(c, key) {
   const doc = getDocument(key);
   if (!doc) return '';
   const override = c.doc_overrides && c.doc_overrides[key];
-  return (override && override.html) ? inlineStyles(refreshStatus(override.html, c)) : doc.build(c);
+  if (!(override && override.html)) return doc.build(c);
+  // 先用最新資料補齊人工版裡整段空白的欄位，再刷新封面狀態、攤平樣式供 Word 顯示
+  const merged = fillEmptyFromFresh(override.html, doc.build(c));
+  return inlineStyles(refreshStatus(merged, c));
 }
 
 export function isEdited(c, key) {

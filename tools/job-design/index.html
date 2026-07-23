@@ -33,12 +33,46 @@
 
 <main id="main-content" class="jd-index-main max-w-5xl mx-auto px-5">
 
-  <nav class="site-breadcrumb" aria-label="麵包屑"><a href="../../index.html">首頁</a><span aria-hidden="true">／</span><a href="../../tools.html">探索工具</a><span aria-hidden="true">／</span><a href="./jobdesign-intro.html">職務設計與甄選</a><span aria-hidden="true">／</span><span aria-current="page">案例列表</span></nav>
+  <!-- 麵包屑收成小小的返回。IA 兩者都掛、主歸評測：返回指向探索工具，
+       footer 仍保留組織方案連結。（2026-07-23 使用者決策）-->
+  <a class="jd-back" href="../../tools.html"><i data-lucide="arrow-left" class="w-4 h-4"></i>探索工具</a>
 
   <section class="jd-index-hero">
-    <div><h1 class="text-3xl md:text-4xl font-black text-navy mb-3 leading-snug">先看一個答案如何被重新釐清</h1>
-    <p class="text-navy/65 max-w-2xl leading-relaxed">從一段口述，走到職務說明書、甄選流程與招募文案。<strong class="text-navy">工具整理對話，不替組織做決定。</strong></p></div>
+    <p class="jd-index-hero__eyebrow">職務設計與甄選</p>
+    <h1 class="jd-index-hero__title">與其急著找人，<br class="hidden sm:block">先把「要解決什麼」想清楚</h1>
+    <p class="jd-index-hero__lede">很多用人的難題，不是缺一個人，是還沒把問題講清楚。這裡陪你把一段口述，慢慢釐清成職務說明書、甄選重點與招募文案。<strong class="text-navy">工具整理對話，判斷永遠留給你。</strong></p>
   </section>
+
+  <!-- 四步驟方法：讓下方更豐富，也讓人先懂流程再開始。
+       問題釐清 → 需求界定 → 人才規格 → 產出文件（2026-07-23 使用者方向）-->
+  <section class="jd-method" aria-label="四步驟方法">
+    <ol class="jd-method__grid">
+      <li class="jd-method__card">
+        <span class="jd-method__num">01</span>
+        <h2 class="jd-method__title">問題釐清</h2>
+        <p class="jd-method__desc">先弄清楚組織現在真正卡住的是什麼，而不是急著補一個人。</p>
+      </li>
+      <li class="jd-method__card">
+        <span class="jd-method__num">02</span>
+        <h2 class="jd-method__title">需求界定</h2>
+        <p class="jd-method__desc">把「要解決的問題」轉成這個角色實際要承擔的任務與成果。</p>
+      </li>
+      <li class="jd-method__card">
+        <span class="jd-method__num">03</span>
+        <h2 class="jd-method__title">人才規格</h2>
+        <p class="jd-method__desc">從任務反推需要的能力、經驗與特質，分清必要與加分。</p>
+      </li>
+      <li class="jd-method__card">
+        <span class="jd-method__num">04</span>
+        <h2 class="jd-method__title">產出文件</h2>
+        <p class="jd-method__desc">整理成職務說明書、甄選重點與招募文案，可直接帶走使用。</p>
+      </li>
+    </ol>
+  </section>
+
+  <div class="jd-worklead">
+    <h2 class="jd-worklead__title">你的案例</h2>
+  </div>
 
   <div class="jd-actionbar flex items-center justify-between gap-3">
     <div class="text-sm text-navy/50" id="caseCount">—</div>
@@ -68,12 +102,14 @@
   <!-- 列表 -->
   <div id="caseList" class="bg-white rounded-2xl border border-navy/10 overflow-hidden"></div>
 
+  <!-- 空狀態不再重述四步驟方法或工作區提示，只留單行引導＋「開始前準備」
+       這組真正額外的資訊（誰來答、誰來引導、留時間）。（2026-07-23 收斂重複）-->
   <div id="emptyState" class="hidden text-center py-20 border-2 border-dashed border-navy/15 rounded-2xl">
     <i data-lucide="folder-open" class="w-10 h-10 mx-auto text-navy/30 mb-3"></i>
-    <h2 class="text-xl font-black text-navy mb-2">先用預建案例理解方法</h2>
-    <p class="text-navy/55 max-w-xl mx-auto">公開體驗請選擇上方「看示範案例」。兌換課程授權碼後，才會出現「建立案例」自己開始。</p>
-    <div class="jd-empty-steps" aria-label="開始前準備"><div class="jd-empty-step"><strong>1. 找到回應者</strong><span>企業主、用人主管，或真正了解工作現場的人。</span></div><div class="jd-empty-step"><strong>2. 找到引導者</strong><span>依右欄腳本提問，幫忙把假設與事實分開。</span></div><div class="jd-empty-step"><strong>3. 保留一段時間</strong><span>依案例深度分段進行；可儲存後再回來繼續。</span></div></div>
-    <div class="mt-6 flex flex-wrap justify-center gap-3"><button class="newCaseBtn2 bg-navy text-ivory px-5 py-2.5 rounded-lg font-semibold hover:bg-tealdeep">建立本機練習案例</button><a href="./jobdesign-intro.html#cases" class="border border-tealgreen/40 text-tealdeep bg-white px-5 py-2.5 rounded-lg font-semibold hover:bg-mist/40">返回案例說明</a></div>
+    <p class="text-navy/60 max-w-xl mx-auto">還沒有你自己的案例。先用上方的<strong class="text-navy">看示範案例</strong>走一遍流程，兌換課程授權碼後就能建立自己的。</p>
+    <p class="text-xs font-semibold tracking-[2px] text-navy/40 mt-8 mb-3">開始前準備</p>
+    <div class="jd-empty-steps" aria-label="開始前準備"><div class="jd-empty-step"><strong>找到回應者</strong><span>企業主、用人主管，或真正了解工作現場的人。</span></div><div class="jd-empty-step"><strong>找到引導者</strong><span>依右欄腳本提問，幫忙把假設與事實分開。</span></div><div class="jd-empty-step"><strong>保留一段時間</strong><span>依案例深度分段進行；可儲存後再回來繼續。</span></div></div>
+    <div class="mt-6 flex flex-wrap justify-center gap-3"><button class="newCaseBtn2 hidden bg-navy text-ivory px-5 py-2.5 rounded-lg font-semibold hover:bg-tealdeep">建立本機練習案例</button><a href="./jobdesign-intro.html#cases" class="border border-tealgreen/40 text-tealdeep bg-white px-5 py-2.5 rounded-lg font-semibold hover:bg-mist/40">返回案例說明</a></div>
   </div>
 </main>
 

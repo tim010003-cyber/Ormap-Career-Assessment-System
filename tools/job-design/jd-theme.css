@@ -187,22 +187,119 @@
 .jd-app button:active:not(:disabled), .jd-app a:active { transform: translateY(1px); }
 
 /* 案例列表與 onboarding */
-.jd-index-page .jd-index-main { padding-top: clamp(2.2rem, 5vw, 4.2rem); padding-bottom: 5rem; }
+.jd-index-page .jd-index-main { padding-top: clamp(1.6rem, 4vw, 3rem); padding-bottom: 5.5rem; }
+
+/* 麵包屑收成小小的返回 */
+.jd-index-page .jd-back {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  margin-bottom: clamp(1.6rem, 4vw, 2.6rem);
+  color: rgba(20, 32, 51, .5);
+  font-size: .82rem;
+  font-weight: 600;
+}
+.jd-index-page .jd-back:hover { color: var(--jd-teal); }
+.jd-index-page .jd-back i { flex: 0 0 auto; }
+
+/* Hero：單欄、拉開留白，問題優先、不販賣焦慮 */
 .jd-index-page .jd-index-hero {
+  max-width: 44rem;
+  padding-bottom: clamp(2.4rem, 6vw, 4rem);
+}
+.jd-index-page .jd-index-hero__eyebrow {
+  margin-bottom: .9rem;
+  color: var(--jd-teal);
+  font-size: .78rem;
+  font-weight: 800;
+  letter-spacing: .16em;
+}
+.jd-index-page .jd-index-hero__title {
+  color: var(--jd-ink);
+  font-family: "Noto Serif TC", serif;
+  font-weight: 900;
+  font-size: clamp(1.9rem, 4.6vw, 3rem);
+  line-height: 1.28;
+  letter-spacing: -.01em;
+  margin-bottom: 1.2rem;
+}
+.jd-index-page .jd-index-hero__lede {
+  color: rgba(20, 32, 51, .66);
+  font-size: clamp(1rem, 1.6vw, 1.12rem);
+  line-height: 1.85;
+}
+
+/* 四步驟方法：問題釐清 → 需求界定 → 人才規格 → 產出文件 */
+.jd-index-page .jd-method {
+  padding-bottom: clamp(2.6rem, 6vw, 4.5rem);
+  border-bottom: 1px solid var(--jd-line);
+  margin-bottom: clamp(2.2rem, 5vw, 3.5rem);
+}
+.jd-index-page .jd-method__grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(17rem, .75fr);
-  gap: clamp(2rem, 5vw, 4.5rem);
-  align-items: end;
-  padding-bottom: 2rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(1rem, 2.4vw, 1.6rem);
+  counter-reset: none;
 }
-.jd-index-page .jd-index-hero__note {
-  padding: 1.15rem 1.25rem;
-  border: 1px solid rgba(30, 145, 136, .18);
-  border-radius: 1rem;
-  background: rgba(220, 236, 239, .42);
-  color: rgba(20, 32, 51, .72);
-  font-size: .85rem;
+.jd-index-page .jd-method__card {
+  position: relative;
+  padding: 1.5rem 1.35rem;
+  border: 1px solid var(--jd-line);
+  border-radius: 1.1rem;
+  background: rgba(255, 255, 255, .62);
+  transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
 }
+.jd-index-page .jd-method__card:hover {
+  border-color: rgba(30, 145, 136, .4);
+  transform: translateY(-2px);
+  box-shadow: var(--jd-shadow);
+}
+/* 步驟之間的箭頭連接，讓四張卡讀起來是一段流程 */
+.jd-index-page .jd-method__card + .jd-method__card::before {
+  content: "";
+  position: absolute;
+  left: -1rem;
+  top: 2.35rem;
+  width: .5rem;
+  height: .5rem;
+  border-top: 2px solid rgba(30, 145, 136, .35);
+  border-right: 2px solid rgba(30, 145, 136, .35);
+  transform: translateX(-50%) rotate(45deg);
+}
+.jd-index-page .jd-method__num {
+  display: block;
+  margin-bottom: .55rem;
+  color: rgba(30, 145, 136, .55);
+  font-family: "Noto Serif TC", serif;
+  font-weight: 900;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.jd-index-page .jd-method__title {
+  margin-bottom: .5rem;
+  color: var(--jd-ink);
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+.jd-index-page .jd-method__desc {
+  color: rgba(20, 32, 51, .6);
+  font-size: .84rem;
+  line-height: 1.7;
+}
+
+/* 工作區前導標題 */
+.jd-index-page .jd-worklead { margin-bottom: 1.1rem; }
+.jd-index-page .jd-worklead__title {
+  color: var(--jd-ink);
+  font-size: 1.3rem;
+  font-weight: 900;
+}
+.jd-index-page .jd-worklead__hint {
+  margin-top: .3rem;
+  color: rgba(20, 32, 51, .55);
+  font-size: .88rem;
+}
+
 .jd-index-page .jd-actionbar {
   padding: .8rem;
   border: 1px solid var(--jd-line);
@@ -371,12 +468,19 @@
   .jd-case-page #stageBar { overflow-x: auto; padding-bottom: .2rem; scrollbar-width: thin; }
 }
 
+/* 四步驟方法在中等寬度收成兩欄，垂直的箭頭連接就先收掉 */
+@media (max-width: 920px) {
+  .jd-index-page .jd-method__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .jd-index-page .jd-method__card:nth-child(odd)::before { display: none; }
+}
+
 @media (max-width: 760px) {
   .jd-app .site-nav { display: none; }
   .jd-app .site-mobile-nav { display: block; }
   .jd-app .jd-appbar { top: 3.9rem; }
   .jd-app .site-footer__grid { grid-template-columns: 1fr; }
-  .jd-index-page .jd-index-hero { grid-template-columns: 1fr; gap: 1.25rem; }
+  .jd-index-page .jd-method__grid { grid-template-columns: 1fr; }
+  .jd-index-page .jd-method__card::before { display: none !important; }
   .jd-index-page .jd-empty-steps { grid-template-columns: 1fr; }
   .jd-index-page .jd-actionbar > div:last-child { width: 100%; flex-wrap: wrap; }
   .jd-index-page #demoBtn, .jd-index-page #newCaseBtn { flex: 1 1 auto; justify-content: center; }

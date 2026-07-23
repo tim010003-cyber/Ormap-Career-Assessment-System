@@ -140,7 +140,7 @@ function showAiUnavailable(err, btn){
         const a=await AIX.redeemCode(code);
         // 這組碼先前就兌換過的話並沒有加到值，別默默關掉訊息讓人以為好了
         if(a.alreadyRedeemed){ msg.textContent='這組碼你先前已經用過了，沒有重複加值。'; go.disabled=false; paintQuotaChip(); return; }
-        note.remove(); paintQuotaChip(); render();
+        _unlocked=true; note.remove(); paintQuotaChip(); render();
       }
       catch(e){ msg.textContent=e.message||'兌換失敗'; go.disabled=false; }
     };
@@ -213,6 +213,24 @@ if(c){
 if(!c){ document.body.innerHTML='<div class="p-10 text-center text-navy/60">找不到案例。<a class="text-tealgreen underline" href="./index.html">回列表</a></div>'; throw new Error('no case'); }
 
 let currentModule = c.current_module || 'existing';
+
+/*
+ * 付費牆：沒兌換授權碼的人，每個問答流程只開「第一關」，其餘鎖住。
+ *
+ * 使用者的智慧財產是這些問題與整合，所以免費只給每個階段的第一題當體驗，
+ * 兌換授權碼＝完整解鎖。（2026-07-23 使用者決策）
+ *
+ * 預設鎖住（_unlocked=false），載入後才用 myAccess 解鎖並重繪——
+ * 這樣萬一查詢慢或失敗，是「偏保守地鎖住」而不是「不小心全開」。
+ */
+let _unlocked = false;
+const GATED_MODULES = ['m1', 'm2', 'm3'];
+function stepLocked(mod, i){ return !_unlocked && GATED_MODULES.includes(mod) && i > 0; }
+async function refreshUnlock(){
+  try{ const a = await AIX.myAccess(); _unlocked = !!(a && a.hasCode); }
+  catch{ _unlocked = false; }
+  return _unlocked;
+}
 
 function save(){ S.saveCase(c); }
 
@@ -376,7 +394,9 @@ function stepsOf(mod){
 
 function cursor(mod){
   const st=c.modules[mod]; const n=stepsOf(mod).length;
-  return Math.min(Math.max(st?.cursor||0,0),n-1);
+  let i=Math.min(Math.max(st?.cursor||0,0),n-1);
+  if(stepLocked(mod,i)) i=0;   // 免費使用者一律釘在第一關，不論草稿存的是第幾步
+  return i;
 }
 function setCursor(mod,i){
   if(!c.modules[mod])c.modules[mod]={structured_values:{}};
@@ -510,17 +530,22 @@ function renderStageRail() {
     [-1, 0, 1].forEach(d => {
       const k = i + d; if (k < 0 || k >= steps.length) return;
       const on = d === 0;
+      const locked = stepLocked(currentModule, k);
       near.appendChild(el('div',
         `text-[12.5px] leading-relaxed py-1 ${on ? 'text-navy font-bold' : 'text-navy/35'}`,
-        `${on ? '▸ ' : '　'}${k + 1}. ${esc(steps[k].title)}`));
+        `${on ? '▸ ' : (locked ? '🔒 ' : '　')}${k + 1}. ${esc(steps[k].title)}`));
     });
     const more = el('details', 'ref mt-3');
     more.innerHTML = `<summary>看全部 ${steps.length} 題</summary>`;
     const list = el('div', 'body space-y-0.5 max-h-[38vh] overflow-y-auto');
     steps.forEach((s, k) => {
-      const b = el('button', `railitem ${k === i ? 'on' : ''} ${stepDone(currentModule, k) ? 'done' : ''}`);
-      b.innerHTML = `<span class="idx">${stepDone(currentModule, k) && k !== i ? '✓' : k + 1}</span>${esc(s.title)}`;
-      b.addEventListener('click', () => { setCursor(currentModule, k); render(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+      const locked = stepLocked(currentModule, k);
+      const b = el('button', `railitem ${k === i ? 'on' : ''} ${stepDone(currentModule, k) ? 'done' : ''} ${locked ? 'opacity-55' : ''}`);
+      b.innerHTML = `<span class="idx">${locked ? '🔒' : (stepDone(currentModule, k) && k !== i ? '✓' : k + 1)}</span>${esc(s.title)}`;
+      b.addEventListener('click', () => {
+        if(locked){ showUnlockGate(); return; }   // 鎖住的題點了顯示解鎖，不切換
+        setCursor(currentModule, k); render(); window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
       list.appendChild(b);
     });
     more.appendChild(list);
@@ -643,6 +668,7 @@ function stepNav(area,mod,{onNext,nextLabel,nextEnabled=true}={}){
   next.addEventListener('click',()=>{
     if(onNext&&isLast){onNext();return;}
     if(isLast)return;
+    if(stepLocked(mod,i+1)){ showUnlockGate(); return; }   // 免費只到第一關，下一題要解鎖
     setCursor(mod,i+1);render();window.scrollTo({top:0,behavior:'smooth'});
   });
   wrap.appendChild(next);
@@ -721,6 +747,39 @@ async function paintQuotaChip(){
 }
 
 const readOnly=()=>S.isClosed(c);
+
+/**
+ * 鎖住的內容被點到時，就地顯示解鎖說明＋兌換框。
+ * 不用彈窗打斷，貼著操作點出現，兌換成功即解鎖並重繪。
+ */
+function showUnlockGate(){
+  document.querySelectorAll('.jd-unlock-gate').forEach(n=>n.remove());
+  const gate=el('div','jd-unlock-gate mt-8 p-5 rounded-2xl border border-tealgreen/30 bg-mist/40');
+  gate.innerHTML=`<div class="flex items-start gap-3">
+      <i data-lucide="lock" class="w-5 h-5 text-tealdeep shrink-0 mt-0.5"></i>
+      <div class="min-w-0">
+        <div class="font-bold text-navy mb-1">這一段是完整版內容</div>
+        <div class="text-sm text-navy/65 leading-relaxed">免費體驗開放每個階段的第一題。輸入課程授權碼即可解鎖全部問題、AI 整理與完整文件。</div>
+      </div>
+    </div>`;
+  const wrap=el('div','mt-3 ml-8 flex flex-wrap items-center gap-2');
+  const inp=el('input','border border-navy/20 rounded-lg px-3 py-2 text-sm font-mono w-56');
+  inp.placeholder='ORMAP-XXXX-XXXX'; inp.setAttribute('aria-label','課程授權碼');
+  const go=el('button','bg-navy text-ivory px-4 py-2 rounded-lg text-sm font-semibold hover:bg-tealdeep','兌換解鎖');
+  const msg=el('span','text-xs text-accent');
+  const doIt=async()=>{
+    const code=inp.value.trim(); if(!code) return;
+    go.disabled=true; msg.textContent='';
+    try{ await AIX.redeemCode(code); _unlocked=true; paintQuotaChip(); render(); }
+    catch(e){ msg.textContent=e.message||'兌換失敗'; go.disabled=false; }
+  };
+  go.addEventListener('click',doIt);
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter') doIt(); });
+  wrap.append(inp,go,msg); gate.appendChild(wrap);
+  $('#moduleArea')?.appendChild(gate);
+  if(window.lucide)lucide.createIcons();
+  gate.scrollIntoView({behavior:'smooth', block:'center'});
+}
 
 /* ══════════ 引導者視窗（?view=guide）══════════
    同一台電腦開兩個視窗：回應者用主畫面思考與輸入，
@@ -2383,6 +2442,9 @@ if(!AIX.isLocalEnv()){
 }
 
 render();
+
+// 先以「鎖住」狀態畫一次（安全預設），確認有兌換碼後再解鎖重繪
+refreshUnlock().then(u=>{ if(u) render(); });
 </script>
 </body>
 </html>

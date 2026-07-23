@@ -854,12 +854,23 @@ function safeName(s) { return String(s || '').replace(/[\\/:*?"<>|]/g, '_'); }
  *   inline，Word 就認得。已經有 inline 的（修復後存的人工版）也安全——inlineStyles
  *   把系統樣式擺在前、元素原有的 style 擺在後，CSS 後者優先，重跑不改變結果。
  *   使用者的手動文字編輯完全保留，只是替結構標籤補上 inline 樣式。
+ *
+ * 人工版的封面狀態要即時更新（2026-07-23）
+ *   人工版是完整快照，連封面的「狀態：草稿」也一起凍住了。使用者事後把文件狀態
+ *   改成「正式發布」時，沒有人工版的文件會重新組裝跟著改，但有人工版的這一份
+ *   仍顯示凍住的舊狀態——這是狀態一等公民、非使用者編輯的內文，應永遠反映目前值。
+ *   因此 serve 人工版前，把封面第一個「狀態：…」換成目前的 docStatus(c)；
+ *   封面永遠排在文件最前，故只換第一個，內文即使出現「狀態：」也不受影響。
  */
+function refreshStatus(html, c) {
+  return String(html).replace(/(狀態：)[^<]*/, `$1${esc(docStatus(c))}`);
+}
+
 export function documentHtml(c, key) {
   const doc = getDocument(key);
   if (!doc) return '';
   const override = c.doc_overrides && c.doc_overrides[key];
-  return (override && override.html) ? inlineStyles(override.html) : doc.build(c);
+  return (override && override.html) ? inlineStyles(refreshStatus(override.html, c)) : doc.build(c);
 }
 
 export function isEdited(c, key) {

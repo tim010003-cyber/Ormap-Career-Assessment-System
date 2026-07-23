@@ -463,8 +463,10 @@ const pa_interviewQuestions = pa_allAnchors.flatMap(a => ([
     evidence: '能否獨立完成、面對例外情境的處理層級與求助時機。', level: a.minimum_level },
 ]));
 
-// M1 五章的 AI 狀態（讓確認卡與推論／缺口提示能顯示）
+// M1 各章的 AI 狀態（讓確認卡與推論／缺口提示能顯示）
+// 開場章沒有推論／缺口，但仍需一個 state，否則整理草稿卡片不會顯示。
 const pa_m1Chapters = {
+  '開場': { inferences: [], gaps: [], warnings: [] },
   '第一章': { inferences: [{ field: 'm1.demand_nature', note: '需求性質為推論，請確認。' }, { field: 'm1.hypotheses_pending', note: '此區為尚待驗證的推論，不可當成已確認事實。' }], gaps: [], warnings: ['偵測到「缺人／要找人」的說法。這只能列為**假設**，不能當成已證實的人力需求，也不能當成問題結論。'] },
   '第二章': { inferences: [{ field: 'm1.problem_statements', note: '問題類型與主／次為 AI 推論，請逐項確認。' }], gaps: [{ field: 'm1.next_bottleneck', message: '「下一個瓶頸」需人工判斷，AI 不補造。' }], warnings: ['不得把時間上先發生的事情直接判定為原因；不得用人格歸因替代問題分析。'] },
   '第三章': { inferences: [{ field: 'm1.inactivity_cost', note: '三至六個月的代價為推論，請確認。' }, { field: 'm1.need_scale', note: '需求尺度為推論，請人工選定。' }], gaps: [], warnings: ['緊急與重要必須分開。'] },

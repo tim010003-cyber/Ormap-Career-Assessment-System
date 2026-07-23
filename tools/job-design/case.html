@@ -2346,13 +2346,19 @@ function renderOutput(area){
     if(isEdited(c,d.key)) metaRow.querySelector('div').insertAdjacentHTML('beforeend',
       '<span class="badge bg-navy/10 text-navy/60 ml-2">已人工修改</span>');
     meta.appendChild(metaRow);
+    // 讓客戶知道「已人工修改」的文件怎麼跟後續資料相處：手改保留、空欄位自動補、要整段改回按還原。
+    if(isEdited(c,d.key)) meta.insertAdjacentHTML('beforeend',
+      '<p class="mt-2 text-xs text-navy/50 leading-relaxed flex gap-1.5">'
+      +'<i data-lucide="info" class="w-3.5 h-3.5 shrink-0 mt-0.5"></i>'
+      +'<span>這份保留了你的手動修改。<b>原本空白的欄位，下載時會自動帶入評測的最新內容</b>；你改過的段落維持原樣不動。'
+      +'若想把某段改回最新的系統版本，按「還原成系統版本」（會清掉這份的手動修改）。</span></p>');
     iframe.srcdoc=documentHtml(c,d.key);
     if(window.lucide)lucide.createIcons();
   }
   paintDoc();
 
   area.appendChild(el('p','mt-5 text-sm text-navy/45 leading-relaxed flex gap-2',
-    '<i data-lucide="info" class="w-4 h-4 shrink-0 mt-0.5"></i><span>按「直接編輯」可以在這裡改內容，改完按「完成編輯」存起來，下載時帶走的就是你改過的版本。下載的是 Word 檔（.doc）。</span>'));
+    '<i data-lucide="info" class="w-4 h-4 shrink-0 mt-0.5"></i><span>按「直接編輯」可以在這裡改內容，改完按「完成編輯」存起來，下載時帶走的就是你改過的版本。你改過的段落之後不會被系統蓋掉，沒改到的空白欄位仍會自動帶入評測的最新內容。下載的是 Word 檔（.doc）。</span>'));
   if(window.lucide)lucide.createIcons();
 }
 

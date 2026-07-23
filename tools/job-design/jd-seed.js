@@ -479,6 +479,8 @@ export function buildPathACase() {
     'case.title': cf('內容團隊交付延誤問題釐清（示範·完整職務設計）'),
     'case.organization_name': cf('青田文化（示範）'),
     'case.job_title_working': cf('內容專案企劃'),
+    'case.creator_role': cf('內容主管'),
+    'case.created_date': cf('2026-07-19'),
     'case.optimization_goals': cf(['釐清權責邊界', '聚焦職能標準']),
 
     // ── M1 問題釐清定位 ──
@@ -661,7 +663,8 @@ export function buildPathACase() {
 
     // ── M4 職務基本資料 ──
     'm4.job_basic_info': cf({
-      job_title: '內容專案企劃', department: '內容部', report_to: '內容主管',
+      job_title: '內容專案企劃', engagement: '全職', headcount: '1 人', concurrent: '1 人',
+      department: '內容部', report_to: '內容主管',
       is_manager: '否', manage_count: '', location: '台北',
       work_mode: '混合', employment: '全職', work_hours: '週一至週五 09:30–18:30', salary_range: '面議',
     }),

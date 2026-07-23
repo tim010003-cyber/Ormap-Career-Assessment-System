@@ -143,6 +143,9 @@ import { aiStatus, isLocalEnv, whyNotReady, signIn, signOut, onAuth, myAccess, r
 const $ = (s, r=document) => r.querySelector(s);
 const el = (t, cls, html) => { const e=document.createElement(t); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e; };
 const escapeHtml = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// paintQuota 內用的是 esc 這個名字（與 case.html 一致）。這裡補上別名，
+// 否則有兌換過碼的帳號一進 paintQuota 就會 ReferenceError，整條配額列變空白。
+const esc = escapeHtml;
 
 
 // ── 示範下拉 ──

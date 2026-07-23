@@ -265,7 +265,18 @@ function buildForm(){
   }
 }
 
-function openDialog(){
+async function openDialog(){
+  /*
+   * 建立案例前一定要登入。（2026-07-23 使用者決策）
+   * 案例只要一建立就會存進雲端，登入是備份的前提；沒登入就建，換裝置會不見。
+   * 示範案例的載入不走這裡，所以匿名訪客仍看得到示範、理解得了流程。
+   */
+  const u = await import('./jd-ai.js').then(m=>m.currentUser()).catch(()=>null);
+  if(!u){
+    if(!confirm('建立案例前請先登入。\n\n登入後你的案例會自動備份，換一台裝置也看得到；沒登入的話案例只會留在這台電腦。\n\n要現在用 Google 登入嗎？')) return;
+    try{ await signIn(); }
+    catch(e){ if(e?.code!=='auth/popup-closed-by-user') alert('登入失敗：'+(e.message||e)); return; }
+  }
   chosenPath=null;
   $('#step1').classList.remove('hidden');
   $('#step2').classList.add('hidden');

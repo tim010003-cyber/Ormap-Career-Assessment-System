@@ -841,12 +841,25 @@ function safeName(s) { return String(s || '').replace(/[\\/:*?"<>|]/g, '_'); }
 /**
  * 取得文件內容：人工改過就用人工版，否則用系統組裝的版本。
  * 使用者可以在畫面上直接改四份文件，改完的內容存在案例裡，下載時一併帶走。
+ *
+ * 人工版一律再過一次 inlineStyles（2026-07-23）
+ *   系統組裝版是在 wrap() 裡就把樣式攤平成 inline 的，Word 才看得到大標題等格式。
+ *   但人工版是把當時 iframe 的 outerHTML 整份存進 localStorage——瀏覽器渲染時
+ *   靠的是 <style> 區塊的 class 選擇器，DOM 上並沒有 inline style，所以存下來的
+ *   人工版元素身上是空的。這種人工版在**瀏覽器預覽**看起來正常（class 選擇器有效），
+ *   一下載進 **Word 就退回內文樣式**（Word 不吃 class 選擇器）——正是「預覽有大標題、
+ *   下載沒有」的來源，尤其是昨天 inlineStyles 修復之前就已經存好的舊人工版。
+ *
+ *   解法：輸出前替人工版補跑 inlineStyles。它會把 class／標籤對應的樣式攤平成
+ *   inline，Word 就認得。已經有 inline 的（修復後存的人工版）也安全——inlineStyles
+ *   把系統樣式擺在前、元素原有的 style 擺在後，CSS 後者優先，重跑不改變結果。
+ *   使用者的手動文字編輯完全保留，只是替結構標籤補上 inline 樣式。
  */
 export function documentHtml(c, key) {
   const doc = getDocument(key);
   if (!doc) return '';
   const override = c.doc_overrides && c.doc_overrides[key];
-  return (override && override.html) ? override.html : doc.build(c);
+  return (override && override.html) ? inlineStyles(override.html) : doc.build(c);
 }
 
 export function isEdited(c, key) {

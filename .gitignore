@@ -70,3 +70,14 @@ tools/job-design/server/.ai-config.json
 
 # dataconnect generated files
 .dataconnect
+
+# ⭐ Ormap 工作環境特有的雜項（避免同步殘骸／捷徑誤入版控）
+# Google Drive 桌面同步暫存
+.tmp.driveupload/
+# Windows 捷徑檔
+*.lnk
+# Python 暫存
+__pycache__/
+*.pyc
+# OneDrive 衝突檔
+*-Conflict-*

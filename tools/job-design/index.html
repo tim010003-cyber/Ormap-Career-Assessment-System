@@ -51,11 +51,8 @@
       <!-- 這是給客戶的「輸入授權碼」入口，點了會跳到下方輸入框。
            這裡不再放後台管理連結——發碼／停權／刪除是管理者的事，從後台
            （admin.html）進 codes.html 即可，對外頁面不該出現。（2026-07-23 使用者決策）-->
-      <button id="redeemBtn" class="hidden inline-flex items-center gap-1.5 bg-white border border-navy/20 text-navy px-3.5 py-2 rounded-lg text-sm font-semibold hover:border-tealgreen/60 transition" title="輸入課程授權碼以使用 AI 整理">
+      <button id="redeemBtn" class="inline-flex items-center gap-1.5 bg-white border border-navy/20 text-navy px-3 py-1.5 rounded-lg text-sm font-semibold hover:border-tealgreen/60 transition" title="輸入課程授權碼以使用 AI 整理">
         <i data-lucide="ticket" class="w-4 h-4"></i>輸入授權碼
-      </button>
-      <button id="acctChip" class="inline-flex items-center gap-1.5 bg-white border border-navy/20 text-navy px-3.5 py-2 rounded-lg text-sm font-semibold hover:border-tealgreen/60 transition">
-        <i data-lucide="user" class="w-4 h-4"></i><span id="acctChipText">檢查中…</span>
       </button>
       <a href="./settings.html" id="aiChip" class="inline-flex items-center gap-1.5 bg-white border border-navy/20 text-navy/60 px-3.5 py-2 rounded-lg text-sm font-semibold hover:border-tealgreen/60 transition" title="AI 設定">
         <i data-lucide="sparkles" class="w-4 h-4"></i><span id="aiChipText">AI 設定 · 檢查中</span>
@@ -121,7 +118,7 @@ import { CASE_FIELDS, PATHS, pathName } from './jd-fields.js';
 import { listCases, createCase, deleteCase, getModuleStatus, resyncCloud } from './jd-store.js';
 import { countPending } from './jd-word.js';
 import { seedPathACase } from './jd-seed.js';
-import { aiStatus, isLocalEnv, whyNotReady, signIn, signOut, onAuth, myAccess, redeemCode, remaining } from './jd-ai.js';
+import { aiStatus, isLocalEnv, whyNotReady, signIn, onAuth, myAccess, redeemCode, remaining } from './jd-ai.js';
 
 const $ = (s, r=document) => r.querySelector(s);
 const el = (t, cls, html) => { const e=document.createElement(t); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e; };
@@ -314,8 +311,12 @@ render();
     }
   }
 
-  // 帳號與課程授權碼：線上要用 AI 必須登入並兌換過碼，配額綁在帳號上
-  const acct=$('#acctChip'), acctTxt=$('#acctChipText'), quotaBar=$('#quotaBar');
+  // 課程授權碼與配額。登入不再放這裡——站台頂列的「我的空間」就是帳號入口，
+  // 需要登入的動作（兌換、建立案例）會在當下就地跳登入。（2026-07-23 使用者決策）
+  const quotaBar=$('#quotaBar');
+  // 授權碼入口移到頂部 appbar，常駐、給客戶用
+  const appbarActions=$('#appbarActions'), redeemBtn=$('#redeemBtn');
+  if(appbarActions && redeemBtn) appbarActions.appendChild(redeemBtn);
 
   /*
    * 建立案例是付費功能：只有兌換過授權碼的人看得到「建立案例」。
@@ -327,19 +328,10 @@ render();
 
   async function paintAcct(u){
     if(!u){
-      acctTxt.textContent='登入';
-      acct.title='AI 整理需要登入才能使用';
-      acct.className='inline-flex items-center gap-1.5 bg-white border border-navy/20 text-navy px-3.5 py-2 rounded-lg text-sm font-semibold hover:border-tealgreen/60 transition';
       quotaBar.classList.add('hidden');
-      $('#redeemBtn')?.classList.add('hidden');   // 未登入不能兌換，先隱藏
       applyCreateVisibility(false);
-      if(window.lucide) lucide.createIcons();
       return;
     }
-    acctTxt.textContent=(u.displayName||u.email||'已登入').split(' ')[0];
-    acct.title=u.email+'（點擊登出）';
-    acct.className='inline-flex items-center gap-1.5 bg-tealgreen/10 border border-tealgreen/40 text-tealdeep px-3.5 py-2 rounded-lg text-sm font-semibold hover:bg-tealgreen/15 transition';
-    $('#redeemBtn')?.classList.remove('hidden');
     const a = await myAccess(true);
     applyCreateVisibility(!!(a && a.hasCode));   // 兌換過碼才給建立案例
     paintQuota(a);
@@ -409,20 +401,20 @@ render();
     quotaBar.appendChild(box);
   }
 
-  acct.addEventListener('click', async()=>{
+  // 「輸入授權碼」：兌換一定要登入，所以未登入時就地跳 Google 登入，
+  // 登入後再展開下方兌換框並聚焦。登入本身不再需要獨立的帳號按鈕。
+  redeemBtn?.addEventListener('click', async ()=>{
     try{
-      const u=await import('./jd-ai.js').then(m=>m.currentUser());
-      if(u){ if(confirm('要登出嗎？')) await signOut(); }
-      else await signIn();
-    }catch(e){ if(e?.code!=='auth/popup-closed-by-user') alert('登入失敗：'+(e.message||e)); }
-  });
-
-  // 「輸入授權碼」把使用者帶到下方的兌換框並聚焦，不再連到後台
-  $('#redeemBtn')?.addEventListener('click',()=>{
-    quotaBar.classList.remove('hidden');
-    const box=$('#redeemBox'); if(box) box.open=true;
-    quotaBar.scrollIntoView({behavior:'smooth', block:'center'});
-    setTimeout(()=>quotaBar.querySelector('.jd-redeem-input')?.focus(), 250);
+      const u=await import('./jd-ai.js').then(m=>m.currentUser()).catch(()=>null);
+      if(!u){ await signIn(); }   // onAuth 會接手畫上配額列
+    }catch(e){ if(e?.code!=='auth/popup-closed-by-user') alert('登入失敗：'+(e.message||e)); return; }
+    // 等 onAuth→paintQuota 把兌換框畫出來再展開聚焦
+    setTimeout(()=>{
+      quotaBar.classList.remove('hidden');
+      const box=$('#redeemBox'); if(box) box.open=true;
+      quotaBar.scrollIntoView({behavior:'smooth', block:'center'});
+      quotaBar.querySelector('.jd-redeem-input')?.focus();
+    }, 400);
   });
   // 登入／登出之後身分變了，案例同步要跟著重跑一次
   onAuth(async (u)=>{ await paintAcct(u); if(await resyncCloud()) render(); }).catch(()=>paintAcct(null));

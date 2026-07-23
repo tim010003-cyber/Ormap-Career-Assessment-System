@@ -70,6 +70,13 @@ import * as AIX from './jd-ai.js';
 async function runWithAi(taskCode, instruction, mock, input, btn){
   const label = btn ? btn.innerHTML : null;
   if(btn){ btn.disabled=true; btn.innerHTML='<i data-lucide="loader" class="w-4 h-4 animate-spin"></i>AI 整理中…'; if(window.lucide)lucide.createIcons(); }
+  // 安全網：示範案例絕不打真 AI。各按鈕本身已改走 demoFakeRun，這裡再攔一次，
+  // 確保就算有漏網的呼叫路徑，示範也不會燒 token。回 null，呼叫端不寫入。
+  if(isDemo){
+    await new Promise(r=>setTimeout(r, 1100));
+    if(btn && label!=null){ btn.disabled=false; btn.innerHTML=label; if(window.lucide)lucide.createIcons(); }
+    return null;
+  }
   try{
     const ai = await AIX.askAi(taskCode, instruction, mock.organized_content, input, c.case_id);
     const merged = AIX.mergeIntoEnvelope(mock, ai);
@@ -234,6 +241,25 @@ async function refreshUnlock(){
 
 function save(){ S.saveCase(c); }
 
+/* ══════════ 示範案例：假裝在跑，不燒 token ══════════
+ * 示範是教學的一環，內容早就整理好了。按下 AI 整理時應該「運轉一下」讓學員
+ * 感受實際操作，但**絕不呼叫真 AI**——不花 token、不扣配額。（2026-07-23 使用者決策）
+ *
+ * 做法：示範案例一開始把整理草稿藏起來（看起來像還沒整理），按下 AI 後跑一段
+ * 假的載入動畫，再揭露早就備好的草稿。isDemo 為真時，所有 AI 呼叫路徑一律短路。
+ */
+const isDemo = !!c.is_demo;
+const _demoRevealed = new Set();
+const demoShown = (key, st) => !!(isDemo ? (st && _demoRevealed.has(key)) : st);
+async function demoFakeRun(key, btn){
+  const label = btn ? btn.innerHTML : null;
+  if(btn){ btn.disabled=true; btn.innerHTML='<i data-lucide="loader" class="w-4 h-4 animate-spin"></i>AI 整理中…'; if(window.lucide)lucide.createIcons(); }
+  await new Promise(r=>setTimeout(r, 1100));   // 假裝在跑
+  if(key!=null) _demoRevealed.add(key);
+  if(btn && label!=null){ btn.disabled=false; btn.innerHTML=label; }
+  render();
+}
+
 /* ══════════ 累積上下文 ══════════
    第一版：每次呼叫只拿到「這一題的口述」，AI 看不到前面講過的話，
    所以做不出上下文推論。
@@ -328,6 +354,7 @@ function rawDump(exceptRawId){
  */
 let _synthing=false;
 async function refreshSummary(force){
+  if(isDemo) return c.case_summary;   // 示範不跑整合，避免打真 AI 燒 token
   if(_synthing) return c.case_summary;
   const material=rawDump();
   if(material.length<80) return c.case_summary;
@@ -957,6 +984,7 @@ function renderM1(area){
   const i=cursor('m1');
   const ch=F.M1_CHAPTERS[i];
   const st=m1State().chapters[ch.code]||null;
+  const shown=demoShown(ch.code, st);   // 示範：按 AI 揭露前先藏整理草稿
   const allConfirmed=ch.outputs.every(o=>S.isConfirmed(c,o.id));
 
   thinkHeader(area,{eyebrow:`問題釐清 · ${ch.code}`,title:ch.title,icon:'search',coreQuestion:ch.coreQuestion});
@@ -970,9 +998,10 @@ function renderM1(area){
 
   const aiRow=el('div','flex items-center gap-3 mt-5');
   const aiBtn=el('button','inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-tealdeep disabled:opacity-40',
-    `<i data-lucide="sparkles" class="w-4 h-4"></i>${st?'重新整理':'請 AI 幫我整理'}`);
+    `<i data-lucide="sparkles" class="w-4 h-4"></i>${shown?'重新整理':'請 AI 幫我整理'}`);
   aiBtn.disabled=readOnly();
   aiBtn.addEventListener('click',async()=>{
+    if(isDemo){ demoFakeRun(ch.code, aiBtn); return; }   // 示範：假裝在跑並揭露備好的草稿
     const text=c.fields[ch.rawId]?.value;
     // 沒寫東西也讓他按。整理不出來就整理不出來，不要用彈窗擋人。
     let r=AI.runM1Chapter(ch.code,text);
@@ -1010,7 +1039,7 @@ function renderM1(area){
     '<i data-lucide="check-circle" class="w-4 h-4"></i>本題已確認'));
   area.appendChild(aiRow);
 
-  if(st){
+  if(shown){
     if(st.warnings?.length)area.appendChild(el('div','mt-6 p-3.5 rounded-xl bg-mist/45 border border-tealgreen/25 text-sm text-navy/70 leading-relaxed',
       `<div class="text-xs font-semibold text-tealdeep mb-2">延伸思考（不影響繼續）</div>`+
       st.warnings.map(w=>`<div class="flex gap-2"><i data-lucide="info" class="w-4 h-4 text-tealdeep shrink-0 mt-1"></i><span>${esc(w)}</span></div>`).join('')));
@@ -1480,6 +1509,7 @@ function renderM3(area){
 // ── 一個小節 ──
 function renderSection(area,s){
   const st=m3State().sections[s.code]||null;
+  const shown=demoShown('sec:'+s.code, st);   // 示範：按 AI 揭露前先藏
   const allConfirmed=F.sectionOutputs(s).every(o=>S.isConfirmed(c,o.id));
 
   thinkHeader(area,{eyebrow:`職務與人才規格 · ${s.code}`,title:s.title,icon:'target',coreQuestion:s.coreQuestion});
@@ -1487,9 +1517,10 @@ function renderSection(area,s){
 
   const aiRow=el('div','flex items-center gap-3 mt-5');
   const aiBtn=el('button','inline-flex items-center gap-2 bg-navy text-ivory px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-tealdeep disabled:opacity-40',
-    `<i data-lucide="sparkles" class="w-4 h-4"></i>${st?'重新整理':'請 AI 幫我整理'}`);
+    `<i data-lucide="sparkles" class="w-4 h-4"></i>${shown?'重新整理':'請 AI 幫我整理'}`);
   aiBtn.disabled=readOnly();
   aiBtn.addEventListener('click',async()=>{
+    if(isDemo){ demoFakeRun('sec:'+s.code, aiBtn); return; }   // 示範：假裝在跑
     const text=c.fields[s.rawId]?.value;
     // 沒寫東西也讓他按。整理不出來就整理不出來，不要用彈窗擋人。
     const ctx={existing:{'existing.role_reason':c.fields['existing.role_reason']?.value}};
@@ -1514,7 +1545,7 @@ function renderSection(area,s){
     '<i data-lucide="check-circle" class="w-4 h-4"></i>本題已確認'));
   area.appendChild(aiRow);
 
-  if(!st) return;
+  if(!shown) return;
 
   if(st.warnings?.length)area.appendChild(el('div','mt-6 p-3.5 rounded-xl bg-accent/8 border border-accent/20 text-sm text-navy/70 leading-relaxed',
     st.warnings.map(w=>`<div class="flex gap-2"><i data-lucide="info" class="w-4 h-4 text-accent shrink-0 mt-1"></i><span>${esc(w)}</span></div>`).join('')));

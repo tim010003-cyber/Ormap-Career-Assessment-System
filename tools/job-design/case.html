@@ -2329,24 +2329,33 @@ function renderOutput(area){
   const pending=countPending(c);
   const allConfirmed=['m4','m5','m6'].every(m=>S.getModuleStatus(c,m)==='confirmed');
 
-  // 產出前檢查收成一行狀態列。要看細節再展開。
-  // 之前它是一整張卡片壓在文件預覽上面，真的要讀文件時很擠。
-  const anchors=allAnchors();
-  const items=[
-    ['三份正式輸出已確認',allConfirmed],
-    ['JD 已完成',S.getModuleStatus(c,'m6')==='confirmed'],
-    ['最低適任等級已由人工確認',anchors.length>0&&anchors.every(a=>a.minimum_level)],
-  ];
-  const okCount=items.filter(([,v])=>v).length;
-  const chk=el('details','mb-4 rounded-xl border border-navy/12 bg-white');
-  chk.innerHTML=`<summary class="px-4 py-2.5 cursor-pointer select-none text-sm text-navy/70 flex items-center gap-2">
-      <i data-lucide="${okCount===items.length?'check-circle':'circle-dashed'}" class="w-4 h-4 ${okCount===items.length?'text-tealgreen':'text-navy/35'}"></i>
-      產出前檢查　<span class="text-navy/45">${okCount}/${items.length} 完成${pending>0?`　·　待確認 ${pending} 項`:''}</span>
+  /*
+   * 待你確認清單（決策地圖）。純提醒，不是閘門。
+   *
+   * 大原則（2026-07-23 使用者）：AI 不判定「是否通過」，審核交給顧問／人。
+   * 所以這裡只把「還沒經人確認的地方」列出來，讓引導者一眼看到該停下來看哪幾項，
+   * 但完全不擋——通過與否、能不能用、要不要下載，都由人決定。
+   */
+  const pendItems=collectPending(c);
+  const map=el('details',`mb-4 rounded-xl border ${pendItems.length?'border-accent/30 bg-accent/5':'border-tealgreen/30 bg-mist/30'}`);
+  if(pendItems.length) map.open=true;   // 有待確認就展開，讓人一眼看到
+  map.innerHTML=`<summary class="px-4 py-2.5 cursor-pointer select-none text-sm font-semibold flex items-center gap-2 ${pendItems.length?'text-accent':'text-tealdeep'}">
+      <i data-lucide="${pendItems.length?'clipboard-list':'check-circle'}" class="w-4 h-4"></i>
+      ${pendItems.length?`還有 ${pendItems.length} 項待你確認／決定`:'沒有待確認事項，都已經人看過了'}
     </summary>`;
-  const chkBody=el('div','px-4 pb-4 space-y-2 text-sm');
-  chkBody.innerHTML=items.map(([t,v])=>checkRow(t,v)).join('')+checkRow(`待確認事項：${pending} 項`,true,pending>0);
-  chk.appendChild(chkBody);
-  area.appendChild(chk);
+  const body=el('div','px-4 pb-4 text-sm');
+  if(pendItems.length){
+    body.appendChild(el('p','text-xs text-navy/50 leading-relaxed mb-3',
+      '以下是還沒經人確認的地方，工具只列出來提醒——<b>通過與否、能不能用，由你和顧問判斷，工具不代為決定，也不會擋住下載或產出</b>。'));
+    const byWho={}; pendItems.forEach(it=>{ (byWho[it.by]=byWho[it.by]||[]).push(it); });
+    Object.entries(byWho).forEach(([who,list])=>{
+      body.appendChild(el('div','text-[11px] font-bold text-navy/45 tracking-wider mt-3 mb-1',`建議由：${esc(who)}`));
+      list.forEach(it=>body.appendChild(el('div','flex gap-2 py-1 leading-relaxed',
+        `<span class="text-accent/50 shrink-0 mt-0.5">·</span><span><b class="text-navy/70">${esc(it.module)}</b>　${esc(it.field)}<span class="text-navy/40">（${esc(it.reason)}）</span></span>`)));
+    });
+  }
+  map.appendChild(body);
+  area.appendChild(map);
 
   // 四份獨立文件：預覽 + 下載
   const docWrap=el('div','bg-white rounded-2xl border border-navy/10 overflow-hidden');

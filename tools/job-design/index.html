@@ -65,12 +65,12 @@
           </button>
         </div>
       </div>
-      <!-- 這顆只給管理者，連到後台的發碼／管理頁。標籤寫「授權碼」會讓人以為
-           是「輸入授權碼加值」的地方，實際是後台，所以改成「授權碼後台」。
-           一般使用者的加值入口在下面的 quotaBar（隨時可展開再輸入一組碼）。 -->
-      <a href="./codes.html" id="adminLink" class="hidden inline-flex items-center gap-1.5 text-sm font-semibold text-navy/50 hover:text-tealdeep px-2" title="課程授權碼管理後台（發碼、停權、刪除）">
-        <i data-lucide="settings" class="w-4 h-4"></i>授權碼後台
-      </a>
+      <!-- 這是給客戶的「輸入授權碼」入口，點了會跳到下方輸入框。
+           這裡不再放後台管理連結——發碼／停權／刪除是管理者的事，從後台
+           （admin.html）進 codes.html 即可，對外頁面不該出現。（2026-07-23 使用者決策）-->
+      <button id="redeemBtn" class="hidden inline-flex items-center gap-1.5 bg-white border border-navy/20 text-navy px-3.5 py-2 rounded-lg text-sm font-semibold hover:border-tealgreen/60 transition" title="輸入課程授權碼以使用 AI 整理">
+        <i data-lucide="ticket" class="w-4 h-4"></i>輸入授權碼
+      </button>
       <button id="acctChip" class="inline-flex items-center gap-1.5 bg-white border border-navy/20 text-navy px-3.5 py-2 rounded-lg text-sm font-semibold hover:border-tealgreen/60 transition">
         <i data-lucide="user" class="w-4 h-4"></i><span id="acctChipText">檢查中…</span>
       </button>
@@ -332,14 +332,14 @@ render();
       acct.title='AI 整理需要登入才能使用';
       acct.className='inline-flex items-center gap-1.5 bg-white border border-navy/20 text-navy px-3.5 py-2 rounded-lg text-sm font-semibold hover:border-tealgreen/60 transition';
       quotaBar.classList.add('hidden');
-      $('#adminLink')?.classList.add('hidden');
+      $('#redeemBtn')?.classList.add('hidden');   // 未登入不能兌換，先隱藏
       if(window.lucide) lucide.createIcons();
       return;
     }
     acctTxt.textContent=(u.displayName||u.email||'已登入').split(' ')[0];
     acct.title=u.email+'（點擊登出）';
     acct.className='inline-flex items-center gap-1.5 bg-tealgreen/10 border border-tealgreen/40 text-tealdeep px-3.5 py-2 rounded-lg text-sm font-semibold hover:bg-tealgreen/15 transition';
-    $('#adminLink')?.classList.remove('hidden');
+    $('#redeemBtn')?.classList.remove('hidden');
     paintQuota(await myAccess(true));
   }
 
@@ -352,7 +352,7 @@ render();
    */
   function redeemForm(onDone){
     const wrap=el('div','flex flex-wrap items-center gap-2 mt-2');
-    const inp=el('input','border border-navy/20 rounded-lg px-3 py-1.5 text-sm font-mono w-56');
+    const inp=el('input','jd-redeem-input border border-navy/20 rounded-lg px-3 py-1.5 text-sm font-mono w-56');
     inp.placeholder='ORMAP-XXXX-XXXX'; inp.setAttribute('aria-label','課程授權碼');
     const btn=el('button','bg-navy text-ivory px-3.5 py-1.5 rounded-lg text-sm font-semibold hover:bg-tealdeep','兌換');
     const msg=el('span','text-xs');
@@ -399,7 +399,7 @@ render();
     }
 
     // 已經有碼也要能加值。次數少的時候直接展開，不用再多點一下。
-    const box=el('details','mt-1');
+    const box=el('details','mt-1'); box.id='redeemBox';
     if(!a.isInstructor&&remaining(a)<=5) box.open=true;
     const sm=el('summary','text-xs text-navy/45 hover:text-tealdeep cursor-pointer inline-block','再輸入一組授權碼加值');
     box.appendChild(sm);
@@ -413,6 +413,14 @@ render();
       if(u){ if(confirm('要登出嗎？')) await signOut(); }
       else await signIn();
     }catch(e){ if(e?.code!=='auth/popup-closed-by-user') alert('登入失敗：'+(e.message||e)); }
+  });
+
+  // 「輸入授權碼」把使用者帶到下方的兌換框並聚焦，不再連到後台
+  $('#redeemBtn')?.addEventListener('click',()=>{
+    quotaBar.classList.remove('hidden');
+    const box=$('#redeemBox'); if(box) box.open=true;
+    quotaBar.scrollIntoView({behavior:'smooth', block:'center'});
+    setTimeout(()=>quotaBar.querySelector('.jd-redeem-input')?.focus(), 250);
   });
   // 登入／登出之後身分變了，案例同步要跟著重跑一次
   onAuth(async (u)=>{ await paintAcct(u); if(await resyncCloud()) render(); }).catch(()=>paintAcct(null));

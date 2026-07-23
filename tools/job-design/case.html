@@ -193,18 +193,23 @@ const textToList=t=>String(t||'').split('\n').map(s=>s.trim()).filter(Boolean);
 const caseId = new URLSearchParams(location.search).get('caseId');
 
 /*
- * 先把雲端案例拉下來合併進本機，再開始讀。
+ * 雲端同步不可以擋住頁面。
  *
- * 沒有這一步，換一台裝置直接開這個網址會看到「找不到案例」——因為案例還只
- * 存在原本那台電腦的 localStorage 裡。initCloud 未登入或讀取失敗都會自己
- * 收掉，回到純本機模式，所以不會因為網路問題就打不開。
+ * 一開始這裡是 top-level `await S.initCloud()`——結果 Firestore 一慢，整頁就卡在
+ * 空白等待，使用者回報「進去很常卡住」。（2026-07-23）
  *
- * 這裡用的是 module script 的 top-level await，因此下面所有同步的 store
- * 介面（getCase / saveField / …）都不用改。
+ * 改成：本機已經有這個案例，就立刻開，雲端在背景啟用（讓存檔能上傳、把雲端較新的
+ * 版本補進來，initCloud 內部以 updated_at 逐案例合併，不會蓋掉正在編輯的本機版）。
+ * 只有本機沒有時（換裝置直接開網址）才等雲端拉一次，而且 initCloud 自帶逾時，
+ * 最壞情況是等幾秒後顯示「找不到案例」，不會無限卡住。
  */
-await S.initCloud();
-
 let c = S.getCase(caseId);
+if(c){
+  S.initCloud();            // 背景啟用，不 await
+}else{
+  await S.initCloud();      // 本機沒有才等雲端（有逾時上限）
+  c = S.getCase(caseId);
+}
 if(!c){ document.body.innerHTML='<div class="p-10 text-center text-navy/60">找不到案例。<a class="text-tealgreen underline" href="./index.html">回列表</a></div>'; throw new Error('no case'); }
 
 let currentModule = c.current_module || 'existing';

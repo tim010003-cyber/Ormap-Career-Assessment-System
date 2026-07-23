@@ -63,6 +63,17 @@ let _cloudReady = false;
 const _dirty = new Set();
 let _pushTimer = null;
 
+/**
+ * 給任何可能卡住的 Promise 一個逾時上限。
+ * 雲端讀取慢或斷線時，寧可回退到本機，也不要讓畫面卡在那邊等。
+ */
+function withTimeout(promise, ms, fallback) {
+  return Promise.race([
+    promise,
+    new Promise((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
 async function firestoreBits() {
   const [{ auth, db }, authMod, fsMod] = await Promise.all([
     import('../../firebase-init.js'),
@@ -85,28 +96,38 @@ export async function initCloud() {
   if (_cloudReady) return _fb != null;
   _cloudReady = true;
   try {
-    _fb = await firestoreBits();
+    // Auth 還原若卡住（極少見）就當未登入處理，不要拖住整頁
+    _fb = await withTimeout(firestoreBits(), 6000, null);
     if (!_fb) return false;
     const { db, uid, fs } = _fb;
-    const snap = await fs.getDocs(fs.query(fs.collection(db, CLOUD), fs.where('ownerUid', '==', uid)));
 
+    // 雲端讀取是唯一真正會慢的一步。給它逾時上限，逾時就先用本機、_fb 保留，
+    // 存檔照樣會嘗試上傳，只是這一次沒把雲端既有案例拉下來。
+    const snap = await withTimeout(
+      fs.getDocs(fs.query(fs.collection(db, CLOUD), fs.where('ownerUid', '==', uid))),
+      8000, null);
+    if (!snap) { console.warn('[案例同步] 雲端讀取逾時，先用本機資料'); return true; }
+
+    const remotes = [];
+    snap.forEach((d) => { const r = d.data()?.payload; if (r && r.case_id) remotes.push(r); });
+
+    /*
+     * 關鍵：讀「現在」的本機，不是進函式時的舊快照。
+     * 雲端讀取那幾秒內使用者可能剛存了東西，用舊快照合併會把那筆蓋掉。
+     * 逐案例比 updated_at：雲端較新才覆蓋，本機較新則排入上傳。
+     */
     const local = readAll();
-    const merged = { ...local };
-    const toPush = [];
-    snap.forEach((d) => {
-      const remote = d.data()?.payload;
-      if (!remote || !remote.case_id) return;
-      const mine = local[remote.case_id];
-      // 本機比較新才保留本機，其餘一律以雲端為準
-      if (!mine || (remote.updated_at || '') > (mine.updated_at || '')) merged[remote.case_id] = remote;
-      else if ((mine.updated_at || '') > (remote.updated_at || '')) toPush.push(mine.case_id);
-    });
-    // 雲端沒有的本機案例＝這台裝置離線期間建立的，或首次登入前就存在的，要上傳
-    for (const id of Object.keys(local)) if (!snap.docs.some(d => d.id === id)) toPush.push(id);
+    let changed = false;
+    for (const r of remotes) {
+      const mine = local[r.case_id];
+      if (!mine || (r.updated_at || '') > (mine.updated_at || '')) { local[r.case_id] = r; changed = true; }
+      else if ((mine.updated_at || '') > (r.updated_at || '')) _dirty.add(r.case_id);
+    }
+    // 雲端沒有的本機案例＝離線期間建立或首次登入前就存在的，要上傳
+    for (const id of Object.keys(local)) if (!remotes.some(r => r.case_id === id)) _dirty.add(id);
 
-    writeAll(merged);
-    toPush.forEach(id => _dirty.add(id));
-    if (toPush.length) schedulePush(0);
+    if (changed) writeAll(local);
+    if (_dirty.size) schedulePush(0);
     return true;
   } catch (e) {
     console.warn('[案例同步] 雲端讀取失敗，改用本機資料：', e?.message || e);

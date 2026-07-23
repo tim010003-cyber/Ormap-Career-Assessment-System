@@ -23,7 +23,7 @@
     <nav aria-label="麵包屑" class="shrink-0">
       <a href="./index.html" class="flex items-center gap-2 text-navy/45 hover:text-navy group">
         <i data-lucide="arrow-left" class="w-4 h-4"></i>
-        <span class="text-sm max-w-[170px] truncate hidden md:block" id="hCaseTitle">案例</span>
+        <span class="text-sm max-w-[260px] truncate hidden md:block" id="hCaseTitle">案例</span>
       </a>
     </nav>
     <nav id="stageBar" class="flex-1 min-w-0"></nav>
@@ -526,18 +526,15 @@ function renderStageRail() {
   }
 
   if (steps.length > 1) {
-    const near = el('div');
-    [-1, 0, 1].forEach(d => {
-      const k = i + d; if (k < 0 || k >= steps.length) return;
-      const on = d === 0;
-      const locked = stepLocked(currentModule, k);
-      near.appendChild(el('div',
-        `text-[12.5px] leading-relaxed py-1 ${on ? 'text-navy font-bold' : 'text-navy/35'}`,
-        `${on ? '▸ ' : (locked ? '🔒 ' : '　')}${k + 1}. ${esc(steps[k].title)}`));
-    });
-    const more = el('details', 'ref mt-3');
-    more.innerHTML = `<summary>看全部 ${steps.length} 題</summary>`;
-    const list = el('div', 'body space-y-0.5 max-h-[38vh] overflow-y-auto');
+    /*
+     * 只留這一份可點選的完整目錄（2026-07-23 使用者決策）。
+     * 原本上方還有一段「相鄰預覽（▸ 現在／下一題）」，與這份清單資訊重複、
+     * 又不能點——資訊與功能拆成兩塊。移除相鄰預覽，保留這份能點的清單當唯一目錄，
+     * 預設展開，直接看得到自己在整個流程的哪裡。
+     */
+    const more = el('details', 'ref'); more.open = true;
+    more.innerHTML = `<summary>全部 ${steps.length} 題</summary>`;
+    const list = el('div', 'body space-y-0.5 max-h-[62vh] overflow-y-auto');
     steps.forEach((s, k) => {
       const locked = stepLocked(currentModule, k);
       const b = el('button', `railitem ${k === i ? 'on' : ''} ${stepDone(currentModule, k) ? 'done' : ''} ${locked ? 'opacity-55' : ''}`);
@@ -549,8 +546,7 @@ function renderStageRail() {
       list.appendChild(b);
     });
     more.appendChild(list);
-    near.appendChild(more);
-    box.appendChild(near);
+    box.appendChild(more);
   }
   rail.appendChild(box);
   if (window.lucide) lucide.createIcons();
@@ -888,7 +884,15 @@ function renderGuideView() {
 function render(){
   // 引導者視窗：唯讀，且頂列已移除，必須在動到 header 之前先返回
   if(IS_GUIDE){ renderGuideView(); return; }
-  const t=$('#hCaseTitle'); if(t)t.textContent=c.fields['case.title']?.value||'案例';
+  // 頭部顯示「組織 · 職務」，讓人隨時知道這個案例在處理誰的哪個職務。
+  // 之前顯示 case.title（示範案例是一段描述），看不出組織與職務。（2026-07-23 使用者回報）
+  const t=$('#hCaseTitle');
+  if(t){
+    const org=c.fields['case.organization_name']?.value||'';
+    const job=c.fields['case.job_title_working']?.value||'';
+    t.textContent = (org||job) ? [org,job].filter(Boolean).join(' · ') : (c.fields['case.title']?.value||'案例');
+    t.title = t.textContent;
+  }
   renderStageBar(); applyRailState(); renderStageRail(); renderPromptRail(); renderAccess();
   const area=$('#moduleArea'); area.innerHTML='';
   const R={existing:renderExisting, m1:renderM1, m2:renderM2, m3:renderM3, m4:renderM4, m5:renderM5, m6:renderM6, output:renderOutput};

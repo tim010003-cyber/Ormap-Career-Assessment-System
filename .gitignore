@@ -81,3 +81,10 @@ __pycache__/
 *.pyc
 # OneDrive 衝突檔
 *-Conflict-*
+
+# ⭐ 內容管線產生物（真實來源是 content/**，這些由 CI 產生，不進版控）
+#    見 scripts/build-content.mjs 與 content/README.md
+/blog/
+/blog.html
+/feed.xml
+/sitemap.xml

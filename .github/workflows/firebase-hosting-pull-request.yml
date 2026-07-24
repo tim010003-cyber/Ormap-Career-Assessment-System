@@ -38,7 +38,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 純靜態站，無 build 步驟（與 merge 工作流程保持一致）。
+      # 內容管線，與 merge 工作流程保持一致（見該檔案的說明）。
+      # 產生器失敗時本 job 失敗，PR 預覽不會產生 —— 這正是我們要的：
+      # 內容有問題就擋在 PR，不會流到 main。
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install content pipeline deps
+        run: npm ci --omit=dev
+
+      - name: Build content
+        run: npm run build:content
+
       - name: Deploy to Firebase Hosting (preview channel)
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:

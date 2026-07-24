@@ -2,11 +2,12 @@
   "name": "ormap-career-assessment-system",
   "version": "1.0.0",
   "private": true,
-  "description": "Ormap 原味藍圖 — 開發用工具設定。網站本身不需要建置，這份 package.json 只服務於 Firestore 規則測試與部署工具。",
+  "description": "Ormap 原味藍圖 — 開發用工具設定。手寫應用頁不需要建置；這份 package.json 服務於 Firestore 規則測試、部署工具，以及內容管線（content/**  →  blog/**）的產生器。",
   "scripts": {
     "test:rules": "firebase emulators:exec --project careervalue-ormap-test --only firestore \"node --test tests/rules.test.mjs\"",
     "deploy:rules": "firebase deploy --only firestore:rules",
-    "deploy:hosting": "firebase deploy --only hosting"
+    "deploy:hosting": "firebase deploy --only hosting",
+    "build:content": "node scripts/build-content.mjs"
   },
   "repository": {
     "type": "git",
@@ -18,5 +19,8 @@
     "@firebase/rules-unit-testing": "^5.0.1",
     "firebase": "^12.16.0",
     "firebase-tools": "^15.24.0"
+  },
+  "dependencies": {
+    "marked": "^13.0.3"
   }
 }

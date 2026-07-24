@@ -14,8 +14,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 純靜態站，無 build 步驟。若日後改用 sync_*.py 產生 JSON 再部署，
-      # 可在此加入 Python + openpyxl 的 sync step。
+      # 內容管線：content/**（Markdown）→ blog/**、feed.xml、sitemap.xml
+      # 手寫應用頁不經過這一步，維持純靜態（政策見 CLAUDE.md「Build-step policy」）。
+      # 產生器檢查沒過時會以非零狀態結束，本 job 直接失敗 → 不會部署 →
+      # 線上網站維持前一次成功部署的版本。
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install content pipeline deps
+        run: npm ci --omit=dev
+
+      - name: Build content
+        run: npm run build:content
+
       - name: Deploy to Firebase Hosting (live channel)
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:

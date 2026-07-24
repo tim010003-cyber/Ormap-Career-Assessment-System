@@ -1,0 +1,245 @@
+/* =====================================================================
+   blog.css — 文章閱讀樣式
+   ---------------------------------------------------------------------
+   只服務內容管線產出的頁面（blog.html、blog/**）。
+   沿用 brand.css 的 design tokens，不覆寫任何 .site-* 既有規則，
+   避免影響評測、報告與其他手寫應用頁。
+   ===================================================================== */
+
+/* ---------- 文章頁頭 ---------- */
+
+.post__head { padding: 2.6rem 0 1.4rem; }
+.post__head .site-title { margin-bottom: .9rem; }
+
+.post__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem;
+  align-items: center;
+  margin-top: 1.2rem;
+  color: rgba(20, 32, 51, .55);
+  font-size: .88rem;
+}
+.post__meta span[aria-hidden] { color: rgba(20, 32, 51, .3); }
+
+.post__cover {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 1.6rem 0 .4rem;
+  border-radius: 14px;
+  border: 1px solid var(--brand-line);
+}
+
+/* ---------- 版面：桌機時右側放目錄 ---------- */
+
+.post__body-wrap { padding: 1.2rem 0 2.4rem; }
+
+@media (min-width: 1080px) {
+  .post__body-wrap {
+    width: min(100% - 2.5rem, 64rem);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 15rem;
+    gap: 3.2rem;
+    align-items: start;
+  }
+  .post__body { grid-column: 1; grid-row: 1; }
+  .post-tags  { grid-column: 1; grid-row: 2; }
+  .post-toc   { grid-column: 2; grid-row: 1; position: sticky; top: 5.5rem; }
+}
+
+/* ---------- 目錄 ---------- */
+
+.post-toc {
+  margin: 0 0 1.8rem;
+  padding: 1rem 1.1rem;
+  border-left: 2px solid var(--brand-line);
+  font-size: .9rem;
+}
+.post-toc__title {
+  margin: 0 0 .7rem;
+  color: var(--brand-teal);
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .16em;
+}
+.post-toc ol { margin: 0; padding: 0; list-style: none; }
+.post-toc li { margin: 0; }
+.post-toc a {
+  display: block;
+  padding: .32rem 0;
+  color: rgba(20, 32, 51, .62);
+  text-decoration: none;
+  line-height: 1.5;
+  border-left: 2px solid transparent;
+  margin-left: -1.1rem;
+  padding-left: 1.1rem;
+  transition: color .18s ease, border-color .18s ease;
+}
+.post-toc a:hover { color: var(--brand-ink); }
+.post-toc a[aria-current="true"] {
+  color: var(--brand-teal);
+  border-left-color: var(--brand-teal);
+  font-weight: 700;
+}
+.post-toc__l3 a { padding-left: 2rem; font-size: .85rem; }
+
+/* 行動版把目錄收成可展開的區塊，不佔閱讀空間 */
+@media (max-width: 1079px) {
+  .post-toc {
+    border: 1px solid var(--brand-line);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .5);
+  }
+  .post-toc a { margin-left: 0; padding-left: .2rem; border-left: none; }
+  .post-toc a[aria-current="true"] { border-left: none; }
+}
+
+/* ---------- 正文排版 ---------- */
+
+.post__body {
+  color: rgba(20, 32, 51, .86);
+  font-size: 1.04rem;
+  line-height: 1.95;
+}
+.post__body > *:first-child { margin-top: 0; }
+
+.post__body h2 {
+  margin: 2.8rem 0 1rem;
+  font-family: "Noto Serif TC", serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.6;
+  color: var(--brand-ink);
+  scroll-margin-top: 5.5rem;
+}
+.post__body h3 {
+  margin: 2rem 0 .8rem;
+  font-family: "Noto Serif TC", serif;
+  font-size: 1.18rem;
+  font-weight: 700;
+  line-height: 1.65;
+  color: var(--brand-ink);
+  scroll-margin-top: 5.5rem;
+}
+.post__body h4 {
+  margin: 1.6rem 0 .6rem;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--brand-ink);
+}
+
+.post__body p { margin: 0 0 1.35rem; }
+
+.post__body a {
+  color: var(--brand-teal);
+  text-decoration: underline;
+  text-underline-offset: .22em;
+  text-decoration-thickness: 1px;
+}
+.post__body a:hover { color: var(--brand-ink); }
+
+.post__body strong { font-weight: 700; color: var(--brand-ink); }
+
+.post__body ul,
+.post__body ol { margin: 0 0 1.35rem; padding-left: 1.4rem; }
+.post__body li { margin: .4rem 0; }
+.post__body li > ul,
+.post__body li > ol { margin: .4rem 0; }
+
+.post__body blockquote {
+  margin: 1.8rem 0;
+  padding: .3rem 0 .3rem 1.3rem;
+  border-left: 3px solid var(--brand-teal);
+  color: rgba(20, 32, 51, .68);
+  font-family: "Noto Serif TC", serif;
+}
+.post__body blockquote p:last-child { margin-bottom: 0; }
+
+.post__body hr {
+  margin: 2.6rem 0;
+  border: 0;
+  border-top: 1px solid var(--brand-line);
+}
+
+.post__body img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1.8rem auto;
+  border-radius: 12px;
+  border: 1px solid var(--brand-line);
+}
+
+.post__body code {
+  padding: .12em .4em;
+  border-radius: 5px;
+  background: rgba(20, 32, 51, .07);
+  font-size: .92em;
+}
+.post__body pre {
+  margin: 1.8rem 0;
+  padding: 1.1rem 1.2rem;
+  border-radius: 12px;
+  background: var(--brand-ink);
+  color: #E8EEF5;
+  overflow-x: auto;
+  line-height: 1.7;
+}
+.post__body pre code { padding: 0; background: none; color: inherit; }
+
+/* 寬內容不得撐破頁面，一律自行捲動 */
+.post__body table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 1.8rem 0;
+  font-size: .95rem;
+}
+.post__body th,
+.post__body td {
+  padding: .6rem .8rem;
+  border: 1px solid var(--brand-line);
+  text-align: left;
+  vertical-align: top;
+}
+.post__body th { background: var(--brand-sand); font-weight: 700; color: var(--brand-ink); }
+
+/* ---------- 標籤 ---------- */
+
+.post-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin: 2rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.post-tags li {
+  padding: .28rem .7rem;
+  border: 1px solid var(--brand-line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .55);
+  color: rgba(20, 32, 51, .6);
+  font-size: .8rem;
+}
+
+/* ---------- 列表卡片 ---------- */
+
+.post-card a { display: block; color: inherit; text-decoration: none; }
+.post-card__cover {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: .9rem;
+  border: 1px solid var(--brand-line);
+}
+
+/* ---------- 減少動態偏好 ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .post-toc a { transition: none; }
+}

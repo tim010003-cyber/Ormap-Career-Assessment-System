@@ -50,6 +50,7 @@ body { background: var(--brand-paper); }
   outline: 2px solid var(--brand-teal); outline-offset: 1px;
 }
 .ba-field input[readonly] { background: var(--brand-paper-2); color: rgba(20,32,51,.6); }
+.ba-warn { font-size: .76rem; color: #A8531F; font-weight: 700; }
 
 #body { min-height: 26rem; font-family: ui-monospace, "Cascadia Mono", Menlo, monospace; font-size: .92rem; line-height: 1.7; resize: vertical; }
 
@@ -127,9 +128,10 @@ body { background: var(--brand-paper); }
           </div>
 
           <div class="ba-field">
-            <label for="slug">網址名稱 <span class="ba-hint">小寫英數與連字號</span></label>
+            <label for="slug">網址名稱 <span class="ba-hint">建議用 2–4 個英文關鍵字</span></label>
             <input id="slug" name="slug" required pattern="[a-z0-9][a-z0-9\-]*" maxlength="81">
             <span class="ba-hint" id="slugPreview"></span>
+            <span class="ba-warn" id="slugWarn" hidden></span>
           </div>
 
           <div class="ba-field">
@@ -157,8 +159,8 @@ body { background: var(--brand-paper); }
           </div>
 
           <div class="ba-field">
-            <label for="author">作者 <span class="ba-hint">選填</span></label>
-            <input id="author" name="author" maxlength="60">
+            <label for="author">作者</label>
+            <select id="author" name="author"></select>
           </div>
 
           <div class="ba-field">
@@ -225,10 +227,22 @@ import { marked } from 'https://cdn.jsdelivr.net/npm/marked@13.0.3/lib/marked.es
 
 const FN_REGION = 'asia-east1';   // 與 functions/index.js 的 setGlobalOptions 一致
 
+/*
+ * 作者選項。要新增夥伴就在這裡加一行，不必動其他地方。
+ * 用選單而不是自由輸入，是為了避免同一個人被打成不同寫法
+ * （「何昆陽」「昆陽」「Kunyang」會被搜尋引擎當成三個不同作者）。
+ */
+const AUTHORS = ['何昆陽', '原味藍圖'];
+
 const $ = (id) => document.getElementById(id);
 const gate = $('gate'), app = $('app'), msg = $('msg');
 let currentSlug = null;           // null = 新文章
 let dirty = false;
+let existingSlugs = new Set();    // 用來擋「新文章不小心蓋掉舊文章」
+
+for (const name of AUTHORS) {
+  $('author').appendChild(new Option(name, name));
+}
 
 // ---------------------------------------------------------------- 登入
 
@@ -280,6 +294,8 @@ async function loadList() {
   const list = $('postList');
   try {
     const { posts } = await call('listBlogPosts', {});
+    existingSlugs = new Set(posts.map((p) => p.slug));
+    updateSlugPreview();
     if (!posts.length) {
       list.innerHTML = '<li style="padding:.6rem 0;color:rgba(20,32,51,.5);font-size:.85rem">還沒有文章。</li>';
       return;
@@ -315,6 +331,7 @@ function markActive() {
 
 function resetForm() {
   currentSlug = null;
+  slugTouched = false;
   $('postForm').reset();
   $('date').value = new Date().toISOString().slice(0, 10);
   $('editorTitle').textContent = '新文章';
@@ -339,7 +356,12 @@ async function openPost(slug) {
     $('category').value = post.category || 'career';
     $('date').value = post.date;
     $('updated').value = post.updated;
-    $('author').value = post.author;
+    // 舊文章的作者若不在選單裡（例如手改過檔案），補一個選項免得靜默改掉作者
+    if (post.author && !AUTHORS.includes(post.author)) {
+      $('author').appendChild(new Option(post.author, post.author));
+    }
+    $('author').value = post.author || AUTHORS[0];
+    slugTouched = true;
     $('tags').value = (post.tags || []).join(', ');
     $('cover').value = post.cover;
     $('draft').checked = post.draft;
@@ -361,20 +383,43 @@ $('newBtn').addEventListener('click', () => {
   resetForm();
 });
 
-// 標題打完自動建議 slug（只在新文章且使用者還沒自己填時）
+/*
+ * 網址名稱（slug）。
+ *
+ * 這是文章的永久網址，發布後改它等於換網址：舊連結失效、累積的搜尋排名歸零。
+ * 所以這裡的目標是「一定給得出一個能用的值，但鼓勵你自己取一個好的」。
+ *
+ * 中文標題沒辦法機械式轉成有意義的英文，硬轉只會得到一串編碼。
+ * 因此：標題有英數就用它，沒有就退回日期（一定合法、不會擋住發布），
+ * 再由下面的提示鼓勵改成英文關鍵字。
+ */
 let slugTouched = false;
 $('slug').addEventListener('input', () => { slugTouched = true; updateSlugPreview(); });
-$('title').addEventListener('input', () => {
-  if (currentSlug || slugTouched) return;
-  // 中文標題轉不出有意義的英數 slug，就用日期當預設值，讓使用者自己改
-  const ascii = $('title').value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-  $('slug').value = ascii || `post-${$('date').value || ''}`.replace(/[^a-z0-9-]/g, '');
+$('date').addEventListener('input', () => { if (!currentSlug && !slugTouched) suggestSlug(); });
+$('title').addEventListener('input', () => { if (!currentSlug && !slugTouched) suggestSlug(); });
+
+function suggestSlug() {
+  const ascii = $('title').value.toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+  $('slug').value = ascii || $('date').value || '';
   updateSlugPreview();
-});
+}
 
 function updateSlugPreview() {
-  const s = $('slug').value.trim();
+  const s = $('slug').value.trim().toLowerCase();
   $('slugPreview').textContent = s ? `網址：/blog/${s}.html` : '';
+
+  const warn = $('slugWarn');
+  // 新文章用了既有的網址名稱 = 會直接蓋掉那篇。這是唯一會靜默毀掉內容的路徑，擋住它。
+  if (s && !currentSlug && existingSlugs.has(s)) {
+    warn.textContent = '⚠ 已經有文章用這個網址了，這樣送出會覆蓋掉它。請換一個。';
+    warn.hidden = false;
+  } else if (s && !currentSlug && /^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    warn.textContent = '這是用日期當預設值。改成 2–4 個英文關鍵字，網址會更好讀也更好分享。';
+    warn.hidden = false;
+  } else {
+    warn.hidden = true;
+  }
 }
 
 $('draft').addEventListener('change', updateSaveLabel);
@@ -417,11 +462,21 @@ function renderPreview() {
 $('postForm').addEventListener('submit', async (e) => {
   e.preventDefault();
 
+  const slug = $('slug').value.trim().toLowerCase();
+
+  // 新文章撞到既有網址就是覆蓋，這件事不能只用提示帶過
+  if (!currentSlug && existingSlugs.has(slug)) {
+    say('err', `已經有一篇文章的網址是 <code>${escapeHtml(slug)}</code>。` +
+      '直接送出會覆蓋掉它，請先換一個網址名稱；如果你本來就是要改那一篇，請從左邊清單打開它。');
+    $('slug').focus();
+    return;
+  }
+
   const draft = $('draft').checked;
   if (!draft && !confirm('這會直接發布到正式網站，所有人都看得到。確定嗎？')) return;
 
   const payload = {
-    slug: $('slug').value.trim().toLowerCase(),
+    slug,
     title: $('title').value,
     seoTitle: $('seoTitle').value,
     description: $('description').value,

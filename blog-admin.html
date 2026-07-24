@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文章後臺｜原味藍圖 Ormap</title>
+<!-- 內部後臺，不進搜尋引擎 -->
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="brand.css">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
+<style>
+/* 後臺專用樣式。刻意不引 blog.css，避免後臺樣式與文章閱讀樣式互相牽動。 */
+body { background: var(--brand-paper); }
+.ba-shell { width: min(100% - 2.5rem, 82rem); margin: 1.6rem auto 4rem; }
+.ba-top { display: flex; flex-wrap: wrap; gap: 1rem; align-items: baseline; justify-content: space-between; margin-bottom: 1.4rem; }
+.ba-top h1 { margin: 0; font-family: "Noto Serif TC", serif; font-size: 1.5rem; }
+.ba-who { color: rgba(20,32,51,.55); font-size: .88rem; }
+.ba-who button { margin-left: .6rem; }
+
+.ba-layout { display: grid; grid-template-columns: 17rem minmax(0,1fr); gap: 1.6rem; align-items: start; }
+@media (max-width: 1000px) { .ba-layout { grid-template-columns: 1fr; } }
+
+.ba-panel { padding: 1.1rem 1.2rem; border: 1px solid var(--brand-line); border-radius: 14px; background: rgba(255,255,255,.6); }
+.ba-panel h2 { margin: 0 0 .9rem; font-size: .74rem; font-weight: 900; letter-spacing: .16em; color: var(--brand-teal); }
+
+/* 文章清單 */
+.ba-list { list-style: none; margin: 0; padding: 0; max-height: 60vh; overflow-y: auto; }
+.ba-list li { border-bottom: 1px solid var(--brand-line); }
+.ba-list li:last-child { border-bottom: 0; }
+.ba-list button { display: block; width: 100%; padding: .6rem .2rem; border: 0; background: none; text-align: left; cursor: pointer; font: inherit; color: var(--brand-ink); border-radius: 6px; }
+.ba-list button:hover { background: rgba(30,145,136,.07); }
+.ba-list button[aria-current="true"] { background: rgba(30,145,136,.12); font-weight: 700; }
+.ba-list .ba-item-meta { display: block; margin-top: .2rem; color: rgba(20,32,51,.5); font-size: .76rem; }
+.ba-pill { display: inline-block; padding: .06rem .42rem; border-radius: 999px; font-size: .68rem; font-weight: 700; }
+.ba-pill--draft { background: var(--brand-sand); color: rgba(20,32,51,.65); }
+.ba-pill--live { background: rgba(30,145,136,.15); color: var(--brand-teal); }
+
+/* 表單 */
+.ba-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: .9rem 1.1rem; }
+@media (max-width: 700px) { .ba-grid { grid-template-columns: 1fr; } }
+.ba-field { display: flex; flex-direction: column; gap: .3rem; }
+.ba-field--full { grid-column: 1 / -1; }
+.ba-field label { font-size: .8rem; font-weight: 700; color: rgba(20,32,51,.75); }
+.ba-field .ba-hint { font-size: .74rem; color: rgba(20,32,51,.5); font-weight: 400; }
+.ba-field input, .ba-field select, .ba-field textarea {
+  padding: .5rem .65rem; border: 1px solid var(--brand-line); border-radius: 9px;
+  background: #fff; font: inherit; color: var(--brand-ink);
+}
+.ba-field input:focus-visible, .ba-field select:focus-visible, .ba-field textarea:focus-visible {
+  outline: 2px solid var(--brand-teal); outline-offset: 1px;
+}
+.ba-field input[readonly] { background: var(--brand-paper-2); color: rgba(20,32,51,.6); }
+
+#body { min-height: 26rem; font-family: ui-monospace, "Cascadia Mono", Menlo, monospace; font-size: .92rem; line-height: 1.7; resize: vertical; }
+
+.ba-editor-tabs { display: flex; gap: .4rem; margin-bottom: .6rem; }
+.ba-editor-tabs button { padding: .32rem .8rem; border: 1px solid var(--brand-line); border-radius: 999px; background: #fff; font: inherit; font-size: .82rem; cursor: pointer; }
+.ba-editor-tabs button[aria-selected="true"] { background: var(--brand-ink); color: #fff; border-color: var(--brand-ink); }
+
+#preview { min-height: 26rem; padding: 1rem 1.2rem; border: 1px solid var(--brand-line); border-radius: 9px; background: #fff; overflow-x: auto; }
+#preview h2 { font-family: "Noto Serif TC", serif; font-size: 1.35rem; margin: 1.6rem 0 .7rem; }
+#preview h3 { font-family: "Noto Serif TC", serif; font-size: 1.1rem; margin: 1.3rem 0 .6rem; }
+#preview p { margin: 0 0 1rem; line-height: 1.9; }
+#preview ul, #preview ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+#preview blockquote { margin: 1.2rem 0; padding-left: 1rem; border-left: 3px solid var(--brand-teal); color: rgba(20,32,51,.7); }
+#preview table { border-collapse: collapse; width: 100%; display: block; overflow-x: auto; }
+#preview th, #preview td { border: 1px solid var(--brand-line); padding: .45rem .6rem; }
+#preview pre { padding: .9rem 1rem; border-radius: 10px; background: var(--brand-ink); color: #E8EEF5; overflow-x: auto; }
+#preview img { max-width: 100%; height: auto; }
+
+.ba-actions { display: flex; flex-wrap: wrap; gap: .7rem; align-items: center; margin-top: 1.2rem; padding-top: 1.2rem; border-top: 1px solid var(--brand-line); }
+.ba-actions .ba-spacer { flex: 1; }
+
+.ba-msg { margin-top: 1rem; padding: .75rem 1rem; border-radius: 10px; font-size: .9rem; display: none; }
+.ba-msg[data-kind="ok"] { display: block; background: rgba(30,145,136,.1); border-left: 3px solid var(--brand-teal); }
+.ba-msg[data-kind="err"] { display: block; background: rgba(232,138,85,.12); border-left: 3px solid var(--brand-clay); }
+.ba-msg[data-kind="busy"] { display: block; background: var(--brand-paper-2); border-left: 3px solid rgba(20,32,51,.3); }
+.ba-msg a { color: var(--brand-teal); }
+
+.ba-gate { width: min(100% - 2.5rem, 30rem); margin: 6rem auto; text-align: center; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body class="site-page">
+
+<!-- 尚未登入／權限不足 -->
+<section class="ba-gate" id="gate">
+  <h1 class="site-title" style="font-size:1.6rem">文章後臺</h1>
+  <p class="site-lead" id="gateMsg">確認登入狀態中…</p>
+  <div class="site-actions" style="justify-content:center">
+    <button class="site-button" id="signInBtn" hidden>用 Google 登入</button>
+    <a class="site-button site-button--secondary" href="index.html">回首頁</a>
+  </div>
+</section>
+
+<!-- 後臺主體 -->
+<main class="ba-shell" id="app" hidden>
+  <div class="ba-top">
+    <h1>文章後臺</h1>
+    <p class="ba-who"><span id="whoami"></span><button class="site-button site-button--secondary" id="signOutBtn" style="padding:.25rem .7rem;font-size:.8rem">登出</button></p>
+  </div>
+
+  <div class="ba-layout">
+    <!-- 左：文章清單 -->
+    <aside class="ba-panel">
+      <h2>文章</h2>
+      <div class="site-actions" style="margin-bottom:.8rem">
+        <button class="site-button" id="newBtn" style="padding:.35rem .9rem;font-size:.85rem">＋ 新文章</button>
+      </div>
+      <ul class="ba-list" id="postList"><li style="padding:.6rem 0;color:rgba(20,32,51,.5);font-size:.85rem">載入中…</li></ul>
+    </aside>
+
+    <!-- 右：編輯器 -->
+    <section class="ba-panel">
+      <h2 id="editorTitle">新文章</h2>
+
+      <form id="postForm" autocomplete="off">
+        <div class="ba-grid">
+          <div class="ba-field ba-field--full">
+            <label for="title">標題 <span class="ba-hint">必填</span></label>
+            <input id="title" name="title" required maxlength="200">
+          </div>
+
+          <div class="ba-field ba-field--full">
+            <label for="description">摘要 <span class="ba-hint">必填。同時用於搜尋結果與社群分享預覽，請認真寫</span></label>
+            <textarea id="description" name="description" rows="2" required maxlength="300"></textarea>
+          </div>
+
+          <div class="ba-field">
+            <label for="slug">網址名稱 <span class="ba-hint">小寫英數與連字號</span></label>
+            <input id="slug" name="slug" required pattern="[a-z0-9][a-z0-9\-]*" maxlength="81">
+            <span class="ba-hint" id="slugPreview"></span>
+          </div>
+
+          <div class="ba-field">
+            <label for="category">分類 <span class="ba-hint">必填</span></label>
+            <select id="category" name="category" required>
+              <option value="career">職涯與工作</option>
+              <option value="life">生涯與角色</option>
+              <option value="org">組織與人才</option>
+            </select>
+          </div>
+
+          <div class="ba-field">
+            <label for="date">發布日 <span class="ba-hint">必填</span></label>
+            <input id="date" name="date" type="date" required>
+          </div>
+
+          <div class="ba-field">
+            <label for="updated">更新日 <span class="ba-hint">選填</span></label>
+            <input id="updated" name="updated" type="date">
+          </div>
+
+          <div class="ba-field">
+            <label for="seoTitle">SEO 標題 <span class="ba-hint">選填，留白自動用標題</span></label>
+            <input id="seoTitle" name="seoTitle" maxlength="200">
+          </div>
+
+          <div class="ba-field">
+            <label for="author">作者 <span class="ba-hint">選填</span></label>
+            <input id="author" name="author" maxlength="60">
+          </div>
+
+          <div class="ba-field">
+            <label for="tags">標籤 <span class="ba-hint">用逗號分隔</span></label>
+            <input id="tags" name="tags">
+          </div>
+
+          <div class="ba-field">
+            <label for="cover">封面圖路徑 <span class="ba-hint">選填，例如 /assets/blog/a.jpg</span></label>
+            <input id="cover" name="cover" maxlength="500">
+          </div>
+        </div>
+
+        <div class="ba-field ba-field--full" style="margin-top:1.1rem">
+          <label for="body">內文 <span class="ba-hint">從 Notion／Obsidian 直接貼上 Markdown。段落標題請從 ## 開始</span></label>
+          <div class="ba-editor-tabs" role="tablist">
+            <button type="button" id="tabWrite" role="tab" aria-selected="true">撰寫</button>
+            <button type="button" id="tabPreview" role="tab" aria-selected="false">預覽</button>
+          </div>
+          <textarea id="body" name="body" required></textarea>
+          <div id="preview" hidden></div>
+        </div>
+
+        <div class="ba-actions">
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.88rem">
+            <input type="checkbox" id="draft"> 存成草稿（不會出現在網站上）
+          </label>
+          <span class="ba-spacer"></span>
+          <button type="submit" class="site-button" id="saveBtn">發布</button>
+        </div>
+      </form>
+
+      <p class="ba-msg" id="msg"></p>
+      <p class="site-note" style="margin-top:1rem">
+        <strong>按下發布就是正式上線。</strong>文章會直接寫進 <code>main</code>，
+        並自動部署到正式網站，大約一到兩分鐘後所有人都看得到。
+        還沒想好就先勾「存成草稿」——草稿一樣會存起來，但不會出現在網站上。
+      </p>
+    </section>
+  </div>
+</main>
+
+<script type="module">
+/* ═══════════════════════════════════════════════════════════════
+   文章後臺
+   ───────────────────────────────────────────────────────────────
+   權杖不在這裡。前端只負責收集內容並呼叫 Cloud Function，
+   真正寫進 repo 的是 functions/lib/blog.js，權杖存在 Secret Manager。
+
+   這裡的欄位檢查只是給人看的提示；伺服器端會重新驗證一次，
+   因為任何人都能繞過瀏覽器直接呼叫 function。
+
+   規格：PRD/原味藍圖_內容平台與部落格_需求規格_v1_2026-07-24.md §7
+   ═══════════════════════════════════════════════════════════════ */
+
+import { auth, db } from './firebase-init.js';
+import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider }
+  from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { getApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { getFunctions, httpsCallable }
+  from "https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js";
+import { isSuperAdmin } from './auth-utils.js';
+import { marked } from 'https://cdn.jsdelivr.net/npm/marked@13.0.3/lib/marked.esm.js';
+
+const FN_REGION = 'asia-east1';   // 與 functions/index.js 的 setGlobalOptions 一致
+
+const $ = (id) => document.getElementById(id);
+const gate = $('gate'), app = $('app'), msg = $('msg');
+let currentSlug = null;           // null = 新文章
+let dirty = false;
+
+// ---------------------------------------------------------------- 登入
+
+$('signInBtn').addEventListener('click', () => {
+  signInWithPopup(auth, new GoogleAuthProvider()).catch((e) => {
+    $('gateMsg').textContent = '登入沒有成功：' + e.message;
+  });
+});
+$('signOutBtn').addEventListener('click', () => signOut(auth));
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    $('gateMsg').textContent = '這是內部後臺，請先登入。';
+    $('signInBtn').hidden = false;
+    gate.hidden = false; app.hidden = true;
+    return;
+  }
+  $('gateMsg').textContent = '確認權限中…';
+  $('signInBtn').hidden = true;
+
+  if (!(await isSuperAdmin(db, user.uid))) {
+    $('gateMsg').textContent = '這個帳號沒有文章後臺的權限。';
+    gate.hidden = false; app.hidden = true;
+    return;
+  }
+
+  $('whoami').textContent = user.email || '';
+  gate.hidden = true; app.hidden = false;
+  resetForm();
+  loadList();
+});
+
+// ---------------------------------------------------------------- 呼叫後端
+
+function call(name, data, timeout = 60000) {
+  const fns = getFunctions(getApp(), FN_REGION);
+  return httpsCallable(fns, name, { timeout })(data).then((r) => r.data);
+}
+
+function say(kind, html) {
+  msg.dataset.kind = kind;
+  msg.innerHTML = html;
+}
+function clearSay() { msg.removeAttribute('data-kind'); msg.innerHTML = ''; }
+
+// ---------------------------------------------------------------- 清單
+
+async function loadList() {
+  const list = $('postList');
+  try {
+    const { posts } = await call('listBlogPosts', {});
+    if (!posts.length) {
+      list.innerHTML = '<li style="padding:.6rem 0;color:rgba(20,32,51,.5);font-size:.85rem">還沒有文章。</li>';
+      return;
+    }
+    list.innerHTML = '';
+    for (const p of posts) {
+      const li = document.createElement('li');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.dataset.slug = p.slug;
+      btn.innerHTML =
+        `${escapeHtml(p.title || p.slug)}<span class="ba-item-meta">` +
+        `<span class="ba-pill ${p.draft ? 'ba-pill--draft' : 'ba-pill--live'}">${p.draft ? '草稿' : '已發布'}</span> ` +
+        `${escapeHtml(p.date || '')}</span>`;
+      btn.addEventListener('click', () => openPost(p.slug));
+      li.appendChild(btn);
+      list.appendChild(li);
+    }
+    markActive();
+  } catch (e) {
+    list.innerHTML = `<li style="padding:.6rem 0;color:rgba(20,32,51,.6);font-size:.85rem">清單載入失敗：${escapeHtml(e.message)}</li>`;
+  }
+}
+
+function markActive() {
+  for (const b of $('postList').querySelectorAll('button')) {
+    if (b.dataset.slug === currentSlug) b.setAttribute('aria-current', 'true');
+    else b.removeAttribute('aria-current');
+  }
+}
+
+// ---------------------------------------------------------------- 表單
+
+function resetForm() {
+  currentSlug = null;
+  $('postForm').reset();
+  $('date').value = new Date().toISOString().slice(0, 10);
+  $('editorTitle').textContent = '新文章';
+  $('saveBtn').textContent = '發布';
+  updateSlugPreview();
+  renderPreview();
+  clearSay();
+  markActive();
+  dirty = false;
+}
+
+async function openPost(slug) {
+  if (dirty && !confirm('目前的修改還沒存，確定要切換嗎？')) return;
+  say('busy', '載入中…');
+  try {
+    const { post } = await call('getBlogPost', { slug });
+    currentSlug = post.slug;
+    $('title').value = post.title;
+    $('seoTitle').value = post.seoTitle;
+    $('description').value = post.description;
+    $('slug').value = post.slug;
+    $('category').value = post.category || 'career';
+    $('date').value = post.date;
+    $('updated').value = post.updated;
+    $('author').value = post.author;
+    $('tags').value = (post.tags || []).join(', ');
+    $('cover').value = post.cover;
+    $('draft').checked = post.draft;
+    $('body').value = post.body;
+    $('editorTitle').textContent = '編輯文章';
+    updateSaveLabel();
+    updateSlugPreview();
+    renderPreview();
+    clearSay();
+    markActive();
+    dirty = false;
+  } catch (e) {
+    say('err', '打不開這篇文章：' + escapeHtml(e.message));
+  }
+}
+
+$('newBtn').addEventListener('click', () => {
+  if (dirty && !confirm('目前的修改還沒存，確定要開新文章嗎？')) return;
+  resetForm();
+});
+
+// 標題打完自動建議 slug（只在新文章且使用者還沒自己填時）
+let slugTouched = false;
+$('slug').addEventListener('input', () => { slugTouched = true; updateSlugPreview(); });
+$('title').addEventListener('input', () => {
+  if (currentSlug || slugTouched) return;
+  // 中文標題轉不出有意義的英數 slug，就用日期當預設值，讓使用者自己改
+  const ascii = $('title').value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  $('slug').value = ascii || `post-${$('date').value || ''}`.replace(/[^a-z0-9-]/g, '');
+  updateSlugPreview();
+});
+
+function updateSlugPreview() {
+  const s = $('slug').value.trim();
+  $('slugPreview').textContent = s ? `網址：/blog/${s}.html` : '';
+}
+
+$('draft').addEventListener('change', updateSaveLabel);
+function updateSaveLabel() {
+  $('saveBtn').textContent = $('draft').checked ? '存成草稿'
+    : (currentSlug ? '更新並上線' : '發布');
+}
+
+for (const el of $('postForm').elements) {
+  el.addEventListener('input', () => { dirty = true; });
+}
+
+// ---------------------------------------------------------------- 預覽
+
+$('tabWrite').addEventListener('click', () => switchTab(false));
+$('tabPreview').addEventListener('click', () => switchTab(true));
+
+function switchTab(showPreview) {
+  $('tabWrite').setAttribute('aria-selected', String(!showPreview));
+  $('tabPreview').setAttribute('aria-selected', String(showPreview));
+  $('body').hidden = showPreview;
+  $('preview').hidden = !showPreview;
+  if (showPreview) renderPreview();
+}
+
+let previewTimer = null;
+$('body').addEventListener('input', () => {
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(renderPreview, 300);
+});
+
+function renderPreview() {
+  // 預覽只給自己看，內容也是自己寫的；但仍不讓 <script> 執行
+  const html = marked.parse($('body').value || '');
+  $('preview').innerHTML = html.replace(/<script[\s\S]*?<\/script>/gi, '');
+}
+
+// ---------------------------------------------------------------- 送出
+
+$('postForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const draft = $('draft').checked;
+  if (!draft && !confirm('這會直接發布到正式網站，所有人都看得到。確定嗎？')) return;
+
+  const payload = {
+    slug: $('slug').value.trim().toLowerCase(),
+    title: $('title').value,
+    seoTitle: $('seoTitle').value,
+    description: $('description').value,
+    category: $('category').value,
+    date: $('date').value,
+    updated: $('updated').value,
+    author: $('author').value,
+    cover: $('cover').value,
+    tags: $('tags').value.split(',').map((s) => s.trim()).filter(Boolean),
+    body: $('body').value,
+    draft,
+  };
+
+  $('saveBtn').disabled = true;
+  say('busy', '送出中…');
+  try {
+    const r = await call('publishPost', payload);
+    currentSlug = r.slug;
+    dirty = false;
+    $('editorTitle').textContent = '編輯文章';
+    updateSaveLabel();
+    say('ok', r.draft
+      ? `已存成草稿。它不會出現在網站上，改成非草稿再發布即可。`
+      : `已送出。約一到兩分鐘後上線，網址是 <a href="/blog/${r.slug}.html" target="_blank" rel="noopener">/blog/${r.slug}.html</a>。`);
+    loadList();
+  } catch (err) {
+    say('err', '沒有存成功：' + escapeHtml(err.message));
+  } finally {
+    $('saveBtn').disabled = false;
+  }
+});
+
+window.addEventListener('beforeunload', (e) => {
+  if (dirty) { e.preventDefault(); e.returnValue = ''; }
+});
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+</script>
+</body>
+</html>

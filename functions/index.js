@@ -395,3 +395,52 @@ export const markCodeSent = onCall(async (req) => {
   logger.info('授權碼發出狀態變更', { uid: req.auth.uid, code, sent });
   return { ok: true };
 });
+
+/* =====================================================================
+ * 文章發布
+ * ---------------------------------------------------------------------
+ * 文章的真實來源是 repo 裡的 content/posts/*.md。這三支 function 讓管理者
+ * 在後臺貼上 Markdown 就能寫進 repo，CI 接手產生靜態頁並部署。
+ *
+ * 使用者 2026-07-24 決策：發布＝直接上線（commit 進 main 會觸發 live 部署）。
+ * 前端必須明確告知這件事，不能讓人以為只是存檔。
+ *
+ * 規格：PRD/原味藍圖_內容平台與部落格_需求規格_v1_2026-07-24.md §7
+ * ===================================================================== */
+
+/** GitHub 權杖。fine-grained PAT，只給本 repo 的 Contents 讀寫。 */
+const GITHUB_TOKEN = defineSecret('GITHUB_TOKEN');
+
+/**
+ * publishPost — 新增或更新一篇文章。限 Super Admin。
+ *
+ * draft: true 一樣會寫進 repo，但產生器會跳過它，所以不會出現在網站上。
+ * 這就是「存草稿」與「取消發布」的實作方式——不刪檔案，只是不產生。
+ */
+export const publishPost = onCall({ secrets: [GITHUB_TOKEN] }, async (req) => {
+  await assertSuperAdmin(req, '發布文章');
+
+  const { validatePost, writePost } = await import('./lib/blog.js');
+  const post = validatePost(req.data);
+  const email = String(req.auth.token?.email || '');
+
+  const result = await writePost(GITHUB_TOKEN.value(), post, email);
+  logger.info('文章已送出', {
+    uid: req.auth.uid, slug: post.slug, draft: post.draft, isNew: result.isNew,
+  });
+  return { ok: true, ...result };
+});
+
+/** listBlogPosts — 後臺清單。限 Super Admin。 */
+export const listBlogPosts = onCall({ secrets: [GITHUB_TOKEN] }, async (req) => {
+  await assertSuperAdmin(req, '查看文章清單');
+  const { listPosts } = await import('./lib/blog.js');
+  return { ok: true, posts: await listPosts(GITHUB_TOKEN.value()) };
+});
+
+/** getBlogPost — 讀回一篇文章供編輯。限 Super Admin。 */
+export const getBlogPost = onCall({ secrets: [GITHUB_TOKEN] }, async (req) => {
+  await assertSuperAdmin(req, '編輯文章');
+  const { readPost } = await import('./lib/blog.js');
+  return { ok: true, post: await readPost(GITHUB_TOKEN.value(), req.data?.slug) };
+});

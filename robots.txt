@@ -12,6 +12,7 @@ Disallow: /timeline.html
 # 內部管理頁
 Disallow: /admin.html
 Disallow: /counselors.html
+Disallow: /blog-admin.html
 
 # 評測作答頁（公開入口請看 /tools/twa-intro.html 與 /tools/hti-intro.html）
 Disallow: /tools/twa.html

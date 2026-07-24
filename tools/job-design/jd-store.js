@@ -273,6 +273,45 @@ export function createCase(caseFieldValues, pathType) {
   return c;
 }
 
+/**
+ * 複製專案。同一個客戶常有多個相似職務，複製一份再改比從頭填快得多。
+ *
+ * 帶走：案例欄位與各模組的既有回答（這才是要重用的部分）、路徑、目前進度位置。
+ * 不帶走：匯出與 AI 任務紀錄、存取窗、討論／稽核事件、封存狀態——那些屬於原專案，
+ *         複製品要有自己乾淨的一份，否則會誤以為新專案已經產出或已被封存。
+ */
+export function duplicateCase(caseId) {
+  const src = getCase(caseId);
+  if (!src) return null;
+  const now = new Date().toISOString();
+  const id = genId('case');
+  const copy = JSON.parse(JSON.stringify(src));   // 深拷貝，避免兩筆共用巢狀物件
+  copy.case_id = id;
+  copy.created_at = now;
+  copy.updated_at = now;
+  copy.archived = false;
+  copy.project_status = 'in_progress';
+  copy.overall_status = 'active';
+  copy.exports = [];
+  copy.ai_jobs = [];
+  copy.discussion_items = [];
+  copy.audit_events = [];
+  copy.access = {
+    opens_at: now, submission_due_at: null, first_final_download_at: null,
+    scheduled_close_at: null, closed_at: null, reopened_until: null, reopen_reason: null,
+  };
+  // 名稱加註，避免兩筆長得一模一樣分不出來
+  if (copy.fields?.['case.title']) {
+    copy.fields['case.title'].value = `${copy.fields['case.title'].value || '未命名專案'}（複製）`;
+  }
+  addAuditEvent(copy, 'duplicate', `複製自 ${caseId}`);
+  const all = readAll();
+  all[id] = copy;
+  writeAll(all);
+  _dirty.add(id); schedulePush();
+  return copy;
+}
+
 export function deleteCase(caseId) {
   const all = readAll();
   delete all[caseId];

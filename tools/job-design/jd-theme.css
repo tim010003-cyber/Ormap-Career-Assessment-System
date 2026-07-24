@@ -348,7 +348,7 @@
 /* 專案清單是主體：至少留得下五筆專案的高度 */
 .jd-index-page .jd-table { border:1px solid var(--jd-line); border-radius:1rem; overflow:hidden; background:#fff; box-shadow:var(--jd-shadow); min-height:23rem; }
 .jd-index-page .jd-table__head,
-.jd-index-page .jd-table__row { display:grid; grid-template-columns:minmax(0,2.3fr) minmax(0,1.3fr) minmax(0,1.3fr) 6.5rem 5.4rem; align-items:center; gap:.75rem; padding:.72rem 1.15rem; }
+.jd-index-page .jd-table__row { display:grid; grid-template-columns:minmax(0,2.2fr) minmax(0,1.25fr) minmax(0,1.25fr) 6.5rem 7.4rem; align-items:center; gap:.7rem; padding:.72rem 1.15rem; }
 .jd-index-page .jd-table__head { background:rgba(20,32,51,.035); border-bottom:1px solid var(--jd-line); font-size:.72rem; font-weight:800; letter-spacing:.05em; color:rgba(20,32,51,.5); }
 .jd-index-page .jd-table__row { border-bottom:1px solid rgba(20,32,51,.06); cursor:pointer; transition:background .15s ease; }
 .jd-index-page .jd-table__row:hover { background:rgba(220,236,239,.32); }

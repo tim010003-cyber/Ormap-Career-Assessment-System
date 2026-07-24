@@ -155,7 +155,7 @@
 
 <script type="module">
 import { CASE_FIELDS, PATHS, pathName, PROJECT_STATUS, PROJECT_STATUS_ORDER } from './jd-fields.js';
-import { listCases, createCase, deleteCase, getModuleStatus, resyncCloud, getCase, updateCaseFields, setProjectStatus, getProjectStatus, isArchived, setArchived } from './jd-store.js';
+import { listCases, createCase, deleteCase, duplicateCase, getModuleStatus, resyncCloud, getCase, updateCaseFields, setProjectStatus, getProjectStatus, isArchived, setArchived } from './jd-store.js';
 import { countPending } from './jd-word.js';
 import { seedPathACase } from './jd-seed.js';
 import { aiStatus, isLocalEnv, whyNotReady, signIn, onAuth, myAccess, redeemCode, remaining } from './jd-ai.js';
@@ -225,6 +225,7 @@ function render(){
       + `<div class="jd-table__st">${arch?'<span class="pstat pstat--archived">已封存</span>':`<span class="pstat pstat--${ps}">${label}</span>`}</div>`
       + `<div class="jd-table__act">`
         + `<button data-edit="${c.case_id}" class="row-btn" title="編輯專案" aria-label="編輯專案"><i data-lucide="pencil" class="w-4 h-4"></i></button>`
+        + `<button data-dup="${c.case_id}" class="row-btn" title="複製專案" aria-label="複製專案"><i data-lucide="copy" class="w-4 h-4"></i></button>`
         + `<button data-del="${c.case_id}" class="row-btn row-del" title="刪除專案" aria-label="刪除專案"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`
         + `<a href="./case.html?caseId=${c.case_id}" class="row-btn" title="開啟專案" aria-label="開啟專案"><i data-lucide="chevron-right" class="w-5 h-5"></i></a>`
       + `</div></div>`;
@@ -239,10 +240,16 @@ function render(){
   const at=$('#archToggle'); if(at) at.addEventListener('click', ()=>{ _showArchived=!_showArchived; render(); });
 
   list.querySelectorAll('.jd-table__row').forEach(r=>r.addEventListener('click', e=>{
-    if(e.target.closest('[data-del]')||e.target.closest('[data-edit]')||e.target.closest('a')) return;
+    if(e.target.closest('[data-del]')||e.target.closest('[data-edit]')||e.target.closest('[data-dup]')||e.target.closest('a')) return;
     location.href='./case.html?caseId='+r.dataset.open;
   }));
   list.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); openEditDialog(b.dataset.edit); }));
+  // 複製後直接開編輯視窗，讓人立刻改名稱／職稱（複製的用途就是接著改）
+  list.querySelectorAll('[data-dup]').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation();
+    const copy = duplicateCase(b.dataset.dup);
+    if(copy){ render(); openEditDialog(copy.case_id); }
+  }));
   list.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(confirm('確定刪除此專案？此動作無法復原。')){ deleteCase(b.dataset.del); render(); } }));
   if(window.lucide) lucide.createIcons();
 }

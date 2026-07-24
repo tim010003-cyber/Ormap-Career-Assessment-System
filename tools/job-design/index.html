@@ -133,8 +133,8 @@
 <!-- 編輯專案：基本資訊 + 狀態（清單頁就能改）-->
 <dialog id="editDialog" class="rounded-2xl p-0 w-[92vw] max-w-2xl">
   <div class="p-6">
-    <div class="text-[11px] tracking-[2px] text-tealdeep font-bold mb-1">編輯專案</div>
-    <h2 class="text-xl font-bold text-navy mb-4">基本資訊與狀態</h2>
+    <div id="editEyebrow" class="text-[11px] tracking-[2px] text-tealdeep font-bold mb-1">編輯專案</div>
+    <h2 id="editHeading" class="text-xl font-bold text-navy mb-4">基本資訊與狀態</h2>
     <form id="editForm">
       <div id="editFormFields" class="space-y-4"></div>
       <div class="mt-4">
@@ -247,8 +247,7 @@ function render(){
   // 複製後直接開編輯視窗，讓人立刻改名稱／職稱（複製的用途就是接著改）
   list.querySelectorAll('[data-dup]').forEach(b=>b.addEventListener('click',e=>{
     e.stopPropagation();
-    const copy = duplicateCase(b.dataset.dup);
-    if(copy){ render(); openEditDialog(copy.case_id); }
+    openDuplicateDialog(b.dataset.dup);
   }));
   list.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(confirm('確定刪除此專案？此動作無法復原。')){ deleteCase(b.dataset.del); render(); } }));
   if(window.lucide) lucide.createIcons();
@@ -343,6 +342,7 @@ $('#caseForm').addEventListener('submit',(e)=>{
 // ── 編輯專案：清單頁就能改基本資訊與狀態（修掉「建立後改不了」）──
 const editDialog = $('#editDialog');
 let _editingId = null;
+let _dupSourceId = null;   // 複製模式：按「儲存」才建立，取消就什麼都不留
 function buildEditForm(c){
   const wrap = $('#editFormFields'); wrap.innerHTML='';
   for(const f of CASE_FIELDS){
@@ -359,24 +359,48 @@ function buildEditForm(c){
   sel.value = getProjectStatus(c);
   $('#editArchived').checked = isArchived(c);
 }
+function setDialogMode(isDup){
+  $('#editEyebrow').textContent = isDup ? '複製專案' : '編輯專案';
+  $('#editHeading').textContent = isDup ? '確認新專案的資訊' : '基本資訊與狀態';
+}
 function openEditDialog(caseId){
   const c = getCase(caseId); if(!c) return;
-  _editingId = caseId;
+  _editingId = caseId; _dupSourceId = null;
+  setDialogMode(false);
   buildEditForm(c);
   editDialog.showModal();
 }
+/**
+ * 複製：只拿來源資料「預填」，按下儲存才真的 duplicateCase。
+ * 先前是先建立再開視窗，導致按取消仍會留下一筆（也已推上雲端）。
+ */
+function openDuplicateDialog(sourceId){
+  const src = getCase(sourceId); if(!src) return;
+  _editingId = null; _dupSourceId = sourceId;
+  setDialogMode(true);
+  buildEditForm(src);
+  const ti = $('#editFormFields input[name="case.title"]');
+  if(ti) ti.value = (src.fields['case.title']?.value || '未命名專案') + '（複製）';
+  $('#editStatus').value = 'in_progress';
+  $('#editArchived').checked = false;
+  editDialog.showModal();
+}
 $('#editCancel').addEventListener('click', ()=>editDialog.close());
+// 取消、Esc、或任何方式關閉，都把狀態清乾淨（沒有東西被建立過）
+editDialog.addEventListener('close', ()=>{ _editingId = null; _dupSourceId = null; });
 $('#editForm').addEventListener('submit',(e)=>{
   e.preventDefault();
-  const c = getCase(_editingId); if(!c){ editDialog.close(); return; }
   const fd = new FormData(e.target);
   const values = {};
   for(const f of CASE_FIELDS) values[f.id] = (fd.get(f.id)||'').trim();
   const miss = CASE_FIELDS.filter(f=>f.required && !values[f.id]);
   if(miss.length){ alert('請填寫：'+miss.map(f=>f.name).join('、')); return; }
-  updateCaseFields(c, values);
-  setProjectStatus(c, $('#editStatus').value);
-  setArchived(c, $('#editArchived').checked);
+  // 複製模式到這一步才真的建立；一般編輯則沿用既有專案
+  const target = _dupSourceId ? duplicateCase(_dupSourceId) : getCase(_editingId);
+  if(!target){ editDialog.close(); return; }
+  updateCaseFields(target, values);
+  setProjectStatus(target, $('#editStatus').value);
+  setArchived(target, $('#editArchived').checked);
   editDialog.close();
   render();
 });

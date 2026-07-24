@@ -341,6 +341,38 @@
 .jd-index-page .jd-prep p { color:rgba(20,32,51,.66); line-height:1.8; font-size:.9rem; margin:0; }
 @media (max-width:640px){ .jd-index-page .jd-prep { grid-template-columns:1fr; } }
 
+/* 專案區塊：獨立留白＋清單保留最小高度（預留可成長的空間） */
+.jd-index-page .jd-projects { margin-bottom: clamp(2rem,5vw,3.2rem); }
+.jd-index-page .jd-projects__list:not(.hidden) { min-height: 13rem; box-shadow: var(--jd-shadow); }
+.jd-index-page .jd-list-more { padding:1.5rem; text-align:center; color:rgba(20,32,51,.34); font-size:.85rem; border-top:1px dashed rgba(20,32,51,.12); }
+/* 使用說明：可收合（第一次展開，有專案後自動收起） */
+.jd-index-page .jd-guide { border-top:1px solid var(--jd-line); padding-top:clamp(1.4rem,4vw,2rem); }
+.jd-index-page .jd-guide__sum { list-style:none; cursor:pointer; display:flex; align-items:center; gap:.6rem; font-family:"Noto Serif TC",serif; font-weight:900; font-size:clamp(1.2rem,2.3vw,1.5rem); color:var(--jd-ink); }
+.jd-index-page .jd-guide__sum::-webkit-details-marker { display:none; }
+.jd-index-page .jd-guide__sum::after { content:""; width:.5rem; height:.5rem; border-right:2px solid var(--jd-teal-deep); border-bottom:2px solid var(--jd-teal-deep); transform:rotate(45deg); transition:transform .2s ease; }
+.jd-index-page .jd-guide[open] .jd-guide__sum::after { transform:rotate(-135deg); }
+.jd-index-page .jd-guide__hint { font-family:"Noto Sans TC",sans-serif; font-weight:400; font-size:.8rem; color:rgba(20,32,51,.45); }
+.jd-index-page .jd-guide > .jd-method { margin-top:1.4rem; }
+
+/* 會員卡：白（未啟用）→ 綠（有碼），像一張會員卡 */
+.jd-index-page .jd-member-card { transition:background .22s ease, border-color .22s ease, box-shadow .22s ease; }
+.jd-index-page .jd-member-top { display:flex; align-items:center; gap:.55rem; flex-wrap:wrap; margin-bottom:1rem; }
+.jd-index-page .jd-member-top .jd-path-badge { margin-bottom:0; }
+.jd-index-page .jd-member-flag { display:inline-flex; align-items:center; gap:.3rem; padding:.28rem .62rem; border-radius:999px; background:rgba(30,145,136,.16); color:var(--jd-teal-deep); font-size:.72rem; font-weight:800; }
+.jd-index-page .jd-member-flag svg { width:.85rem; height:.85rem; }
+.jd-index-page .jd-path-card.jd-member-card--active { background:rgba(30,145,136,.16); border-color:rgba(30,145,136,.6); box-shadow:var(--jd-shadow); }
+.jd-index-page .jd-member-card--active .jd-member-badge { background:var(--jd-teal-deep); color:#fff; }
+.jd-index-page .jd-member-quota { margin:0 0 1.1rem; }
+.jd-index-page .jd-quota-status { display:flex; flex-direction:column; gap:.12rem; }
+.jd-index-page .jd-quota-main { font-family:"Noto Serif TC",serif; font-weight:900; font-size:1.2rem; color:var(--jd-teal-deep); }
+.jd-index-page .jd-quota-main.is-low { color:#A6532D; }
+.jd-index-page .jd-quota-sub { font-size:.82rem; color:rgba(20,32,51,.6); }
+.jd-index-page .jd-quota-warn { margin-top:.2rem; font-size:.8rem; color:#A6532D; }
+.jd-index-page .jd-redeem-box { margin-top:.3rem; }
+.jd-index-page .jd-redeem-sum { list-style:none; cursor:pointer; font-size:.78rem; color:rgba(20,32,51,.5); }
+.jd-index-page .jd-redeem-sum::-webkit-details-marker { display:none; }
+.jd-index-page .jd-redeem-sum:hover { color:var(--jd-teal-deep); }
+
 .jd-index-page .jd-actionbar {
   padding: .8rem;
   border: 1px solid var(--jd-line);

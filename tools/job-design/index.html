@@ -38,10 +38,15 @@
       <p class="jd-path-card__desc">打開一個做好的案例，看它怎麼把一段對話，變成職務說明書、甄選重點與招募文案。</p>
       <button id="demoBtn" class="jd-cta-big">開啟<i data-lucide="arrow-right" class="w-4 h-4"></i></button>
     </div>
-    <div class="jd-path-card">
-      <span class="jd-path-badge"><i data-lucide="user-check" class="w-3.5 h-3.5"></i>會員</span>
+    <div class="jd-path-card jd-member-card" id="memberCard">
+      <div class="jd-member-top">
+        <span class="jd-path-badge jd-member-badge"><i data-lucide="user-check" class="w-3.5 h-3.5"></i>會員</span>
+        <span class="jd-member-flag hidden" id="memberFlag"><i data-lucide="circle-check" class="w-3.5 h-3.5"></i>使用中</span>
+      </div>
       <h2 class="jd-path-card__title">打造你的職務設計</h2>
-      <p class="jd-path-card__desc">拿到授權碼後，就能開始自己的工作分析——在顧問引導式的提問中，加上 AI 協助整理，一步步建構出屬於你的職務設計書與甄選設計。</p>
+      <p class="jd-path-card__desc" id="memberDesc">拿到授權碼後，就能開始自己的工作分析——在顧問引導式的提問中，加上 AI 協助整理，一步步建構出屬於你的職務設計書與甄選設計。</p>
+      <!-- 會員狀態／配額由 JS 畫進這裡（id 保留給既有 paintQuota）。有碼時卡片轉綠。 -->
+      <div id="quotaBar" class="jd-member-quota hidden"></div>
       <div class="jd-path-card__foot">
         <button id="newCaseBtn" class="jd-cta-solid hidden"><i data-lucide="pencil" class="w-4 h-4"></i>開始工作分析</button>
         <button id="redeemBtn" class="jd-cta-outline" title="輸入授權碼"><i data-lucide="ticket" class="w-4 h-4"></i>輸入授權碼</button>
@@ -49,41 +54,44 @@
     </div>
   </section>
 
-  <div id="quotaBar" class="hidden mb-6 px-4 py-3 rounded-xl bg-mist/40 border border-navy/12 text-sm"></div>
+  <!-- 專案獨立成一個留白的區塊，跟下面的使用說明分開；清單保留最小高度、預留可成長的空間 -->
+  <section class="jd-projects" aria-label="你的專案">
+    <div class="jd-worklead jd-worklead--row">
+      <h2 class="jd-worklead__title">你的專案</h2>
+      <span class="text-sm text-navy/50" id="caseCount">—</span>
+    </div>
 
-  <!-- 專案清單上移，靠近開啟按鈕，整體更緊湊 -->
-  <div class="jd-worklead jd-worklead--row">
-    <h2 class="jd-worklead__title">你的專案</h2>
-    <span class="text-sm text-navy/50" id="caseCount">—</span>
-  </div>
+    <div id="caseList" class="jd-projects__list bg-white rounded-2xl border border-navy/10 overflow-hidden"></div>
 
-  <div id="caseList" class="bg-white rounded-2xl border border-navy/10 overflow-hidden"></div>
-
-  <div id="emptyState" class="hidden text-center py-12 border-2 border-dashed border-navy/15 rounded-2xl">
-    <i data-lucide="folder-open" class="w-9 h-9 mx-auto text-navy/30 mb-3"></i>
-    <p class="text-navy/60 max-w-md mx-auto">這裡會列出你的職務設計專案。還沒有？先看示範，或用授權碼開始第一個。</p>
-    <div class="mt-5 flex flex-wrap justify-center gap-3"><button class="newCaseBtn2 hidden bg-navy text-ivory px-5 py-2.5 rounded-lg font-semibold hover:bg-tealdeep">開始工作分析</button></div>
-  </div>
-
-  <!-- 功能說明：用 icon＋精簡小標，少說教 -->
-  <section class="jd-method" aria-label="工具怎麼陪你">
-    <div class="jd-method__head"><h2 class="jd-method__h">工具會這樣陪你</h2></div>
-    <ol class="jd-method__grid">
-      <li class="jd-method__card"><span class="jd-method__ic"><i data-lucide="search"></i></span><span class="jd-method__num">01</span><h3 class="jd-method__title">問題釐清</h3><p class="jd-method__desc">先弄清楚真正卡住的是什麼，而不是急著補人。</p></li>
-      <li class="jd-method__card"><span class="jd-method__ic"><i data-lucide="git-branch"></i></span><span class="jd-method__num">02</span><h3 class="jd-method__title">需求界定</h3><p class="jd-method__desc">把問題轉成這個角色要承擔的任務與成果。</p></li>
-      <li class="jd-method__card"><span class="jd-method__ic"><i data-lucide="clipboard-list"></i></span><span class="jd-method__num">03</span><h3 class="jd-method__title">人才規格</h3><p class="jd-method__desc">從任務反推需要的能力、經驗與特質。</p></li>
-      <li class="jd-method__card"><span class="jd-method__ic"><i data-lucide="file-text"></i></span><span class="jd-method__num">04</span><h3 class="jd-method__title">產出文件</h3><p class="jd-method__desc">職務說明書、甄選重點與招募文案，可帶走。</p></li>
-    </ol>
-  </section>
-
-  <!-- 開始前準備：兩個角色，各自要做的事 -->
-  <section class="jd-prep-sec" aria-label="開始前準備">
-    <div class="jd-method__head"><h2 class="jd-method__h">開始前，準備兩個角色</h2></div>
-    <div class="jd-prep">
-      <article><span class="role"><i data-lucide="user" class="w-4 h-4"></i>回應者</span><p>企業主、用人主管，或最了解這份工作的人。負責把現況、限制與專業講出來。</p></article>
-      <article><span class="role"><i data-lucide="messages-square" class="w-4 h-4"></i>引導者</span><p>依提問腳本一次問一題，幫忙把假設與事實分開、把專業問清楚。可以是公司裡相對客觀的同事。</p></article>
+    <div id="emptyState" class="hidden text-center py-14 border-2 border-dashed border-navy/15 rounded-2xl">
+      <i data-lucide="folder-open" class="w-9 h-9 mx-auto text-navy/30 mb-3"></i>
+      <p class="text-navy/60 max-w-md mx-auto">這裡會列出你的職務設計專案。還沒有？先看示範，或用授權碼開始第一個。</p>
+      <div class="mt-5 flex flex-wrap justify-center gap-3"><button class="newCaseBtn2 hidden bg-navy text-ivory px-5 py-2.5 rounded-lg font-semibold hover:bg-tealdeep">開始工作分析</button></div>
     </div>
   </section>
+
+  <!-- 使用說明：第一次使用需要，之後可收起。render() 會依有無專案自動展開/收合。 -->
+  <details id="usageGuide" class="jd-guide" open>
+    <summary class="jd-guide__sum">使用說明<span class="jd-guide__hint">第一次使用可以看看</span></summary>
+
+    <section class="jd-method" aria-label="工具怎麼陪你">
+      <div class="jd-method__head"><h2 class="jd-method__h">工具會這樣陪你</h2></div>
+      <ol class="jd-method__grid">
+        <li class="jd-method__card"><span class="jd-method__ic"><i data-lucide="search"></i></span><span class="jd-method__num">01</span><h3 class="jd-method__title">問題釐清</h3><p class="jd-method__desc">先弄清楚真正卡住的是什麼，而不是急著補人。</p></li>
+        <li class="jd-method__card"><span class="jd-method__ic"><i data-lucide="git-branch"></i></span><span class="jd-method__num">02</span><h3 class="jd-method__title">需求界定</h3><p class="jd-method__desc">把問題轉成這個角色要承擔的任務與成果。</p></li>
+        <li class="jd-method__card"><span class="jd-method__ic"><i data-lucide="clipboard-list"></i></span><span class="jd-method__num">03</span><h3 class="jd-method__title">人才規格</h3><p class="jd-method__desc">從任務反推需要的能力、經驗與特質。</p></li>
+        <li class="jd-method__card"><span class="jd-method__ic"><i data-lucide="file-text"></i></span><span class="jd-method__num">04</span><h3 class="jd-method__title">產出文件</h3><p class="jd-method__desc">職務說明書、甄選重點與招募文案，可帶走。</p></li>
+      </ol>
+    </section>
+
+    <section class="jd-prep-sec" aria-label="開始前準備">
+      <div class="jd-method__head"><h2 class="jd-method__h">開始前，準備兩個角色</h2></div>
+      <div class="jd-prep">
+        <article><span class="role"><i data-lucide="user" class="w-4 h-4"></i>回應者</span><p>企業主、用人主管，或最了解這份工作的人。負責把現況、限制與專業講出來。</p></article>
+        <article><span class="role"><i data-lucide="messages-square" class="w-4 h-4"></i>引導者</span><p>依提問腳本一次問一題，幫忙把假設與事實分開、把專業問清楚。可以是公司裡相對客觀的同事。</p></article>
+      </div>
+    </section>
+  </details>
 </main>
 
 <footer class="site-footer"><div class="site-container site-footer__grid"><div><h2>原味藍圖 Ormap</h2><p>先看懂真正的問題，再決定需要什麼樣的人才合作。</p></div><nav aria-label="工具"><h3>職務設計與甄選</h3><a href="../../organizations.html">方法與案例</a><a href="./index.html">評測工具</a><a href="../../organizations.html#experience">體驗與合作</a></nav><nav aria-label="網站"><h3>探索與服務</h3><a href="../../tools.html">探索工具</a><a href="../../organizations.html">組織方案</a><a href="../../courses.html">課程</a></nav><nav aria-label="網站資訊"><h3>網站資訊</h3><a href="../../privacy.html">隱私權政策</a><a href="../../terms.html">服務條款</a><a href="../../feedback.html">意見回饋</a></nav></div><div class="site-container site-footer__legal">© 2026 原味藍圖 Ormap。此工具目前作為課程／顧問配套使用，不是公開自助服務。</div></footer>
@@ -164,7 +172,9 @@ function render(){
   // 示範不進清單：下方只顯示使用者自己的案例（2026-07-23 使用者決策）。
   // 示範仍存在本機、由上方「看示範案例」直接開啟，只是不佔清單版面。
   const cases = listCases().filter(c=>!c.is_demo);
-  $('#caseCount').textContent = cases.length ? `${cases.length} 個案例` : '';
+  $('#caseCount').textContent = cases.length ? `${cases.length} 個專案` : '';
+  // 有專案就把「使用說明」自動收起（只有第一次、沒有專案時才展開）
+  const guide=$('#usageGuide'); if(guide) guide.open = cases.length===0;
   const list = $('#caseList');
   list.innerHTML='';
   list.classList.toggle('hidden', cases.length===0);
@@ -197,6 +207,9 @@ function render(){
     row.style.cursor='pointer';
     list.appendChild(row);
   });
+
+  // 已有專案時，清單底部留一行提示，讓預留的空間看起來是「還能再新增」而不是空掉
+  if(cases.length) list.insertAdjacentHTML('beforeend', '<div class="jd-list-more">新的專案會列在這裡</div>');
 
   list.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',e=>{
     e.stopPropagation();
@@ -309,9 +322,10 @@ render();
 
   // 課程授權碼與配額。登入不再放這裡——站台頂列的「我的空間」就是帳號入口，
   // 需要登入的動作（兌換、建立案例）會在當下就地跳登入。（2026-07-23 使用者決策）
-  const quotaBar=$('#quotaBar');
-  // 授權碼入口改放在「建立自己的案例」卡片裡（2026-07-24 重設計），不再搬到 appbar。
+  const quotaBar=$('#quotaBar');   // 現在住在「會員」卡片裡
+  // 授權碼入口改放在「會員」卡片裡（2026-07-24 重設計），不再搬到 appbar。
   const redeemBtn=$('#redeemBtn');
+  const memberCard=$('#memberCard'), memberFlag=$('#memberFlag'), memberDesc=$('#memberDesc');
 
   /*
    * 建立案例是付費功能：只有兌換過授權碼的人看得到「建立案例」。
@@ -323,7 +337,7 @@ render();
 
   async function paintAcct(u){
     if(!u){
-      quotaBar.classList.add('hidden');
+      paintQuota(null);                          // 未登入：會員卡維持白色
       applyCreateVisibility(false);
       return;
     }
@@ -363,34 +377,45 @@ render();
     return wrap;
   }
 
+  /**
+   * 會員卡狀態：沒有碼＝白卡（只有輸入授權碼）；有碼＝綠卡＋顯示模式與剩餘次數。
+   * 仍沿用 #quotaBar（現在住在會員卡內）與 redeemForm，付費牆判定不變。
+   */
   function paintQuota(a){
-    quotaBar.classList.remove('hidden');
+    const active = !!(a && a.hasCode);
+    memberCard.classList.toggle('jd-member-card--active', active);
+    // 直接設 inline 底色/邊框，避免 CSS 快取或層疊差異——確保「有碼＝綠卡」一定成立
+    memberCard.style.background = active ? 'rgba(30,145,136,.16)' : '';
+    memberCard.style.borderColor = active ? 'rgba(30,145,136,.6)' : '';
+    memberCard.style.boxShadow = active ? '0 18px 44px -30px rgba(20,32,51,.5)' : '';
+    memberFlag.classList.toggle('hidden', !active);
+    memberDesc.classList.toggle('hidden', active);
     quotaBar.innerHTML='';
 
-    if(!a?.hasCode){
-      quotaBar.innerHTML=`<div class="flex flex-wrap items-center gap-2">
-        <span class="text-navy/70">還沒輸入課程授權碼，目前不能使用 AI 整理。</span></div>`;
+    if(!active){
+      // 白卡：兌換輸入預設收起，點「輸入授權碼」才展開（redeemBtn handler 負責）。
+      quotaBar.classList.add('hidden');
       quotaBar.appendChild(redeemForm(paintQuota));
       return;
     }
 
+    // 綠卡：顯示會員狀態。
+    quotaBar.classList.remove('hidden');
+    let statusHtml;
     if(a.isInstructor){
-      quotaBar.innerHTML=`<span class="font-semibold text-tealdeep">講師模式</span>
-        <span class="text-navy/55 ml-2">${esc(a.cohort||'')}　AI 整理不計次</span>`;
+      statusHtml=`<span class="jd-quota-main">講師模式</span><span class="jd-quota-sub">${a.cohort?esc(a.cohort)+' · ':''}AI 整理不計次</span>`;
     }else{
-      const left=remaining(a);
-      const low=left<=5;
-      quotaBar.innerHTML=`<div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span class="font-semibold ${low?'text-accent':'text-tealdeep'}">AI 整理還有 ${left} 次</span>
-          <span class="text-navy/45">已用 ${a.quotaUsed}／${a.quotaTotal}　${esc(a.cohort||'')}</span>
-          ${low?'<span class="text-accent/80">次數有限，想清楚再按會比較划算。</span>':''}
-        </div>`;
+      const left=remaining(a); const low=left<=5;
+      statusHtml=`<span class="jd-quota-main${low?' is-low':''}">AI 整理還有 ${left} 次</span>`
+        +`<span class="jd-quota-sub">已用 ${a.quotaUsed}／${a.quotaTotal}${a.cohort?' · '+esc(a.cohort):''}</span>`
+        +(low?'<span class="jd-quota-warn">次數有限，想清楚再按會比較划算。</span>':'');
     }
+    quotaBar.innerHTML=`<div class="jd-quota-status">${statusHtml}</div>`;
 
-    // 已經有碼也要能加值。次數少的時候直接展開，不用再多點一下。
-    const box=el('details','mt-1'); box.id='redeemBox';
-    if(!a.isInstructor&&remaining(a)<=5) box.open=true;
-    const sm=el('summary','text-xs text-navy/45 hover:text-tealdeep cursor-pointer inline-block','再輸入一組授權碼加值');
+    // 已經有碼也要能加值；次數少時直接展開。
+    const box=el('details','jd-redeem-box'); box.id='redeemBox';
+    if(!a.isInstructor && remaining(a)<=5) box.open=true;
+    const sm=el('summary','jd-redeem-sum','再輸入一組授權碼加值');
     box.appendChild(sm);
     box.appendChild(redeemForm(paintQuota));
     quotaBar.appendChild(box);

@@ -247,7 +247,8 @@ export function createCase(caseFieldValues, pathType) {
     },
     exports: [],                   // WordExport 紀錄
     ai_jobs: [],                   // AIJob 紀錄（次數/成本估算）
-    overall_status: 'active',      // active | submitted | output_ready | downloaded_grace | closed | reopened
+    overall_status: 'active',      // active | submitted | output_ready | downloaded_grace | closed | reopened（評測流程內部狀態）
+    project_status: 'in_progress', // 使用者手動管理的專案狀態：not_started | in_progress | done
     current_module: path === 'full_design' ? 'm1' : 'existing',
     created_at: now,
     updated_at: now,
@@ -257,11 +258,14 @@ export function createCase(caseFieldValues, pathType) {
     c.fields[fid] = makeFieldValue(val, 'user_input');
     c.fields[fid].confirmed = true; // 案例基本資料由使用者直接確認
   }
-  // 案例名稱不再由使用者填寫，改由組織＋職務自動組成
-  const org = caseFieldValues?.['case.organization_name'] || '';
-  const job = caseFieldValues?.['case.job_title_working'] || '未命名職務';
-  c.fields['case.title'] = makeFieldValue(org ? `${org}　${job}` : job, 'user_input');
-  c.fields['case.title'].confirmed = true;
+  // 專案名稱：使用者有填就用他的；留白才用「組織＋職務」自動命名
+  const title = (caseFieldValues?.['case.title'] || '').trim();
+  if (!title) {
+    const org = caseFieldValues?.['case.organization_name'] || '';
+    const job = caseFieldValues?.['case.job_title_working'] || '未命名職務';
+    c.fields['case.title'] = makeFieldValue(org ? `${org}　${job}` : job, 'user_input');
+    c.fields['case.title'].confirmed = true;
+  }
   const all = readAll();
   all[id] = c;
   writeAll(all);
@@ -291,6 +295,35 @@ export function saveCase(c) {
   writeAll(all);
   _dirty.add(c.case_id); schedulePush();
   return c;
+}
+
+/** 使用者手動管理的專案狀態：not_started | in_progress | done */
+export function getProjectStatus(c) {
+  return c?.project_status || 'in_progress';
+}
+export function setProjectStatus(c, status) {
+  c.project_status = status;
+  return saveCase(c);
+}
+
+/**
+ * 在清單頁編輯基本資訊（修掉「建立後改不了」的問題）。
+ * 直接更新 case.* 欄位並存檔；空的專案名稱自動回填「組織＋職務」。
+ * values 例：{ 'case.title': '...', 'case.organization_name': '...', ... }
+ */
+export function updateCaseFields(c, values) {
+  for (const [fid, val] of Object.entries(values || {})) {
+    saveField(c, fid, val, 'user_input');
+    confirmField(c, fid);           // 基本資料由使用者直接確認
+  }
+  const title = (values?.['case.title'] || '').trim();
+  if (!title) {
+    const org = (values?.['case.organization_name'] ?? c.fields['case.organization_name']?.value) || '';
+    const job = (values?.['case.job_title_working'] ?? c.fields['case.job_title_working']?.value) || '未命名職務';
+    saveField(c, 'case.title', org ? `${org}　${job}` : job, 'user_input');
+    confirmField(c, 'case.title');
+  }
+  return saveCase(c);
 }
 
 // ── 欄位存取 ─────────────────────────────────────────────

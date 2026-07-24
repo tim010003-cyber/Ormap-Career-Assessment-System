@@ -88,12 +88,28 @@ export const LEVELS = ['L1', 'L2', 'L3', 'L4', 'L5'];
  * 建立案例時要填的基本資料（PO 定案 2026-07-21）。
  * 案例名稱與本次優化目標已移除：前者由組織＋職務自動組成，後者在流程中自然會談到。
  */
+/**
+ * 外面（清單頁）建立／編輯時填的基本資訊。順序即畫面順序。
+ * - case.title（專案名稱）改為可編輯，留白時由「組織＋職務」自動命名。
+ * - case.client_name（客戶名稱）放最後、選填：顧問專用欄位，學員留空即可。
+ * - case.creator_role（建立人）不放這裡：只給內部文件用，建立時由登入者自動帶入。
+ */
 export const CASE_FIELDS = [
-  { id: 'case.organization_name', name: '組織名稱',   type: 'text', required: false, ai: 'H', help: '選填；真實企業請考慮匿名化' },
-  { id: 'case.job_title_working', name: '職務暫定名稱', type: 'text', required: false, ai: 'H', help: '選填；之後可再校準' },
-  { id: 'case.creator_role',      name: '建立文件的人', type: 'text', required: false, ai: 'H', help: '選填；可填角色名稱，例如：內容主管' },
-  { id: 'case.created_date',      name: '建立日期',   type: 'date', required: true, ai: 'H' },
+  { id: 'case.title',             name: '專案名稱',     type: 'text', required: false, ai: 'H', help: '選填；留白會自動用「組織＋職務」命名' },
+  { id: 'case.created_date',      name: '建立日期',     type: 'date', required: true,  ai: 'H' },
+  { id: 'case.organization_name', name: '組織名稱',     type: 'text', required: false, ai: 'H', help: '選填；真實企業請考慮匿名化' },
+  { id: 'case.job_title_working', name: '職稱／職務名稱', type: 'text', required: false, ai: 'H', help: '選填；之後可再校準' },
+  { id: 'case.client_name',       name: '客戶名稱',     type: 'text', required: false, ai: 'H', help: '選填；顧問專用，學員可留空' },
 ];
+
+/** 專案手動狀態（獨立於評測流程的 overall_status，由使用者自己管理）。 */
+export const PROJECT_STATUS = {
+  not_started: '還沒開始',
+  in_progress: '進行中',
+  done: '已完成',
+};
+export const PROJECT_STATUS_ORDER = ['not_started', 'in_progress', 'done'];
+export const projectStatusLabel = (s) => PROJECT_STATUS[s] || PROJECT_STATUS.in_progress;
 
 // 既有職務盤點的追問（右欄給引導者用）
 export const EXISTING_QUESTIONS = [

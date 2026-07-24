@@ -43,8 +43,8 @@
         <span class="jd-path-badge jd-member-badge"><i data-lucide="user-check" class="w-3.5 h-3.5"></i>會員</span>
         <span class="jd-member-flag hidden" id="memberFlag"><i data-lucide="circle-check" class="w-3.5 h-3.5"></i>使用中</span>
       </div>
-      <h2 class="jd-path-card__title">打造你的職務設計</h2>
-      <p class="jd-path-card__desc" id="memberDesc">拿到授權碼後，就能開始自己的工作分析——在顧問引導式的提問中，加上 AI 協助整理，一步步建構出屬於你的職務設計書與甄選設計。</p>
+      <h2 class="jd-path-card__title">打造專屬職務設計</h2>
+      <p class="jd-path-card__desc" id="memberDesc">拿到授權碼後，就能開始自己的工作分析——在顧問引導式的提問中，加上 AI 協助整理，一步步建構出專屬的職務設計書與甄選設計。</p>
       <!-- 會員狀態／配額由 JS 畫進這裡（id 保留給既有 paintQuota）。有碼時卡片轉綠。 -->
       <div id="quotaBar" class="jd-member-quota hidden"></div>
       <div class="jd-path-card__foot">
@@ -55,17 +55,17 @@
   </section>
 
   <!-- 專案獨立成一個留白的區塊，跟下面的使用說明分開；清單保留最小高度、預留可成長的空間 -->
-  <section class="jd-projects" aria-label="你的專案">
+  <section class="jd-projects" aria-label="專案清單">
     <div class="jd-worklead jd-worklead--row">
-      <h2 class="jd-worklead__title">你的專案</h2>
+      <h2 class="jd-worklead__title">專案清單</h2>
       <span class="text-sm text-navy/50" id="caseCount">—</span>
     </div>
 
-    <div id="caseList" class="jd-projects__list bg-white rounded-2xl border border-navy/10 overflow-hidden"></div>
+    <div id="caseList"></div>
 
     <div id="emptyState" class="hidden text-center py-14 border-2 border-dashed border-navy/15 rounded-2xl">
       <i data-lucide="folder-open" class="w-9 h-9 mx-auto text-navy/30 mb-3"></i>
-      <p class="text-navy/60 max-w-md mx-auto">這裡會列出你的職務設計專案。還沒有？先看示範，或用授權碼開始第一個。</p>
+      <p class="text-navy/60 max-w-md mx-auto">這裡會列出所有職務設計專案。還沒有？先看示範，或用授權碼開始第一個。</p>
       <div class="mt-5 flex flex-wrap justify-center gap-3"><button class="newCaseBtn2 hidden bg-navy text-ivory px-5 py-2.5 rounded-lg font-semibold hover:bg-tealdeep">開始工作分析</button></div>
     </div>
   </section>
@@ -74,8 +74,8 @@
   <details id="usageGuide" class="jd-guide" open>
     <summary class="jd-guide__sum">使用說明<span class="jd-guide__hint">第一次使用可以看看</span></summary>
 
-    <section class="jd-method" aria-label="工具怎麼陪你">
-      <div class="jd-method__head"><h2 class="jd-method__h">工具會這樣陪你</h2></div>
+    <section class="jd-method" aria-label="工具的四個步驟">
+      <div class="jd-method__head"><h2 class="jd-method__h">工具會這樣運作</h2></div>
       <ol class="jd-method__grid">
         <li class="jd-method__card"><span class="jd-method__ic"><i data-lucide="search"></i></span><span class="jd-method__num">01</span><h3 class="jd-method__title">問題釐清</h3><p class="jd-method__desc">先弄清楚真正卡住的是什麼，而不是急著補人。</p></li>
         <li class="jd-method__card"><span class="jd-method__ic"><i data-lucide="git-branch"></i></span><span class="jd-method__num">02</span><h3 class="jd-method__title">需求界定</h3><p class="jd-method__desc">把問題轉成這個角色要承擔的任務與成果。</p></li>
@@ -102,9 +102,9 @@
     <!-- 第 1 步：選路徑 -->
     <div id="step1">
       <div class="text-[11px] tracking-[2px] text-tealdeep font-bold mb-1">職務設計 · 第 1 步</div>
-      <h2 class="text-xl font-bold text-navy mb-4">你想從哪裡開始？</h2>
+      <h2 class="text-xl font-bold text-navy mb-4">從哪裡開始？</h2>
       <div id="pathChoices" class="grid sm:grid-cols-2 gap-3"></div>
-      <p class="text-xs text-navy/45 mt-3">選錯了也沒關係。之後系統若發現權責矛盾，會提醒你改走另一條，但不會自己切換。</p>
+      <p class="text-xs text-navy/45 mt-3">選錯了也沒關係。之後系統若發現權責矛盾，會提醒改走另一條，但不會自己切換。</p>
       <div class="flex justify-end gap-2 mt-5">
         <button id="cancel1" class="px-4 py-2 rounded-lg text-navy/60 hover:bg-navy/5">取消</button>
         <button id="toStep2" class="px-5 py-2 rounded-lg bg-navy/20 text-navy/40 font-semibold" disabled>下一步</button>
@@ -130,9 +130,28 @@
   </div>
 </dialog>
 
+<!-- 編輯專案：基本資訊 + 狀態（清單頁就能改）-->
+<dialog id="editDialog" class="rounded-2xl p-0 w-[92vw] max-w-2xl">
+  <div class="p-6">
+    <div class="text-[11px] tracking-[2px] text-tealdeep font-bold mb-1">編輯專案</div>
+    <h2 class="text-xl font-bold text-navy mb-4">基本資訊與狀態</h2>
+    <form id="editForm">
+      <div id="editFormFields" class="space-y-4"></div>
+      <div class="mt-4">
+        <label class="block text-sm font-semibold text-navy mb-1">狀態</label>
+        <select id="editStatus" class="w-full border border-navy/15 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-tealgreen"></select>
+      </div>
+      <div class="flex justify-between gap-2 mt-6">
+        <button type="button" id="editCancel" class="px-4 py-2 rounded-lg text-navy/60 hover:bg-navy/5">取消</button>
+        <button type="submit" class="px-5 py-2 rounded-lg bg-navy text-ivory font-semibold hover:bg-tealdeep">儲存</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
 <script type="module">
-import { CASE_FIELDS, PATHS, pathName } from './jd-fields.js';
-import { listCases, createCase, deleteCase, getModuleStatus, resyncCloud } from './jd-store.js';
+import { CASE_FIELDS, PATHS, pathName, PROJECT_STATUS, PROJECT_STATUS_ORDER } from './jd-fields.js';
+import { listCases, createCase, deleteCase, getModuleStatus, resyncCloud, getCase, updateCaseFields, setProjectStatus, getProjectStatus } from './jd-store.js';
 import { countPending } from './jd-word.js';
 import { seedPathACase } from './jd-seed.js';
 import { aiStatus, isLocalEnv, whyNotReady, signIn, onAuth, myAccess, redeemCode, remaining } from './jd-ai.js';
@@ -143,6 +162,8 @@ const escapeHtml = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&l
 // paintQuota 內用的是 esc 這個名字（與 case.html 一致）。這裡補上別名，
 // 否則有兌換過碼的帳號一進 paintQuota 就會 ReferenceError，整條配額列變空白。
 const esc = escapeHtml;
+// 目前登入者：建立專案時把「建立人」自動帶進去（給內部文件用，不放外面表單）。
+let _me = null;
 
 
 // ── 看示範：只留完整職務設計示範，點了直接開啟（不進下方清單）──
@@ -151,13 +172,11 @@ $('#demoBtn').addEventListener('click', ()=>{
 });
 
 // ── 列表 ──
+// 清單顯示「使用者手動管理的專案狀態」（不再顯示評測流程的 overall_status）
 const STATUS_STYLE = {
-  active:['進行中','text-navy/60','bg-tealgreen'],
-  submitted:['已提交','text-navy/60','bg-tealgreen'],
-  output_ready:['可產出','text-tealdeep','bg-tealgreen'],
-  downloaded_grace:['倒數中','text-accent','bg-accent'],
-  closed:['已關閉','text-navy/40','bg-navy/30'],
-  reopened:['重新開放','text-accent','bg-accent'],
+  not_started:['還沒開始','text-navy/45','bg-navy/25'],
+  in_progress:['進行中','text-tealdeep','bg-tealgreen'],
+  done:['已完成','text-tealdeep','bg-tealgreen'],
 };
 const FLOW = { existing_role_focus:[['existing'],['m3'],['m4'],['m5'],['m6']],
                full_design:[['m1'],['m2'],['m3'],['m4'],['m5'],['m6']] };
@@ -169,52 +188,47 @@ function progressOf(c){
 }
 
 function render(){
-  // 示範不進清單：下方只顯示使用者自己的案例（2026-07-23 使用者決策）。
-  // 示範仍存在本機、由上方「看示範案例」直接開啟，只是不佔清單版面。
+  // 示範不進清單：只顯示使用者自己的專案（示範由上方「開啟」直接開啟）。
   const cases = listCases().filter(c=>!c.is_demo);
   $('#caseCount').textContent = cases.length ? `${cases.length} 個專案` : '';
   // 有專案就把「使用說明」自動收起（只有第一次、沒有專案時才展開）
   const guide=$('#usageGuide'); if(guide) guide.open = cases.length===0;
   const list = $('#caseList');
-  list.innerHTML='';
   list.classList.toggle('hidden', cases.length===0);
   $('#emptyState').classList.toggle('hidden', cases.length>0);
+  if(!cases.length){ list.innerHTML=''; return; }
 
-  cases.forEach((c,i)=>{
-    const [label, textCls, barCls] = STATUS_STYLE[c.overall_status] || STATUS_STYLE.active;
-    const pct = progressOf(c);
-    const pending = countPending(c);
-    const row = el('div', `row flex items-center gap-3 px-4 py-3 ${i<cases.length-1?'border-b border-navy/8':''}`);
-    row.innerHTML = `
-      <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-1.5">
-          ${c.is_demo?'<span class="badge bg-tealgreen text-white shrink-0">示範</span>':''}
-          <span class="font-semibold text-navy truncate">${escapeHtml(c.fields['case.title']?.value||'未命名案例')}</span>
-        </div>
-        <div class="text-xs text-navy/45 truncate mt-0.5">${escapeHtml(c.fields['case.organization_name']?.value||'')} · ${escapeHtml(c.fields['case.job_title_working']?.value||'—')}</div>
-      </div>
-      <span class="text-xs text-navy/55 whitespace-nowrap">${pathName(c.path_type)}</span>
-      <span class="text-xs ${textCls} whitespace-nowrap w-14 text-right">${label}</span>
-      <div class="hidden sm:block w-16" title="完成度 ${pct}%${pending?`，${pending} 項待確認`:''}">
-        <div class="h-1 bg-navy/10 rounded-full overflow-hidden"><div class="h-full ${barCls}" style="width:${pct}%"></div></div>
-      </div>
-      <button data-del="${c.case_id}" class="row-del p-1.5 rounded-lg text-navy/35 hover:text-accent hover:bg-accent/10" title="刪除案例" aria-label="刪除案例"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-      <a href="./case.html?caseId=${c.case_id}" class="p-1 text-navy/40 hover:text-tealdeep" aria-label="開啟案例"><i data-lucide="chevron-right" class="w-5 h-5"></i></a>`;
-    row.addEventListener('click', e=>{
-      if(e.target.closest('[data-del]')||e.target.closest('a')) return;
-      location.href='./case.html?caseId='+c.case_id;
-    });
-    row.style.cursor='pointer';
-    list.appendChild(row);
+  // Notion 式表格：表頭＋欄位（專案名稱／組織／職稱／狀態）＋操作
+  let html = `<div class="jd-table"><div class="jd-table__head">`
+    + `<span>專案名稱</span><span class="c-org">組織</span><span class="c-job">職稱／職務</span><span>狀態</span><span aria-hidden="true"></span></div>`;
+  cases.forEach(c=>{
+    const ps = getProjectStatus(c);
+    const [label] = STATUS_STYLE[ps] || STATUS_STYLE.in_progress;
+    const title  = escapeHtml(c.fields['case.title']?.value||'未命名專案');
+    const client = escapeHtml(c.fields['case.client_name']?.value||'');
+    const org    = escapeHtml(c.fields['case.organization_name']?.value||'');
+    const job    = escapeHtml(c.fields['case.job_title_working']?.value||'');
+    const sub    = [client && ('客戶：'+client), org, job].filter(Boolean).join(' · ');
+    html += `<div class="jd-table__row" data-open="${c.case_id}">`
+      + `<div class="jd-table__name"><span class="t">${title}</span>${sub?`<span class="sub">${sub}</span>`:''}</div>`
+      + `<div class="jd-table__c c-org">${org||'—'}</div>`
+      + `<div class="jd-table__c c-job">${job||'—'}</div>`
+      + `<div class="jd-table__st"><span class="pstat pstat--${ps}">${label}</span></div>`
+      + `<div class="jd-table__act">`
+        + `<button data-edit="${c.case_id}" class="row-btn" title="編輯專案" aria-label="編輯專案"><i data-lucide="pencil" class="w-4 h-4"></i></button>`
+        + `<button data-del="${c.case_id}" class="row-btn row-del" title="刪除專案" aria-label="刪除專案"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`
+        + `<a href="./case.html?caseId=${c.case_id}" class="row-btn" title="開啟專案" aria-label="開啟專案"><i data-lucide="chevron-right" class="w-5 h-5"></i></a>`
+      + `</div></div>`;
   });
+  html += `<div class="jd-list-more">新的專案會列在這裡</div></div>`;
+  list.innerHTML = html;
 
-  // 已有專案時，清單底部留一行提示，讓預留的空間看起來是「還能再新增」而不是空掉
-  if(cases.length) list.insertAdjacentHTML('beforeend', '<div class="jd-list-more">新的專案會列在這裡</div>');
-
-  list.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',e=>{
-    e.stopPropagation();
-    if(confirm('確定刪除此案例？此動作無法復原。')){ deleteCase(b.dataset.del); render(); }
+  list.querySelectorAll('.jd-table__row').forEach(r=>r.addEventListener('click', e=>{
+    if(e.target.closest('[data-del]')||e.target.closest('[data-edit]')||e.target.closest('a')) return;
+    location.href='./case.html?caseId='+r.dataset.open;
   }));
+  list.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); openEditDialog(b.dataset.edit); }));
+  list.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(confirm('確定刪除此專案？此動作無法復原。')){ deleteCase(b.dataset.del); render(); } }));
   if(window.lucide) lucide.createIcons();
 }
 
@@ -298,9 +312,49 @@ $('#caseForm').addEventListener('submit',(e)=>{
   for(const f of CASE_FIELDS) values[f.id] = (fd.get(f.id)||'').trim();
   const miss = CASE_FIELDS.filter(f=>f.required && !values[f.id]);
   if(miss.length){ alert('請填寫：'+miss.map(f=>f.name).join('、')); return; }
+  values['case.creator_role'] = (_me?.displayName || _me?.email || '');  // 建立人自動帶入（內部文件用）
   const c = createCase(values, chosenPath);
   dialog.close();
   location.href='./case.html?caseId='+c.case_id;
+});
+
+// ── 編輯專案：清單頁就能改基本資訊與狀態（修掉「建立後改不了」）──
+const editDialog = $('#editDialog');
+let _editingId = null;
+function buildEditForm(c){
+  const wrap = $('#editFormFields'); wrap.innerHTML='';
+  for(const f of CASE_FIELDS){
+    const cur = c.fields[f.id]?.value || '';
+    const row = el('div');
+    row.innerHTML = `<label class="block text-sm font-semibold text-navy mb-1">${f.name}${f.required?' <span class="text-accent">*</span>':''}</label>
+      ${f.help?`<p class="text-xs text-navy/45 mb-1.5">${f.help}</p>`:''}
+      <input name="${f.id}" ${f.type==='date'?'type="date"':''} value="${escapeHtml(cur)}"
+        class="w-full border border-navy/15 rounded-lg px-3 py-2 focus:outline-none focus:border-tealgreen">`;
+    wrap.appendChild(row);
+  }
+  const sel = $('#editStatus'); sel.innerHTML='';
+  PROJECT_STATUS_ORDER.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=PROJECT_STATUS[s]; sel.appendChild(o); });
+  sel.value = getProjectStatus(c);
+}
+function openEditDialog(caseId){
+  const c = getCase(caseId); if(!c) return;
+  _editingId = caseId;
+  buildEditForm(c);
+  editDialog.showModal();
+}
+$('#editCancel').addEventListener('click', ()=>editDialog.close());
+$('#editForm').addEventListener('submit',(e)=>{
+  e.preventDefault();
+  const c = getCase(_editingId); if(!c){ editDialog.close(); return; }
+  const fd = new FormData(e.target);
+  const values = {};
+  for(const f of CASE_FIELDS) values[f.id] = (fd.get(f.id)||'').trim();
+  const miss = CASE_FIELDS.filter(f=>f.required && !values[f.id]);
+  if(miss.length){ alert('請填寫：'+miss.map(f=>f.name).join('、')); return; }
+  updateCaseFields(c, values);
+  setProjectStatus(c, $('#editStatus').value);
+  editDialog.close();
+  render();
 });
 
 render();
@@ -366,7 +420,7 @@ render();
       try{
         const a=await redeemCode(code);
         // 講師碼沒有次數概念，別報「加了 0 次」讓人以為失敗
-        if(a.alreadyRedeemed) { msg.className='text-xs text-navy/55'; msg.textContent='這組碼你先前已經用過了，沒有重複加值。'; }
+        if(a.alreadyRedeemed) { msg.className='text-xs text-navy/55'; msg.textContent='這組碼先前已經用過了，沒有重複加值。'; }
         else { msg.className='text-xs text-tealdeep'; msg.textContent=a.isInstructor&&!a.added?'已切換為講師模式。':`已加值 ${a.added} 次。`; }
         onDone(a);
       }catch(e){ msg.className='text-xs text-accent'; msg.textContent=e.message||'兌換失敗'; btn.disabled=false; }
@@ -385,9 +439,9 @@ render();
     const active = !!(a && a.hasCode);
     memberCard.classList.toggle('jd-member-card--active', active);
     // 直接設 inline 底色/邊框，避免 CSS 快取或層疊差異——確保「有碼＝綠卡」一定成立
-    memberCard.style.background = active ? 'rgba(30,145,136,.16)' : '';
-    memberCard.style.borderColor = active ? 'rgba(30,145,136,.6)' : '';
-    memberCard.style.boxShadow = active ? '0 18px 44px -30px rgba(20,32,51,.5)' : '';
+    memberCard.style.background = active ? '#3F5675' : '';
+    memberCard.style.borderColor = active ? 'transparent' : '';
+    memberCard.style.boxShadow = active ? '0 16px 40px -28px rgba(20,32,51,.5)' : '';
     memberFlag.classList.toggle('hidden', !active);
     memberDesc.classList.toggle('hidden', active);
     quotaBar.innerHTML='';
@@ -437,7 +491,7 @@ render();
     }, 400);
   });
   // 登入／登出之後身分變了，案例同步要跟著重跑一次
-  onAuth(async (u)=>{ await paintAcct(u); if(await resyncCloud()) render(); }).catch(()=>paintAcct(null));
+  onAuth(async (u)=>{ _me = u; await paintAcct(u); if(await resyncCloud()) render(); }).catch(()=>paintAcct(null));
 
   if(window.lucide) lucide.createIcons();
 })();

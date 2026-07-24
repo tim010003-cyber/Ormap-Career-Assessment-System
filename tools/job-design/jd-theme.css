@@ -303,15 +303,15 @@
 .jd-index-page .jd-inline-link { color:var(--jd-teal-deep); font-weight:700; text-decoration:underline; text-underline-offset:2px; }
 
 /* 兩條路 onboarding：免費看示範 / 課程建立自己的 */
-.jd-index-page .jd-paths { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin:0 0 clamp(2.5rem,6vw,4rem); }
-.jd-index-page .jd-path-card { display:flex; flex-direction:column; padding:clamp(1.6rem,3vw,2.4rem); border-radius:1.25rem; border:1px solid var(--jd-line); background:rgba(255,255,255,.72); }
-.jd-index-page .jd-path-card--primary { border-color:rgba(30,145,136,.45); background:rgba(220,236,239,.42); box-shadow:var(--jd-shadow); }
+.jd-index-page .jd-paths { display:grid; grid-template-columns:1fr 1fr; gap:1.1rem; margin:0 0 clamp(1.5rem,3.5vw,2.2rem); }
+.jd-index-page .jd-path-card { display:flex; flex-direction:column; padding:clamp(1.2rem,2.3vw,1.65rem); border-radius:1.15rem; border:1px solid var(--jd-line); background:rgba(255,255,255,.72); }
+.jd-index-page .jd-path-card--primary { border-color:rgba(30,145,136,.28); background:rgba(220,236,239,.32); box-shadow:var(--jd-shadow); }
 .jd-index-page .jd-path-badge { display:inline-flex; align-items:center; gap:.35rem; align-self:flex-start; padding:.32rem .7rem; border-radius:999px; background:rgba(20,32,51,.06); color:rgba(20,32,51,.6); font-size:.72rem; font-weight:800; letter-spacing:.03em; margin-bottom:1rem; }
 .jd-index-page .jd-path-badge--free { background:rgba(30,145,136,.14); color:var(--jd-teal-deep); }
-.jd-index-page .jd-path-card__title { font-family:"Noto Serif TC",serif; font-weight:900; font-size:clamp(1.35rem,2.4vw,1.75rem); color:var(--jd-ink); margin-bottom:.6rem; }
-.jd-index-page .jd-path-card__desc { color:rgba(20,32,51,.65); line-height:1.85; font-size:.95rem; flex:1; margin-bottom:1.6rem; }
-.jd-index-page .jd-path-card__foot { display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; }
-.jd-index-page .jd-cta-big { display:inline-flex; align-items:center; justify-content:center; gap:.55rem; align-self:flex-start; padding:.95rem 1.7rem; border-radius:.9rem; background:var(--jd-ink); color:var(--jd-paper); font-weight:800; font-size:1.02rem; }
+.jd-index-page .jd-path-card__title { font-family:"Noto Serif TC",serif; font-weight:900; font-size:clamp(1.15rem,2vw,1.42rem); color:var(--jd-ink); margin-bottom:.45rem; }
+.jd-index-page .jd-path-card__desc { color:rgba(20,32,51,.65); line-height:1.75; font-size:.88rem; flex:1; margin-bottom:1.1rem; }
+.jd-index-page .jd-path-card__foot { display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; margin-top:auto; }
+.jd-index-page .jd-cta-big { display:inline-flex; align-items:center; justify-content:center; gap:.55rem; align-self:flex-start; padding:.72rem 1.35rem; border-radius:.8rem; background:var(--jd-ink); color:var(--jd-paper); font-weight:800; font-size:.95rem; }
 .jd-index-page .jd-cta-big:hover { background:var(--jd-teal-deep); transform:translateY(-1px); }
 .jd-index-page .jd-cta-outline { display:inline-flex; align-items:center; gap:.4rem; padding:.7rem 1.1rem; border-radius:.8rem; border:1px solid var(--jd-ink); color:var(--jd-ink); font-weight:700; font-size:.9rem; }
 .jd-index-page .jd-cta-outline:hover { background:rgba(20,32,51,.05); }
@@ -324,11 +324,11 @@
 @media (max-width:780px){ .jd-index-page .jd-paths { grid-template-columns:1fr; } }
 
 /* 大氣置中 hero：工具名擺中間最顯眼 */
-.jd-index-page .jd-index-hero--center { max-width:none; text-align:center; padding-top:clamp(.25rem,1.5vw,.75rem); padding-bottom:clamp(2.4rem,6vw,3.6rem); }
+.jd-index-page .jd-index-hero--center { max-width:none; text-align:center; padding-top:clamp(.2rem,1.2vw,.6rem); padding-bottom:clamp(1.2rem,3vw,1.9rem); }
 .jd-index-page .jd-hero-row { display:flex; align-items:center; justify-content:center; gap:clamp(.7rem,2vw,1.15rem); flex-wrap:wrap; }
 .jd-index-page .jd-hero-mark { width:clamp(2.8rem,6vw,3.4rem); height:clamp(2.8rem,6vw,3.4rem); flex:0 0 auto; display:grid; place-items:center; border-radius:1rem; background:var(--jd-ink); color:var(--jd-paper); }
 .jd-index-page .jd-hero-mark svg { width:1.7rem; height:1.7rem; }
-.jd-index-page .jd-hero-name { font-family:"Noto Serif TC",serif; font-weight:900; font-size:clamp(2.2rem,6vw,3.6rem); letter-spacing:.03em; color:var(--jd-ink); line-height:1.18; }
+.jd-index-page .jd-hero-name { font-family:"Noto Serif TC",serif; font-weight:900; font-size:clamp(1.95rem,5vw,3rem); letter-spacing:.03em; color:var(--jd-ink); line-height:1.18; }
 .jd-index-page .jd-hero-sub { margin-top:.7rem; color:var(--jd-teal-deep); font-size:clamp(.95rem,1.9vw,1.15rem); font-weight:700; letter-spacing:.03em; }
 /* 方法卡圖示 */
 .jd-index-page .jd-method__ic { display:inline-grid; place-items:center; width:2.2rem; height:2.2rem; border-radius:.6rem; background:rgba(30,145,136,.1); color:var(--jd-teal-deep); margin-bottom:.55rem; }
@@ -344,6 +344,33 @@
 /* 專案區塊：獨立留白＋清單保留最小高度（預留可成長的空間） */
 .jd-index-page .jd-projects { margin-bottom: clamp(2rem,5vw,3.2rem); }
 .jd-index-page .jd-projects__list:not(.hidden) { min-height: 13rem; box-shadow: var(--jd-shadow); }
+/* Notion 式專案表格：表頭＋欄位（專案名稱／組織／職稱／狀態）＋操作 */
+/* 專案清單是主體：至少留得下五筆專案的高度 */
+.jd-index-page .jd-table { border:1px solid var(--jd-line); border-radius:1rem; overflow:hidden; background:#fff; box-shadow:var(--jd-shadow); min-height:23rem; }
+.jd-index-page .jd-table__head,
+.jd-index-page .jd-table__row { display:grid; grid-template-columns:minmax(0,2.3fr) minmax(0,1.3fr) minmax(0,1.3fr) 6.5rem 5.4rem; align-items:center; gap:.75rem; padding:.72rem 1.15rem; }
+.jd-index-page .jd-table__head { background:rgba(20,32,51,.035); border-bottom:1px solid var(--jd-line); font-size:.72rem; font-weight:800; letter-spacing:.05em; color:rgba(20,32,51,.5); }
+.jd-index-page .jd-table__row { border-bottom:1px solid rgba(20,32,51,.06); cursor:pointer; transition:background .15s ease; }
+.jd-index-page .jd-table__row:hover { background:rgba(220,236,239,.32); }
+.jd-index-page .jd-table__name .t { display:block; font-weight:700; color:var(--jd-ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.jd-index-page .jd-table__name .sub { display:none; }
+.jd-index-page .jd-table__c { font-size:.86rem; color:rgba(20,32,51,.66); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.jd-index-page .jd-table__act { display:flex; align-items:center; justify-content:flex-end; gap:.1rem; }
+.jd-index-page .jd-table .row-btn { display:inline-grid; place-items:center; width:2rem; height:2rem; border-radius:.55rem; color:rgba(20,32,51,.4); }
+.jd-index-page .jd-table .row-btn:hover { color:var(--jd-teal-deep); background:rgba(30,145,136,.1); }
+.jd-index-page .jd-table .row-del:hover { color:#B85C33; background:rgba(232,138,85,.12); }
+.jd-index-page .pstat { display:inline-flex; align-items:center; gap:.4rem; padding:.25rem .62rem; border-radius:999px; font-size:.76rem; font-weight:700; }
+.jd-index-page .pstat::before { content:""; width:.45rem; height:.45rem; border-radius:50%; background:currentColor; }
+.jd-index-page .pstat--not_started { background:rgba(20,32,51,.05); color:rgba(20,32,51,.45); }
+.jd-index-page .pstat--in_progress { background:rgba(30,145,136,.13); color:var(--jd-teal-deep); }
+.jd-index-page .pstat--done { background:rgba(20,32,51,.10); color:rgba(20,32,51,.6); }
+.jd-index-page .jd-table .jd-list-more { border-top:1px dashed rgba(20,32,51,.1); }
+@media (max-width:720px){
+  .jd-index-page .jd-table__head { display:none; }
+  .jd-index-page .jd-table__row { grid-template-columns:minmax(0,1fr) auto auto; }
+  .jd-index-page .jd-table__c { display:none; }
+  .jd-index-page .jd-table__name .sub { display:block; margin-top:.15rem; font-size:.74rem; color:rgba(20,32,51,.45); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+}
 .jd-index-page .jd-list-more { padding:1.5rem; text-align:center; color:rgba(20,32,51,.34); font-size:.85rem; border-top:1px dashed rgba(20,32,51,.12); }
 /* 使用說明：可收合（第一次展開，有專案後自動收起） */
 .jd-index-page .jd-guide { border-top:1px solid var(--jd-line); padding-top:clamp(1.4rem,4vw,2rem); }
@@ -358,16 +385,29 @@
 .jd-index-page .jd-member-card { transition:background .22s ease, border-color .22s ease, box-shadow .22s ease; }
 .jd-index-page .jd-member-top { display:flex; align-items:center; gap:.55rem; flex-wrap:wrap; margin-bottom:1rem; }
 .jd-index-page .jd-member-top .jd-path-badge { margin-bottom:0; }
-.jd-index-page .jd-member-flag { display:inline-flex; align-items:center; gap:.3rem; padding:.28rem .62rem; border-radius:999px; background:rgba(30,145,136,.16); color:var(--jd-teal-deep); font-size:.72rem; font-weight:800; }
+.jd-index-page .jd-member-flag { display:inline-flex; align-items:center; gap:.3rem; padding:.28rem .62rem; border-radius:999px; background:rgba(30,145,136,.14); color:var(--jd-teal-deep); font-size:.72rem; font-weight:800; }
 .jd-index-page .jd-member-flag svg { width:.85rem; height:.85rem; }
-.jd-index-page .jd-path-card.jd-member-card--active { background:rgba(30,145,136,.16); border-color:rgba(30,145,136,.6); box-shadow:var(--jd-shadow); }
-.jd-index-page .jd-member-card--active .jd-member-badge { background:var(--jd-teal-deep); color:#fff; }
+/* 會員卡（使用中）＝深藍實心「已解鎖」卡＋白字；橘色只點在「使用中」與主按鈕（accent） */
+.jd-index-page .jd-path-card.jd-member-card--active { background:#3F5675; border-color:transparent; box-shadow:0 16px 40px -28px rgba(20,32,51,.5); }
+.jd-index-page .jd-member-card--active .jd-path-card__title,
+.jd-index-page .jd-member-card--active .jd-quota-main { color:#fff; }
+.jd-index-page .jd-member-card--active .jd-quota-sub { color:rgba(255,255,255,.6); }
+.jd-index-page .jd-member-card--active .jd-member-badge { background:var(--jd-mist); color:var(--jd-ink); }
+.jd-index-page .jd-member-card--active .jd-member-flag { background:#E3A24E; color:#fff; }
+.jd-index-page .jd-member-card--active .jd-cta-solid { background:#E3A24E; }
+.jd-index-page .jd-member-card--active .jd-cta-solid:hover { background:#CE8E3A; filter:none; }
+.jd-index-page .jd-member-card--active .jd-cta-outline { border-color:rgba(255,255,255,.45); color:#fff; }
+.jd-index-page .jd-member-card--active .jd-cta-outline:hover { background:rgba(255,255,255,.08); }
+.jd-index-page .jd-member-card--active .jd-redeem-sum { color:rgba(255,255,255,.55); }
+.jd-index-page .jd-member-card--active .jd-redeem-sum:hover { color:#E88A55; }
+.jd-index-page .jd-member-card--active .jd-redeem-input { background:rgba(255,255,255,.96); color:var(--jd-ink); }
 .jd-index-page .jd-member-quota { margin:0 0 1.1rem; }
 .jd-index-page .jd-quota-status { display:flex; flex-direction:column; gap:.12rem; }
-.jd-index-page .jd-quota-main { font-family:"Noto Serif TC",serif; font-weight:900; font-size:1.2rem; color:var(--jd-teal-deep); }
-.jd-index-page .jd-quota-main.is-low { color:#A6532D; }
+.jd-index-page .jd-quota-main { font-family:"Noto Serif TC",serif; font-weight:900; font-size:1.2rem; color:var(--jd-ink); }
+.jd-index-page .jd-member-card--active .jd-quota-main.is-low { color:#F0997B; }
 .jd-index-page .jd-quota-sub { font-size:.82rem; color:rgba(20,32,51,.6); }
-.jd-index-page .jd-quota-warn { margin-top:.2rem; font-size:.8rem; color:#A6532D; }
+.jd-index-page .jd-member-card--active .jd-quota-warn { margin-top:.2rem; font-size:.8rem; color:#F0997B; }
+.jd-index-page .jd-quota-warn { margin-top:.2rem; font-size:.8rem; color:#B91C1C; }
 .jd-index-page .jd-redeem-box { margin-top:.3rem; }
 .jd-index-page .jd-redeem-sum { list-style:none; cursor:pointer; font-size:.78rem; color:rgba(20,32,51,.5); }
 .jd-index-page .jd-redeem-sum::-webkit-details-marker { display:none; }

@@ -1,0 +1,24 @@
+# 原味藍圖 Ormap
+# 公開內容開放檢索；需登入的個人頁、內部管理頁與示範模組不進搜尋引擎。
+
+User-agent: *
+Allow: /
+
+# 需登入或屬個人資料的頁面
+Disallow: /dashboard.html
+Disallow: /report.html
+Disallow: /timeline.html
+
+# 內部管理頁
+Disallow: /admin.html
+Disallow: /counselors.html
+
+# 評測作答頁（公開入口請看 /tools/twa-intro.html 與 /tools/hti-intro.html）
+Disallow: /tools/twa.html
+Disallow: /tools/hti.html
+
+# 示範與原型
+Disallow: /mockups/
+Disallow: /tools/job-design/
+
+Sitemap: https://careervalue-ormap.web.app/sitemap.xml

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  原味藍圖 Ormap — sitemap
+  目前為手寫版本，只涵蓋公開頁。
+  批次 2 起改由 scripts/build-content.mjs 產生，屆時會自動納入所有文章與分類頁。
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://careervalue-ormap.web.app/</loc></url>
+  <url><loc>https://careervalue-ormap.web.app/about.html</loc></url>
+  <url><loc>https://careervalue-ormap.web.app/blog.html</loc></url>
+  <url><loc>https://careervalue-ormap.web.app/tools.html</loc></url>
+  <url><loc>https://careervalue-ormap.web.app/tools/twa-intro.html</loc></url>
+  <url><loc>https://careervalue-ormap.web.app/tools/hti-intro.html</loc></url>
+  <url><loc>https://careervalue-ormap.web.app/courses.html</loc></url>
+  <url><loc>https://careervalue-ormap.web.app/services.html</loc></url>
+  <url><loc>https://careervalue-ormap.web.app/organizations.html</loc></url>
+  <url><loc>https://careervalue-ormap.web.app/feedback.html</loc></url>
+  <url><loc>https://careervalue-ormap.web.app/privacy.html</loc></url>
+  <url><loc>https://careervalue-ormap.web.app/terms.html</loc></url>
+</urlset>

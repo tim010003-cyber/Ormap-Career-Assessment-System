@@ -297,6 +297,15 @@ export function saveCase(c) {
   return c;
 }
 
+/** 封存：從清單隱藏，但不刪除資料（P2）。 */
+export function isArchived(c) {
+  return !!c?.archived;
+}
+export function setArchived(c, on) {
+  c.archived = !!on;
+  return saveCase(c);
+}
+
 /** 使用者手動管理的專案狀態：not_started | in_progress | done */
 export function getProjectStatus(c) {
   return c?.project_status || 'in_progress';

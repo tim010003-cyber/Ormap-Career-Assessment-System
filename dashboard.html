@@ -254,6 +254,7 @@ tailwind.config = {
     color: var(--space-teal-dark);
   }
   .blueprint-tool--hti .blueprint-tool__icon { background: #f8e5d9; color: #a65325; }
+  .blueprint-tool--jd .blueprint-tool__icon { background: #e4ebf4; color: #3f5675; }
   .blueprint-tool--future { opacity: .72; }
   .blueprint-tool__name { margin: 0; font-size: .98rem; font-weight: 900; }
   .blueprint-tool__desc { margin: .12rem 0 0; color: var(--space-muted); font-size: .75rem; line-height: 1.55; }
@@ -421,7 +422,7 @@ tailwind.config = {
     </div>
     <div class="space-blueprint-layout">
       <div class="space-panel">
-        <div class="space-panel__top"><span class="space-panel__label">探索拼圖</span><span class="space-status space-status--live">2 項工具已開放</span></div>
+        <div class="space-panel__top"><span class="space-panel__label">探索拼圖</span><span class="space-status space-status--live">3 項工具已開放</span></div>
         <div class="blueprint-list">
           <a href="tools/twa.html" class="blueprint-tool">
             <span class="blueprint-tool__icon"><i data-lucide="compass" class="w-5 h-5" aria-hidden="true"></i></span>
@@ -432,6 +433,11 @@ tailwind.config = {
             <span class="blueprint-tool__icon"><i data-lucide="sparkles" class="w-5 h-5" aria-hidden="true"></i></span>
             <span><span class="blueprint-tool__name">何倫興趣與行動風格</span><span class="blueprint-tool__desc">從活動偏好與投入動機，看見你的特質組合。</span></span>
             <span id="htiBlueprintStatus" class="blueprint-tool__state" data-complete="false">尚未探索</span>
+          </a>
+          <a href="tools/job-design/index.html" class="blueprint-tool blueprint-tool--jd">
+            <span class="blueprint-tool__icon"><i data-lucide="user-search" class="w-5 h-5" aria-hidden="true"></i></span>
+            <span><span class="blueprint-tool__name">職務設計與甄選</span><span class="blueprint-tool__desc">顧問引導式的工作分析，設計職務、人才規格與甄選流程。</span></span>
+            <span class="blueprint-tool__state">免費試看</span>
           </a>
           <div class="blueprint-tool blueprint-tool--future" aria-label="微型探索工具規劃中">
             <span class="blueprint-tool__icon"><i data-lucide="lightbulb" class="w-5 h-5" aria-hidden="true"></i></span>

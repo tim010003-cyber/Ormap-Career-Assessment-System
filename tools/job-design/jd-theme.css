@@ -364,6 +364,11 @@
 .jd-index-page .pstat--not_started { background:rgba(20,32,51,.05); color:rgba(20,32,51,.45); }
 .jd-index-page .pstat--in_progress { background:rgba(30,145,136,.13); color:var(--jd-teal-deep); }
 .jd-index-page .pstat--done { background:rgba(20,32,51,.10); color:rgba(20,32,51,.6); }
+.jd-index-page .pstat--archived { background:rgba(20,32,51,.05); color:rgba(20,32,51,.38); }
+.jd-index-page .jd-table__row.is-archived { opacity:.62; }
+.jd-index-page .jd-arch-toggle { padding:.65rem 1.15rem; border-top:1px solid rgba(20,32,51,.06); text-align:center; }
+.jd-index-page .jd-arch-toggle button { font-size:.8rem; font-weight:700; color:rgba(20,32,51,.5); }
+.jd-index-page .jd-arch-toggle button:hover { color:var(--jd-teal-deep); }
 .jd-index-page .jd-table .jd-list-more { border-top:1px dashed rgba(20,32,51,.1); }
 @media (max-width:720px){
   .jd-index-page .jd-table__head { display:none; }

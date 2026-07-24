@@ -141,6 +141,10 @@
         <label class="block text-sm font-semibold text-navy mb-1">狀態</label>
         <select id="editStatus" class="w-full border border-navy/15 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-tealgreen"></select>
       </div>
+      <label class="flex items-center gap-2 mt-4 text-sm text-navy/70 cursor-pointer">
+        <input type="checkbox" id="editArchived" class="w-4 h-4">
+        <span>封存這個專案（從清單收起來，資料不會刪除）</span>
+      </label>
       <div class="flex justify-between gap-2 mt-6">
         <button type="button" id="editCancel" class="px-4 py-2 rounded-lg text-navy/60 hover:bg-navy/5">取消</button>
         <button type="submit" class="px-5 py-2 rounded-lg bg-navy text-ivory font-semibold hover:bg-tealdeep">儲存</button>
@@ -151,7 +155,7 @@
 
 <script type="module">
 import { CASE_FIELDS, PATHS, pathName, PROJECT_STATUS, PROJECT_STATUS_ORDER } from './jd-fields.js';
-import { listCases, createCase, deleteCase, getModuleStatus, resyncCloud, getCase, updateCaseFields, setProjectStatus, getProjectStatus } from './jd-store.js';
+import { listCases, createCase, deleteCase, getModuleStatus, resyncCloud, getCase, updateCaseFields, setProjectStatus, getProjectStatus, isArchived, setArchived } from './jd-store.js';
 import { countPending } from './jd-word.js';
 import { seedPathACase } from './jd-seed.js';
 import { aiStatus, isLocalEnv, whyNotReady, signIn, onAuth, myAccess, redeemCode, remaining } from './jd-ai.js';
@@ -164,6 +168,8 @@ const escapeHtml = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&l
 const esc = escapeHtml;
 // 目前登入者：建立專案時把「建立人」自動帶進去（給內部文件用，不放外面表單）。
 let _me = null;
+// 封存的專案預設收起來，點清單底部的切換才顯示。
+let _showArchived = false;
 
 
 // ── 看示範：只留完整職務設計示範，點了直接開啟（不進下方清單）──
@@ -189,19 +195,22 @@ function progressOf(c){
 
 function render(){
   // 示範不進清單：只顯示使用者自己的專案（示範由上方「開啟」直接開啟）。
-  const cases = listCases().filter(c=>!c.is_demo);
-  $('#caseCount').textContent = cases.length ? `${cases.length} 個專案` : '';
+  const all = listCases().filter(c=>!c.is_demo);
+  const archived = all.filter(c=>isArchived(c));
+  const cases = _showArchived ? all : all.filter(c=>!isArchived(c));   // 封存預設收起來
+  $('#caseCount').textContent = all.length ? `${all.length-archived.length} 個專案` : '';
   // 有專案就把「使用說明」自動收起（只有第一次、沒有專案時才展開）
-  const guide=$('#usageGuide'); if(guide) guide.open = cases.length===0;
+  const guide=$('#usageGuide'); if(guide) guide.open = all.length===0;
   const list = $('#caseList');
-  list.classList.toggle('hidden', cases.length===0);
-  $('#emptyState').classList.toggle('hidden', cases.length>0);
-  if(!cases.length){ list.innerHTML=''; return; }
+  list.classList.toggle('hidden', all.length===0);
+  $('#emptyState').classList.toggle('hidden', all.length>0);
+  if(!all.length){ list.innerHTML=''; return; }
 
   // Notion 式表格：表頭＋欄位（專案名稱／組織／職稱／狀態）＋操作
   let html = `<div class="jd-table"><div class="jd-table__head">`
     + `<span>專案名稱</span><span class="c-org">組織</span><span class="c-job">職稱／職務</span><span>狀態</span><span aria-hidden="true"></span></div>`;
   cases.forEach(c=>{
+    const arch = isArchived(c);
     const ps = getProjectStatus(c);
     const [label] = STATUS_STYLE[ps] || STATUS_STYLE.in_progress;
     const title  = escapeHtml(c.fields['case.title']?.value||'未命名專案');
@@ -209,19 +218,25 @@ function render(){
     const org    = escapeHtml(c.fields['case.organization_name']?.value||'');
     const job    = escapeHtml(c.fields['case.job_title_working']?.value||'');
     const sub    = [client && ('客戶：'+client), org, job].filter(Boolean).join(' · ');
-    html += `<div class="jd-table__row" data-open="${c.case_id}">`
+    html += `<div class="jd-table__row${arch?' is-archived':''}" data-open="${c.case_id}">`
       + `<div class="jd-table__name"><span class="t">${title}</span>${sub?`<span class="sub">${sub}</span>`:''}</div>`
       + `<div class="jd-table__c c-org">${org||'—'}</div>`
       + `<div class="jd-table__c c-job">${job||'—'}</div>`
-      + `<div class="jd-table__st"><span class="pstat pstat--${ps}">${label}</span></div>`
+      + `<div class="jd-table__st">${arch?'<span class="pstat pstat--archived">已封存</span>':`<span class="pstat pstat--${ps}">${label}</span>`}</div>`
       + `<div class="jd-table__act">`
         + `<button data-edit="${c.case_id}" class="row-btn" title="編輯專案" aria-label="編輯專案"><i data-lucide="pencil" class="w-4 h-4"></i></button>`
         + `<button data-del="${c.case_id}" class="row-btn row-del" title="刪除專案" aria-label="刪除專案"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`
         + `<a href="./case.html?caseId=${c.case_id}" class="row-btn" title="開啟專案" aria-label="開啟專案"><i data-lucide="chevron-right" class="w-5 h-5"></i></a>`
       + `</div></div>`;
   });
-  html += `<div class="jd-list-more">新的專案會列在這裡</div></div>`;
+  html += cases.length
+    ? `<div class="jd-list-more">新的專案會列在這裡</div>`
+    : `<div class="jd-list-more">目前沒有進行中的專案</div>`;
+  if(archived.length) html += `<div class="jd-arch-toggle"><button type="button" id="archToggle">${_showArchived?'隱藏':'顯示'}已封存（${archived.length}）</button></div>`;
+  html += `</div>`;
   list.innerHTML = html;
+
+  const at=$('#archToggle'); if(at) at.addEventListener('click', ()=>{ _showArchived=!_showArchived; render(); });
 
   list.querySelectorAll('.jd-table__row').forEach(r=>r.addEventListener('click', e=>{
     if(e.target.closest('[data-del]')||e.target.closest('[data-edit]')||e.target.closest('a')) return;
@@ -335,6 +350,7 @@ function buildEditForm(c){
   const sel = $('#editStatus'); sel.innerHTML='';
   PROJECT_STATUS_ORDER.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=PROJECT_STATUS[s]; sel.appendChild(o); });
   sel.value = getProjectStatus(c);
+  $('#editArchived').checked = isArchived(c);
 }
 function openEditDialog(caseId){
   const c = getCase(caseId); if(!c) return;
@@ -353,6 +369,7 @@ $('#editForm').addEventListener('submit',(e)=>{
   if(miss.length){ alert('請填寫：'+miss.map(f=>f.name).join('、')); return; }
   updateCaseFields(c, values);
   setProjectStatus(c, $('#editStatus').value);
+  setArchived(c, $('#editArchived').checked);
   editDialog.close();
   render();
 });
